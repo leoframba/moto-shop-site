@@ -1,65 +1,62 @@
-import Image from "next/image";
+// apps/frontend/app/page.tsx
 
-export default function Home() {
+export default async function Home() {
+  const res = await fetch('http://127.0.0.1:8000/api/services', {
+    cache: 'no-store' 
+  });
+  
+  if (!res.ok) {
+    return <div className="p-10 text-red-500">Failed to load services</div>;
+  }
+
+  const data = await res.json();
+  const services = data.services;
+  const hourlyRate = data.hourly_rate;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-neutral-950 text-neutral-200 p-8 md:p-24 font-sans">
+      <div className="max-w-4xl mx-auto border border-neutral-800 rounded-2xl bg-neutral-900 overflow-hidden shadow-2xl">
+        
+        {/* Header Section */}
+        <div className="bg-neutral-950 p-8 border-b border-neutral-800 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-2">
+              Service Menu
+            </h1>
+            <p className="text-neutral-400">Professional maintenance & repair.</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">Shop Rate</p>
+            <p className="text-2xl font-mono text-emerald-400">${hourlyRate}/hr</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Services List */}
+        <div className="divide-y divide-neutral-800">
+          {services.map((service: any) => (
+            <div key={service.id} className="p-8 hover:bg-neutral-800/50 transition-colors flex flex-col md:flex-row justify-between md:items-center gap-4">
+              <div className="max-w-xl">
+                <h2 className="text-xl font-semibold text-white mb-1">{service.name}</h2>
+                <p className="text-neutral-400 text-sm leading-relaxed">
+                  {service.description}
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-6">
+                <div className="text-right hidden md:block">
+                  <span className="text-xs text-neutral-500 uppercase">Est. Time</span>
+                  <p className="text-sm font-mono text-neutral-300">{service.estimated_hours} hrs</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-neutral-500 uppercase">Price</span>
+                  <p className="text-2xl font-mono text-white">${service.calculated_price.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+
+      </div>
+    </main>
   );
 }
