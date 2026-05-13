@@ -1,0 +1,10 @@
+{
+  "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
+    "prettier --write",
+    "eslint --fix"
+  ],
+  "apps/backend/**/*.py": [
+    "ruff format",
+    "ruff check --fix"
+  ]
+}

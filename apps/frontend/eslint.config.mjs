@@ -6,15 +6,10 @@ import eslintConfigPrettier from "eslint-config-prettier";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  
-  globalIgnores([
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
 
-  eslintConfigPrettier, 
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+
+  eslintConfigPrettier,
 ]);
 
 export default eslintConfig;
