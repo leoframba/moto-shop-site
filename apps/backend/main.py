@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, field_validator
 from supabase import Client, create_client
 
 load_dotenv()
@@ -23,6 +24,7 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 
+# Editable service page
 @app.get("/api/services")
 async def get_services():
     try:
@@ -59,3 +61,43 @@ async def get_services():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class RateUpdate(BaseModel):
+    hourly_rate: float
+
+
+@app.patch("/api/admin/shop-rate")
+async def update_hourly_rate(update: RateUpdate):
+    response = (
+        supabase.table("shop_settings")
+        .update({"hourly_rate": update.hourly_rate})
+        .eq("id", 1)
+        .execute()
+    )
+
+    if len(response.data) == 0:
+        raise HTTPException(status_code=400, detail="Failed to update rate")
+    return response.data[0]
+
+
+class ServiceCreate(BaseModel):
+    name: str = Field(..., min_length=2)
+    description: str | None = None
+
+    # Ensure value is at least 0.1
+    estimated_hours: float = Field(..., gt=0)
+
+    @field_validator("name")
+    @classmethod
+    def capitalize_name(cls, v: str) -> str:
+        if not v:
+            return v
+        return v.strip().title()
+
+    @field_validator("estimated_hours")
+    @classmethod
+    def check_positive_hours(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("Estimated hours must be greater than zero")
+        return v
