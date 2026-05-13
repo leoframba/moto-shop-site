@@ -24,6 +24,28 @@ key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 
+# Patch Request for editing services
+class ServiceUpdate(BaseModel):
+    name: str
+    description: str
+    estimated_hours: float
+
+
+@app.patch("/api/admin/services/{service_id}")
+async def update_service(service_id: str, service: ServiceUpdate):
+    response = (
+        supabase.table("services")
+        .update(service.model_dump())
+        .eq("id", service_id)
+        .execute()
+    )
+
+    if len(response.data) == 0:
+        raise HTTPException(status_code=400, detail="Failed to update service")
+
+    return response.data[0]
+
+
 # Editable service page
 @app.get("/api/services")
 async def get_services():
@@ -102,3 +124,30 @@ class ServiceCreate(BaseModel):
         if v <= 0:
             raise ValueError("Estimated hours must be greater than zero")
         return v
+
+
+# Adding a new service
+@app.post("/api/admin/services")
+async def create_service(service: ServiceCreate):
+    try:
+        response = supabase.table("services").insert(service.model_dump()).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=400, detail="Failed to create service")
+
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Deleting a service
+@app.delete("/api/admin/services/{service_id}")
+async def delete_service(service_id: str):
+    response = supabase.table("services").delete().eq("id", service_id).execute()
+
+    if not response.data:
+        raise HTTPException(
+            status_code=404, detail="Service not found or already deleted"
+        )
+
+    return {"message": "Service deleted successfully"}
