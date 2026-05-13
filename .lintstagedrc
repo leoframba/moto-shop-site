@@ -1,7 +1,7 @@
 {
   "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
     "prettier --write",
-    "eslint --fix --config apps/frontend/eslintrc.json"
+    "yarn workspace frontend eslint --fix"
   ],
   "apps/backend/**/*.py": [
     "ruff format",

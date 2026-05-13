@@ -56,6 +56,7 @@ async def get_services():
                     "calculated_price": final_price,
                 }
             )
+        print(hourly_rate)
 
         return {"hourly_rate": hourly_rate, "services": calculated_services}
 
@@ -75,7 +76,7 @@ async def update_hourly_rate(update: RateUpdate):
         .eq("id", 1)
         .execute()
     )
-
+    print(response)
     if len(response.data) == 0:
         raise HTTPException(status_code=400, detail="Failed to update rate")
     return response.data[0]

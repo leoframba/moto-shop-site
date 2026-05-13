@@ -1,13 +1,6 @@
 // apps/frontend/app/page.tsx
 
-interface Service {
-  id: string | number;
-  name: string;
-  description: string;
-  price?: number;
-  estimated_hours: number;
-  calculated_price: number;
-}
+import { Service } from "@/types";
 
 export default async function Home() {
   const res = await fetch("http://127.0.0.1:8000/api/services", {
@@ -75,7 +68,11 @@ export default async function Home() {
                     Price
                   </span>
                   <p className="text-2xl font-mono text-white">
-                    ${service.calculated_price.toFixed(2)}
+                    $
+                    {service.calculated_price.toFixed(2) &&
+                    service.calculated_price > 0
+                      ? `${service.calculated_price.toFixed(2)}`
+                      : "Contact for Quote"}
                   </p>
                 </div>
               </div>
