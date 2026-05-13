@@ -1,7 +1,6 @@
 {
   "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
-    "prettier --write",
-    "yarn workspace frontend eslint --fix"
+    "yarn workspace frontend biome check --write --no-errors-on-unmatched"
   ],
   "apps/backend/**/*.py": [
     "ruff format",
