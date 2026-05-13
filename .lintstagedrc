@@ -1,7 +1,7 @@
 {
   "apps/frontend/src/**/*.{ts,tsx,js,jsx}": [
     "prettier --write",
-    "eslint --fix --config apps/frontend/eslint.config.mjs"
+    "eslint --fix --config apps/frontend/eslintrc.json"
   ],
   "apps/backend/**/*.py": [
     "ruff format",
