@@ -1,12 +1,8 @@
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
 
 export default function Home() {
 	return (
 		<main className="min-h-screen bg-black font-sans">
-			{/* NAVIGATION */}
-			<Navbar />
-
 			<div className="relative h-screen flex items-center justify-center overflow-hidden">
 				<div
 					className="absolute inset-0 z-0 opacity-50 bg-cover bg-center bg-no-repeat grayscale-[30%]"
@@ -44,102 +40,6 @@ export default function Home() {
 					</div>
 				</div>
 			</div>
-
-			{/* FOOTER */}
-			<footer className="bg-neutral-950 border-t border-neutral-900 py-16 px-4">
-				<div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
-					{/* LOCATION */}
-					<div>
-						<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center md:justify-start gap-2">
-							<span className="text-red-600">{"///"}</span> Location
-						</h4>
-						<p className="text-neutral-400 leading-relaxed">
-							1135 Old Bayshore Highway
-							<br />
-							San Jose, CA 95112
-							<br />
-							<a
-								href="https://maps.google.com/?q=1135+Old+Bayshore+Highway,+San+Jose,+CA+95112"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-red-500 hover:text-red-400 text-sm mt-2 inline-block transition-colors uppercase tracking-wider"
-							>
-								Get Directions &rarr;
-							</a>
-						</p>
-					</div>
-
-					{/* HOURS */}
-					<div>
-						<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center md:justify-start gap-2">
-							<span className="text-red-600">{"///"}</span> Hours
-						</h4>
-						<ul className="text-neutral-400 space-y-2">
-							<li className="flex justify-center md:justify-start gap-4">
-								<span className="w-24">Tues - Fri:</span>
-								<span className="text-white">9:30 AM - 5:00 PM</span>
-							</li>
-							<li className="flex justify-center md:justify-start gap-4">
-								<span className="w-24">Saturday:</span>
-								<span className="text-white">9:30 AM - 2:00 PM</span>
-							</li>
-							<li className="flex justify-center md:justify-start gap-4">
-								<span className="w-24">Sunday-Monday:</span>
-								<span className="text-red-500 italic">Closed</span>
-							</li>
-						</ul>
-					</div>
-
-					{/* CONTACT */}
-					<div>
-						<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center md:justify-start gap-2">
-							<span className="text-red-600">{"///"}</span> Contact
-						</h4>
-						<div className="text-neutral-400 space-y-2">
-							<p>
-								<span className="block text-xs uppercase tracking-widest text-neutral-600 mb-1">
-									Jim Davis
-								</span>
-								<a
-									href="tel:+14155551234"
-									className="text-2xl font-mono text-white hover:text-red-500 transition-colors"
-								>
-									(408)299-0508
-								</a>
-							</p>
-							<p className="pt-2">
-								<a
-									href="mailto:service@rossomoto.com"
-									className="hover:text-white transition-colors"
-								>
-									jim@advcycles.com
-								</a>
-							</p>
-						</div>
-					</div>
-				</div>
-
-				{/* COPYRIGHT */}
-				<div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-neutral-900 text-center flex flex-col md:flex-row justify-between items-center gap-4">
-					<p className="text-neutral-600 text-sm uppercase tracking-widest">
-						&copy; {new Date().getFullYear()} ADVCycles. All rights reserved.
-					</p>
-					<div className="flex gap-6">
-						<Link
-							href="#"
-							className="text-neutral-600 hover:text-white transition-colors text-sm uppercase tracking-widest"
-						>
-							Instagram
-						</Link>
-						<Link
-							href="#"
-							className="text-neutral-600 hover:text-white transition-colors text-sm uppercase tracking-widest"
-						>
-							Facebook
-						</Link>
-					</div>
-				</div>
-			</footer>
 		</main>
 	);
 }

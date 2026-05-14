@@ -1,0 +1,101 @@
+import Link from "next/link";
+
+export default function Footer() {
+	return (
+		<footer className="bg-neutral-950 border-t border-neutral-900 py-16 px-4">
+			{/* MAIN CONTENT - Forced center on all screens */}
+			<div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+				{/* LOCATION */}
+				<div className="flex flex-col items-center">
+					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+						<span className="text-red-600">{"///"}</span> Location
+					</h4>
+					<p className="text-neutral-400 leading-relaxed">
+						1135 Old Bayshore Highway
+						<br />
+						San Jose, CA 95112
+						<br />
+						<a
+							href="https://maps.google.com/?q=1135+Old+Bayshore+Highway,+San+Jose,+CA+95112"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-red-500 hover:text-red-400 text-sm mt-2 inline-block transition-colors uppercase tracking-wider"
+						>
+							Get Directions &rarr;
+						</a>
+					</p>
+				</div>
+
+				{/* HOURS - Formatted as a centered mini-table */}
+				<div className="flex flex-col items-center">
+					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+						<span className="text-red-600">{"///"}</span> Hours
+					</h4>
+					<ul className="text-neutral-400 space-y-2 text-left">
+						<li className="flex gap-4">
+							<span className="w-32 text-right">Tues - Fri:</span>
+							<span className="text-white w-36">9:30 AM - 5:00 PM</span>
+						</li>
+						<li className="flex gap-4">
+							<span className="w-32 text-right">Saturday:</span>
+							<span className="text-white w-36">9:30 AM - 2:00 PM</span>
+						</li>
+						<li className="flex gap-4">
+							<span className="w-32 text-right">Sunday - Monday:</span>
+							<span className="text-red-500 italic w-36">Closed</span>
+						</li>
+					</ul>
+				</div>
+
+				{/* CONTACT */}
+				<div className="flex flex-col items-center">
+					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+						<span className="text-red-600">{"///"}</span> Contact
+					</h4>
+					<div className="text-neutral-400 space-y-2">
+						<p>
+							<span className="block text-xs uppercase tracking-widest text-neutral-600 mb-1">
+								Jim Davis
+							</span>
+							<a
+								href="tel:+14082990508"
+								className="text-2xl font-mono text-white hover:text-red-500 transition-colors"
+							>
+								(408) 299-0508
+							</a>
+						</p>
+						<p className="pt-2">
+							<a
+								href="mailto:jim@advcycles.com"
+								className="hover:text-white transition-colors"
+							>
+								jim@advcycles.com
+							</a>
+						</p>
+					</div>
+				</div>
+			</div>
+
+			{/* COPYRIGHT - Centered vertically and horizontally */}
+			<div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-neutral-900 flex flex-col items-center gap-6 text-center">
+				<div className="flex gap-8">
+					<Link
+						href="#"
+						className="text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
+					>
+						Instagram
+					</Link>
+					<Link
+						href="#"
+						className="text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
+					>
+						Facebook
+					</Link>
+				</div>
+				<p className="text-neutral-600 text-sm uppercase tracking-widest">
+					&copy; {new Date().getFullYear()} ADVCycles. All rights reserved.
+				</p>
+			</div>
+		</footer>
+	);
+}
