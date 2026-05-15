@@ -1,17 +1,18 @@
 {
-  "name": "moto-shop-repo",
-  "packageManager": "yarn@4.12.0",
-  "workspaces": [
-    "apps/*"
-  ],
-  "devDependencies": {
-    "husky": "^8.0.0",
-    "lint-staged": "^15.2.2"
-  },
-  "scripts": {
-    "prepare": "husky install",
-    "lint": "yarn workspace frontend lint && yarn workspace backend lint",
-    "format": "yarn workspace frontend format && ruff format apps/backend",
-    "check-all": "yarn lint && yarn format"
-  }
+	"name": "moto-shop-repo",
+	"private": true,
+	"packageManager": "yarn@4.12.0",
+	"workspaces": [
+		"apps/*"
+	],
+	"devDependencies": {
+		"husky": "^8.0.0",
+		"lint-staged": "^15.2.2"
+	},
+	"scripts": {
+		"prepare": "husky install",
+		"lint": "yarn workspace frontend lint && yarn workspace backend lint",
+		"format": "yarn workspace frontend format && ruff format apps/backend",
+		"check-all": "yarn lint && yarn format"
+	}
 }
