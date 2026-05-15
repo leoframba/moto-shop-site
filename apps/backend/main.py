@@ -17,6 +17,7 @@ app.add_middleware(
         "https://moto-shop-site-frontend.vercel.app"
         "https://moto-shop-site-frontend-leoframbas-projects.vercel.app",
     ],
+    allow_origin_regex=r"https://moto-shop-site-frontend-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
