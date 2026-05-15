@@ -3,6 +3,8 @@ import Navbar from "@/components/Navbar";
 import type { Service, ServiceResponse } from "@/types";
 import { apiRequest } from "@/utils/api";
 
+export const dynamic = "force-dynamic";
+
 export default async function ServicesPage() {
 	let hourlyRate = 0;
 	let services: Service[] = [];
