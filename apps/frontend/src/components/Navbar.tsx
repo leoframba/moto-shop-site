@@ -38,10 +38,10 @@ export default function Navbar() {
 							</Link>
 						))}
 						<Link
-							href="/book"
+							href="/contact"
 							className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded font-bold uppercase tracking-wider transition-all"
 						>
-							Book Service
+							Contact Us
 						</Link>
 					</div>
 
