@@ -11,3 +11,8 @@ export interface AdminInitialData {
 	hourly_rate: number;
 	services: Service[];
 }
+
+export interface ServiceResponse {
+	hourly_rate: number;
+	services: Service[];
+}

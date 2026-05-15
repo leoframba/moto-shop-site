@@ -1,12 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ServiceResponse } from "@/types";
+import { apiRequest } from "@/utils/api";
 import AdminDashboard from "./AdminDashboard";
 
 export default async function AdminPage() {
 	const cookieStore = await cookies();
 
-	// Create a server-side Supabase client to check the session
+	// Supabase client
 	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 	const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -37,16 +39,14 @@ export default async function AdminPage() {
 		redirect("/login");
 	}
 
-	const res = await fetch("http://127.0.0.1:8000/api/services", {
+	const data: ServiceResponse = await apiRequest("/api/services", {
 		cache: "no-store",
 	});
-	const data = await res.json();
 
 	const initialData = {
 		hourly_rate: data.hourly_rate,
 		services: data.services,
 	};
 
-	// Pass the data to the interactive client component
 	return <AdminDashboard initialData={initialData} />;
 }

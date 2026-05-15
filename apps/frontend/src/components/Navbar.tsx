@@ -20,7 +20,7 @@ export default function Navbar() {
 					<div className="flex-shrink-0 flex items-center">
 						<Link
 							href="/"
-							className="text-2xl font-black text-white tracking-tighter uppercase italic"
+							className="text-4xl font-black text-white tracking-tighter uppercase italic transition-all duration-300 ease-in-out hover:scale-110 active:scale-95"
 						>
 							A<span className="text-red-600">C</span>S
 						</Link>

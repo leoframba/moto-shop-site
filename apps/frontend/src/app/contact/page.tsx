@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
-import type { Service } from "@/types";
+import type { Service, ServiceResponse } from "@/types";
+import { apiRequest } from "@/utils/api";
 
 export default function ContactPage() {
 	const [services, setServices] = useState<Service[]>([]);
@@ -22,11 +23,11 @@ export default function ContactPage() {
 	useEffect(() => {
 		async function fetchServices() {
 			try {
-				const res = await fetch("http://127.0.0.1:8000/api/services");
-				if (res.ok) {
-					const data = await res.json();
-					setServices(data.services);
-				}
+				const data = await apiRequest<ServiceResponse>("/api/services", {
+					cache: "no-store",
+				});
+
+				setServices(data.services);
 			} catch (error) {
 				console.error("Failed to load services for form:", error);
 			} finally {

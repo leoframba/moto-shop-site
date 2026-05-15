@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { AdminInitialData, Service } from "@/types";
+import { apiRequest } from "@/utils/api";
 
 interface AdminDashboardProps {
 	initialData: AdminInitialData;
@@ -25,20 +26,14 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		estimated_hours: 1,
 	});
 
-	// API handlers
 	const saveRate = async (newRate: number) => {
 		console.log("Sending new rate to backend = ", newRate);
 
 		try {
-			const res = await fetch("http://127.0.0.1:8000/api/admin/shop-rate", {
+			await apiRequest("/api/admin/shop-rate", {
 				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ hourly_rate: newRate }),
 			});
-
-			if (!res.ok) {
-				throw new Error(`Failed to update: ${res.status}`);
-			}
 
 			alert("Shop rate updated successfully in database!");
 		} catch (error) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import type { Service } from "@/types";
+import type { Service, ServiceResponse } from "@/types";
+import { apiRequest } from "@/utils/api";
 
 export default async function ServicesPage() {
 	let hourlyRate = 0;
@@ -8,19 +9,14 @@ export default async function ServicesPage() {
 	let fetchError = false;
 
 	try {
-		const res = await fetch("http://127.0.0.1:8000/api/services", {
+		const data = await apiRequest<ServiceResponse>("/api/services", {
 			cache: "no-store",
 		});
 
-		if (!res.ok) {
-			throw new Error("Failed to fetch services");
-		}
-
-		const data = await res.json();
 		hourlyRate = data.hourly_rate;
 		services = data.services;
 	} catch (error) {
-		console.error("Failed to load service menu:", error);
+		console.error("Failed to fetch services:", error);
 		fetchError = true;
 	}
 
