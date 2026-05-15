@@ -1,0 +1,116 @@
+{
+	"shopLinks": {
+		"google": "https://www.google.com/maps/place/Advanced+Cycle+Services/@37.3638907,-121.8960891,17z/data=!4m2!3m1!1s0x808fcc7980427de3:0xbc381c99493585f0",
+		"yelp": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2"
+	},
+	"testimonials": [
+		{
+			"id": "1",
+			"platform": "Google",
+			"author": "Arjun A.",
+			"rating": 5,
+			"date": "May 2023",
+			"text": "Jim is an honest and trustworthy guy whose experience with Ducatis makes him indispensable. Came in with a weird issue where my hypermotard would suddenly lose power. Initially thought it was the servo and I plugged in a servo bypass. Couple of days later I stalled on 101 and managed to limp to Jim’s. He took a look and ran some diagnostics. Turns out the battery module was faulty and was cathode was broken. He promptly replaced the battery and I was back on the road in less than 30 mins.",
+			"link": "https://maps.app.goo.gl/Kqc16f1LMZWGiZtn8"
+		},
+		{
+			"id": "2",
+			"platform": "Yelp",
+			"author": "Kevin E.",
+			"rating": 5,
+			"date": "January 2026",
+			"text": "Jim provides amazing, high-quality service at a very fair price. I brought my Yamaha R6 in for service, and he took the time to walk me through everything, explaining important details along the way. He was extremely generous with his knowledge and clearly cares about doing things right. Highly recommend if you're looking for honest, top-notch motorcycle work.",
+			"link": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2?hrid=B5JHIW99vwnaGUMugAwapA&utm_campaign=www_review_share_popup&utm_medium=copy_link&utm_source=(direct)"
+		},
+		{
+			"id": "3",
+			"platform": "Google",
+			"author": "Marco F.",
+			"rating": 5,
+			"date": "March 2019",
+			"text": "Superior quality service at a competitive price. After few bad experiences with regular dealers, now I bring all my bikes (Ducati, Suzuki) to Advance Cycle Services.",
+			"link": "https://maps.app.goo.gl/DZ8x7EzvPePyxByeA"
+		},
+		{
+			"id": "4",
+			"platform": "Google",
+			"author": "RAY.",
+			"rating": 5,
+			"date": "September 2025",
+			"text": "I've had my bike serviced a few times at Advanced Cycle Service and I can confidently say it is the best motorcycle repair shop I’ve found in the Bay Area. Jim and Burt are top-notch mechanics who have handled each of my bike’s services, big or small, with professionalism and utmost care. They're always happy to explain what needs to be done and why, making the whole process transparent. Not only are they skilled technicians, but they're also genuinely nice people. It’s rare to find such honesty and sincerity at shops nowadays! The customer service and quality care is much better than that of the company dealership service centers. I wholeheartedly recommend Advanced Cycle Service to anyone looking for exceptional motorcycle care. Thanks, Jim and Burt, for saving me countless headaches!",
+			"link": "https://maps.app.goo.gl/93maRLqqHp5bv6A28"
+		},
+		{
+			"id": "5",
+			"platform": "Google",
+			"author": "Brian H.",
+			"rating": 5,
+			"date": "January 2020",
+			"text": "I can't say enough about these guys. Honest, efficient, professional service at a great price. I came in for a set of tires on my GSX-R at 4:30p and left there with my tires and a smile. He even checked and bled my brakes for me free of charge! These guys know customer service and are knowledgeable and proficient, so if you need your bike serviced, come on down and see these guys. You won't be disappointed!",
+			"link": "https://maps.app.goo.gl/rioGYRg4vMWVNSTy6"
+		},
+		{
+			"id": "6",
+			"platform": "Yelp",
+			"author": " Michael C.",
+			"rating": 5,
+			"date": "May 2025",
+			"text": "Jim & Bert run a great shop and are extremely knowledgeable about older Ducati's (mine is a 2007 Multistrada). They suggested some pro-active work and also suggested not doing other work I thought might be worth doing while I was getting a 15k desmo service. They also kept all the parts and showed me pictures of issues dealt with while the bike was apart.\n\nQuality, honest service at competitive rates. Don't hesitate to use them, but be prepared to wait a bit since they are pretty busy (I had a 2-week wait but my bike runs like a champ again!)",
+			"link": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2?hrid=JzpfAj46JVvRfWCQGM5rJQ&utm_campaign=www_review_share_popup&utm_medium=copy_link&utm_source=(direct)"
+		},
+		{
+			"id": "7",
+			"platform": "Yelp",
+			"author": " Michael D.",
+			"rating": 5,
+			"date": "November 2023",
+			"text": "The best Ducati service in the Bay Area.\n\nI've been taking my bikes here for a number of years. Jim is a great guy, and a wealth of knowledge. He was the lead mechanic for Nichols for many years before taking over Advanced Cycle Services (ACS). Service is timely, quality, and very reasonably priced. Jim is friendly, honest, he won't sell you parts or service that you don't need.\n\nWhile I typically bring my 748-998 Superbikes, I've seen everything from Kawasakis to Harley's, both classic and modern serviced.",
+			"link": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2?hrid=qOmzgcGbxRc1qL25H_tOdg&utm_campaign=www_review_share_popup&utm_medium=copy_link&utm_source=(direct)"
+		},
+		{
+			"id": "8",
+			"platform": "Yelp",
+			"author": "Janet D.",
+			"rating": 5,
+			"date": "September 2012",
+			"text": "Jim is awesome! He's awesome in the way he deals with his customers. He doesn't rush you and most importantly he doesn't try to fleece you of your hard earned moolah.\n\nHe's great at keeping his word too. When he said my bike would done by a certain day and time it's done! How awesome is that? He calls you and tells you when your parts are due to arrive.\n\nGreat location. Close to 880,101 and 87.\n\nWhen he was done-the bike looked like nothing happened to it!",
+			"link": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2?hrid=-c9UW3mP2J98-qiw-RjLQg&utm_campaign=www_review_share_popup&utm_medium=copy_link&utm_source=(direct)"
+		},
+		{
+			"id": "9",
+			"platform": "Google",
+			"author": "Ray R.",
+			"rating": 5,
+			"date": "Febuary 2018",
+			"text": "Jim is the only guy I'll take my ducati to.. he runs an amazing shop and a stand up guy. He tells you like it is and answers all your questions. Very knowledgeable with motorcycles and I'll continue to go to him as long as I ride",
+			"link": "https://maps.app.goo.gl/LERkiB5rcA7gFagW7"
+		},
+		{
+			"id": "10",
+			"platform": "Yelp",
+			"author": "Michael 0.",
+			"rating": 5,
+			"date": "April 2024",
+			"text": "Bought a Ducati off Craigslist with almost 0 knowledge of bikes other than how to ride them. Brought in after 4 weeks of ownership for the 15k service.\n\nThere was a million things wrong with the bike I couldn't have known. The previous owner seems to have tried to do all the work himself, and did not do a good job. After market parts installed wrong, missing bolts, etc...\n\nThe shop provided me pictures. Showed me the replacement parts, and gave me a list of stuff that still needs to be done(only because they were parts that weren't on hand)\n\nThe list of things he did outside of the 15k service was definitely more than the extra half hour of labor he charged. Wasn't taking advantage of the situation at all and was happy to help get everything how it should be.\n\nI will be bringing my Ducati back here as long as I have it. Extremely confident in this shop.",
+			"link": "https://www.yelp.com/biz/advanced-cycle-service-san-jose-2?hrid=GIvfx9Bo6JF8h1TQOsppFQ&utm_campaign=www_review_share_popup&utm_medium=copy_link&utm_source=(direct)"
+		},
+		{
+			"id": "11",
+			"platform": "Google",
+			"author": "Robert B.",
+			"rating": 5,
+			"date": "June 2020",
+			"text": "Jim is super transparent and very easy to communicate with. That goes on top of him being a Ducati expert obviously. This is the go to workshop if you own a Ducati and life in the bay, period.",
+			"link": "https://maps.app.goo.gl/oiEXnK6smZu3JsXEA"
+		},
+		{
+			"id": "12",
+			"platform": "Google",
+			"author": "Varun G.",
+			"rating": 5,
+			"date": "May 2026",
+			"text": "If you're looking for someone who truly knows motorcycles inside and out, Jim is the guy. His knowledge, honesty, and willingness to help really stand out, and he delivers genuine 5-star service for both his customers and their bikes.\n\nI recently brought him a used bike I had just purchased, and he treated it like it was his own. The difference after his service was night and day. Riding home afterward was the first time I truly felt excited and happy about buying the bike, it felt transformed!\n\nHe’s about an hour away from me, but after this experience, he’s the only person I trust with my bike going forward.",
+			"link": "https://maps.app.goo.gl/128avCULWk9Qyq1w5"
+		}
+	]
+}
