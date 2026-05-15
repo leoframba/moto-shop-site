@@ -15,7 +15,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://moto-shop-site-frontend.vercel.app"
-        "https://moto-shop-site-frontend-leoframbas-projects.vercel.app/",
+        "https://moto-shop-site-frontend-leoframbas-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
