@@ -1,10 +1,18 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const CLOUD_RUN_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8000";
 
 export async function apiRequest<T>(
 	endpoint: string,
 	options: RequestInit = {},
 ): Promise<T> {
-	const url = `${API_BASE_URL}${endpoint}`;
+	const isServer = typeof window === "undefined";
+
+	let url: string;
+
+	if (isServer) {
+		url = `${CLOUD_RUN_URL}${endpoint}`;
+	} else {
+		url = endpoint;
+	}
 
 	const config: RequestInit = {
 		...options,
