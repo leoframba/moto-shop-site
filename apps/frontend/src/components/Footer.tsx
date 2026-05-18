@@ -9,9 +9,23 @@ export default function Footer() {
 				{/* LOCATION */}
 				<div className="flex flex-col items-center">
 					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
-						<span className="text-red-600">{"///"}</span> Location
+						<span aria-hidden="true" className="text-red-600">
+							{"///"}
+						</span>{" "}
+						Location
 					</h4>
-					<p className="text-neutral-400 leading-relaxed">
+					{/* GOOGLE MAP */}
+					<div className="w-full max-w-[280px] mb-5 h-32 rounded border border-neutral-800 overflow-hidden">
+						<iframe
+							width="100%"
+							height="100%"
+							title="ADVCycles Location Map"
+							src="https://maps.google.com/maps?q=1135+Old+Bayshore+Highway,+San+Jose,+CA+95112&t=&z=14&ie=UTF8&iwloc=&output=embed"
+							className="grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-500"
+							loading="lazy"
+						/>
+					</div>
+					<address className="text-neutral-400 leading-relaxed">
 						1135 Old Bayshore Highway
 						<br />
 						San Jose, CA 95112
@@ -24,13 +38,16 @@ export default function Footer() {
 						>
 							Get Directions &rarr;
 						</a>
-					</p>
+					</address>
 				</div>
 
 				{/* HOURS */}
 				<div className="flex flex-col items-center">
 					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
-						<span className="text-red-600">{"///"}</span> Hours
+						<span aria-hidden="true" className="text-red-600">
+							{"///"}
+						</span>{" "}
+						Hours
 					</h4>
 					<ul className="text-neutral-400 space-y-2 text-left">
 						<li className="flex gap-4">
@@ -51,7 +68,10 @@ export default function Footer() {
 				{/* CONTACT */}
 				<div className="flex flex-col items-center">
 					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
-						<span className="text-red-600">{"///"}</span> Contact
+						<span aria-hidden="true" className="text-red-600">
+							{"///"}
+						</span>{" "}
+						Contact
 					</h4>
 					<div className="text-neutral-400 space-y-2">
 						<p>
@@ -62,7 +82,7 @@ export default function Footer() {
 								href="tel:+14082990508"
 								className="text-2xl font-mono text-white hover:text-red-500 transition-colors"
 							>
-								(408)299-0508
+								(408) 299-0508
 							</a>
 						</p>
 						<p className="pt-2">
