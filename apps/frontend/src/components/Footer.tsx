@@ -5,7 +5,6 @@ import type { SocialLinkProps } from "@/types";
 export default function Footer() {
 	return (
 		<footer className="bg-neutral-950 border-t border-neutral-900 py-16 px-4">
-			{/* MAIN CONTENT - Forced center on all screens */}
 			<div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
 				{/* LOCATION */}
 				<div className="flex flex-col items-center">
@@ -28,7 +27,7 @@ export default function Footer() {
 					</p>
 				</div>
 
-				{/* HOURS - Formatted as a centered mini-table */}
+				{/* HOURS */}
 				<div className="flex flex-col items-center">
 					<h4 className="text-white font-bold uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
 						<span className="text-red-600">{"///"}</span> Hours
@@ -56,7 +55,7 @@ export default function Footer() {
 					</h4>
 					<div className="text-neutral-400 space-y-2">
 						<p>
-							<span className="block text-xs uppercase tracking-widest text-neutral-600 mb-1">
+							<span className="block text-xs uppercase tracking-widest mb-1">
 								Jim Davis
 							</span>
 							<a
