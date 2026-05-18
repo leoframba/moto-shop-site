@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FaFacebook, FaInstagram } from "react-icons/fa";
 
 export default function Footer() {
 	return (
@@ -61,7 +62,7 @@ export default function Footer() {
 								href="tel:+14082990508"
 								className="text-2xl font-mono text-white hover:text-red-500 transition-colors"
 							>
-								(408) 299-0508
+								(408)299-0508
 							</a>
 						</p>
 						<p className="pt-2">
@@ -80,16 +81,20 @@ export default function Footer() {
 			<div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-neutral-900 flex flex-col items-center gap-6 text-center">
 				<div className="flex gap-8">
 					<Link
-						href="#"
-						className="text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
+						href="https://www.instagram.com/explore/locations/15907117/advanced-cycle-service/"
+						target="blank"
+						className="group flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
 					>
-						Instagram
+						<FaInstagram className="text-lg group-hover:scale-110 transition-transform" />
+						<span>Instagram</span>
 					</Link>
 					<Link
-						href="#"
-						className="text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
+						href="https://www.facebook.com/profile.php?id=100054527407297"
+						target="blank"
+						className="group flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
 					>
-						Facebook
+						<FaFacebook className="text-lg group-hover:scale-110 transition-transform" />
+						<span>Facebook</span>
 					</Link>
 				</div>
 				<p className="text-neutral-600 text-sm uppercase tracking-widest">
