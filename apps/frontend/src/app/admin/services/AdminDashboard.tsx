@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { AdminInitialData, Service, ServiceResponse } from "@/types";
-import { apiRequest } from "@/utils/api";
+import { apiRequest, authApiRequest } from "@/utils/api";
 
 interface AdminDashboardProps {
 	initialData: AdminInitialData;
@@ -30,7 +30,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		console.log("Sending new rate to backend = ", newRate);
 
 		try {
-			await apiRequest("/api/admin/shop-rate", {
+			await authApiRequest("/api/admin/shop-rate", {
 				method: "PATCH",
 				body: JSON.stringify({ hourly_rate: newRate }),
 			});
@@ -53,7 +53,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 	const saveEdit = async (id: string | number) => {
 		try {
-			await apiRequest(`/api/admin/services/${id}`, {
+			await authApiRequest(`/api/admin/services/${id}`, {
 				method: "PATCH",
 				body: JSON.stringify(editForm),
 			});
@@ -70,7 +70,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 	const saveNewService = async () => {
 		try {
-			const data = await apiRequest<Service>("/api/admin/services", {
+			const data = await authApiRequest<Service>("/api/admin/services", {
 				method: "POST",
 				body: JSON.stringify(addForm),
 			});

@@ -1,3 +1,5 @@
+import { createClient } from "./supabase/client";
+
 const CLOUD_RUN_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8000";
 
 export async function apiRequest<T>(
@@ -34,4 +36,30 @@ export async function apiRequest<T>(
 	}
 
 	return res.json();
+}
+
+export async function authApiRequest<T>(
+	endpoint: string,
+	options: RequestInit = {},
+): Promise<T> {
+	const supabase = createClient();
+
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
+	const token = session?.access_token;
+
+	if (!token) {
+		throw new Error("Unauthorized: No active session found");
+	}
+
+	const config: RequestInit = {
+		...options,
+		headers: {
+			...options.headers,
+			Authorization: `Bearer ${token}`,
+		},
+	};
+
+	return apiRequest<T>(endpoint, config);
 }
