@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { AdminInitialData, Service } from "@/types";
+import type { AdminInitialData, Service, ServiceResponse } from "@/types";
 import { apiRequest } from "@/utils/api";
 
 interface AdminDashboardProps {
@@ -53,19 +53,11 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 	const saveEdit = async (id: string | number) => {
 		try {
-			// Assuming you will create a PATCH endpoint in FastAPI for specific IDs
-			const res = await fetch(
-				`http://127.0.0.1:8000/api/admin/services/${id}`,
-				{
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(editForm),
-				},
-			);
+			await apiRequest(`/api/admin/services/${id}`, {
+				method: "PATCH",
+				body: JSON.stringify(editForm),
+			});
 
-			if (!res.ok) throw new Error("Failed to save edits");
-
-			// Update local state so the UI reflects the change immediately
 			setServices((prev) =>
 				prev.map((s) => (s.id === id ? { ...s, ...editForm } : s)),
 			);
@@ -78,21 +70,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 	const saveNewService = async () => {
 		try {
-			const res = await fetch("http://127.0.0.1:8000/api/admin/services", {
+			const data = await apiRequest<Service>("/api/admin/services", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(addForm),
 			});
 
-			if (!res.ok) {
-				const errorData = await res.json();
-				console.error("FASTAPI ERROR DETAILS:", errorData);
-				throw new Error(
-					JSON.stringify(errorData.detail) || "Failed to add service",
-				);
-			}
-
-			const newService = await res.json();
+			const newService = data;
 
 			setServices([...services, newService]);
 
@@ -113,17 +96,9 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		);
 
 		try {
-			const res = await fetch(
-				`http://127.0.0.1:8000/api/admin/services/${service_to_delete.id}`,
-				{
-					method: "DELETE",
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-
-			if (!res.ok) {
-				throw new Error(`Failed to delete: ${res.status}`);
-			}
+			await apiRequest(`/api/admin/services/${service_to_delete.id}`, {
+				method: "DELETE",
+			});
 
 			alert("Service deleted successfully!");
 		} catch (error) {
