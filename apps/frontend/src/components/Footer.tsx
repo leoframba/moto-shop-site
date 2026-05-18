@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
+import type { SocialLinkProps } from "@/types";
 
 export default function Footer() {
 	return (
@@ -77,25 +78,17 @@ export default function Footer() {
 				</div>
 			</div>
 
-			{/* COPYRIGHT - Centered vertically and horizontally */}
+			{/* COPYRIGHT/SOCIALS */}
 			<div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-neutral-900 flex flex-col items-center gap-6 text-center">
 				<div className="flex gap-8">
-					<Link
-						href="https://www.instagram.com/explore/locations/15907117/advanced-cycle-service/"
-						target="blank"
-						className="group flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
-					>
-						<FaInstagram className="text-lg group-hover:scale-110 transition-transform" />
-						<span>Instagram</span>
-					</Link>
-					<Link
-						href="https://www.facebook.com/profile.php?id=100054527407297"
-						target="blank"
-						className="group flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
-					>
-						<FaFacebook className="text-lg group-hover:scale-110 transition-transform" />
-						<span>Facebook</span>
-					</Link>
+					{SOCIAL_LINKS.map((social) => (
+						<SocialLink
+							key={social.name}
+							href={social.href}
+							icon={social.icon}
+							name={social.name}
+						/>
+					))}
 				</div>
 				<p className="text-neutral-600 text-sm uppercase tracking-widest">
 					&copy; {new Date().getFullYear()} ADVCycles. All rights reserved.
@@ -104,3 +97,28 @@ export default function Footer() {
 		</footer>
 	);
 }
+
+const SOCIAL_LINKS = [
+	{
+		name: "Instagram",
+		href: "https://www.instagram.com/explore/locations/15907117/advanced-cycle-service/",
+		icon: FaInstagram,
+	},
+	{
+		name: "Facebook",
+		href: "https://www.facebook.com/profile.php?id=100054527407297",
+		icon: FaFacebook,
+	},
+];
+
+const SocialLink = ({ href, icon: Icon, name }: SocialLinkProps) => (
+	<Link
+		href={href}
+		target="_blank"
+		rel="noopener noreferrer"
+		className="group flex items-center gap-2 text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest"
+	>
+		<Icon className="text-lg group-hover:scale-110 transition-transform" />
+		<span>{name}</span>
+	</Link>
+);

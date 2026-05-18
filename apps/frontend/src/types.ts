@@ -1,3 +1,5 @@
+import type { IconType } from "react-icons";
+
 export interface Service {
 	id: string | number;
 	name: string;
@@ -15,4 +17,10 @@ export interface AdminInitialData {
 export interface ServiceResponse {
 	hourly_rate: number;
 	services: Service[];
+}
+
+export interface SocialLinkProps {
+	name: string;
+	href: string;
+	icon: IconType;
 }
