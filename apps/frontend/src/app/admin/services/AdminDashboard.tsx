@@ -94,7 +94,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		);
 
 		try {
-			await apiRequest(`/api/admin/services/${service_to_delete.id}`, {
+			await authApiRequest(`/api/admin/services/${service_to_delete.id}`, {
 				method: "DELETE",
 			});
 

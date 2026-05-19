@@ -4,11 +4,13 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 
 	async rewrites() {
+		const backendUrl = process.env.BACKEND_API_URL || "http://127.0.0.1:8000";
+		console.log(backendUrl);
+
 		return [
 			{
 				source: "/api/:path*",
-				destination:
-					"https://moto-shop-api-276197149194.us-west1.run.app/api/:path*",
+				destination: `${backendUrl}/api/:path*`,
 			},
 		];
 	},
