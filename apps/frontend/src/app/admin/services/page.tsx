@@ -45,6 +45,7 @@ export default async function AdminPage() {
 
 	const initialData = {
 		hourly_rate: data.hourly_rate,
+		categories: data.categories,
 		services: data.services,
 	};
 

@@ -1,7 +1,7 @@
 # routers/admin.py
 from dependencies import supabase, verify_admin
 from fastapi import APIRouter, Depends, HTTPException
-from schemas import RateUpdate, ServiceCreate, ServiceUpdate
+from schemas import CategoryCreate, RateUpdate, ServiceCreate, ServiceUpdate
 
 # Router
 router = APIRouter(
@@ -9,6 +9,29 @@ router = APIRouter(
     tags=["Admin"],
     dependencies=[Depends(verify_admin)],
 )
+
+
+# ==========================================
+# CATEGORY MANAGEMENT
+# ==========================================
+
+
+# Creates a Category
+@router.post("/categories")
+async def create_category(category: CategoryCreate):
+    try:
+        response = supabase.table("categories").insert(category.model_dump()).execute()
+        if not response.data:
+            raise HTTPException(status_code=400, detail="Failed to create category")
+        return response.data[0]
+    except Exception as e:
+        # Supabase throws an error if the unique constraint (duplicate name) is violated
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ==========================================
+# SERVICE MANAGEMENT
+# ==========================================
 
 
 # Creates a Service

@@ -28,7 +28,11 @@ export async function apiRequest<T>(
 
 	if (!res.ok) {
 		const errorData = await res.json().catch(() => ({}));
-		throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
+		const errorMessage =
+			errorData.detail ||
+			errorData.message ||
+			`HTTP error! status: ${res.status}`;
+		throw new Error(errorMessage);
 	}
 
 	if (res.status === 204) {
