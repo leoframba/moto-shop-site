@@ -70,12 +70,10 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 	const saveNewService = async () => {
 		try {
-			const data = await authApiRequest<Service>("/api/admin/services", {
+			const newService = await authApiRequest<Service>("/api/admin/services", {
 				method: "POST",
 				body: JSON.stringify(addForm),
 			});
-
-			const newService = data;
 
 			setServices([...services, newService]);
 
