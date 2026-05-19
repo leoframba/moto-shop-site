@@ -5,7 +5,7 @@ export default function Home() {
 		<main className="min-h-screen bg-black font-sans">
 			<div className="relative h-screen flex items-center justify-center overflow-hidden">
 				<div
-					className="absolute inset-0 z-0 opacity-50 bg-cover bg-center bg-no-repeat grayscale-[30%]"
+					className="absolute inset-0 z-0 opacity-60 bg-cover bg-center bg-no-repeat grayscale-[30%]"
 					style={{ backgroundImage: "url('/hero-bg.jpg')" }}
 				/>
 

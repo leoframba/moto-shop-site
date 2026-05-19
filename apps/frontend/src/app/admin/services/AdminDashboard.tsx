@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import type { AdminInitialData, Service, ServiceResponse } from "@/types";
-import { apiRequest, authApiRequest } from "@/utils/api";
+import type { AdminInitialData, Service } from "@/types";
+import { authApiRequest } from "@/utils/api";
 
 interface AdminDashboardProps {
 	initialData: AdminInitialData;
