@@ -11,7 +11,6 @@ interface CategoryFolderProps {
 export default function CategoryFolder({
 	category,
 	services,
-	hourlyRate,
 }: CategoryFolderProps) {
 	const [isOpen, setIsOpen] = useState(false);
 
