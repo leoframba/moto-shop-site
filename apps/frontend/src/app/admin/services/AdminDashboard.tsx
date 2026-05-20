@@ -1,11 +1,31 @@
 "use client";
 import { useEffect, useState } from "react";
+import ShopRateManager from "@/components/admin/ShopRateManager";
 import type { AdminInitialData, Category, Service } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
 interface AdminDashboardProps {
 	initialData: AdminInitialData;
 }
+
+const calculateServicePrice = (
+	service: Service,
+	currentRate: number,
+): number | null => {
+	const pricingType = service.pricing_type || "hourly";
+
+	if (pricingType === "hourly" && service.estimated_hours != null) {
+		return roundToTwoDecimals(service.estimated_hours * currentRate);
+	}
+	if (pricingType === "fixed" && service.fixed_price != null) {
+		return roundToTwoDecimals(service.fixed_price);
+	}
+	return null;
+};
+
+const roundToTwoDecimals = (num: number): number => {
+	return Math.round((num + Number.EPSILON) * 100) / 100;
+};
 
 export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 	const [hourlyRate, setHourlyRate] = useState<number>(initialData.hourly_rate);
@@ -64,6 +84,14 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				method: "PATCH",
 				body: JSON.stringify({ hourly_rate: newRate }),
 			});
+
+			setServices((prevServices) =>
+				prevServices.map((service) => ({
+					...service,
+					calculated_price: calculateServicePrice(service, newRate),
+				})),
+			);
+			setHourlyRate(newRate);
 			alert("Shop rate updated successfully!");
 		} catch (error) {
 			console.error(error);
@@ -134,10 +162,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				},
 			);
 
-			let calcPrice = null;
-			if (editForm.pricing_type === "hourly")
-				calcPrice = editForm.estimated_hours * hourlyRate;
-			if (editForm.pricing_type === "fixed") calcPrice = editForm.fixed_price;
+			const calcPrice = calculateServicePrice(updatedService, hourlyRate);
 
 			const selectedCat = categories.find((c) => c.id === editForm.category_id);
 
@@ -169,10 +194,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				body: JSON.stringify(addForm),
 			});
 
-			let calcPrice = null;
-			if (addForm.pricing_type === "hourly")
-				calcPrice = addForm.estimated_hours * hourlyRate;
-			if (addForm.pricing_type === "fixed") calcPrice = addForm.fixed_price;
+			const calcPrice = calculateServicePrice(newService, hourlyRate);
 
 			const selectedCat = categories.find((c) => c.id === addForm.category_id);
 
@@ -245,27 +267,10 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 				<div className="grid md:grid-cols-2 gap-6 mb-12">
 					{/* SHOP RATE */}
-					<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">
-						<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">
-							Global Shop Rate
-						</h2>
-						<div className="flex items-center gap-4 mt-4">
-							<span className="text-xl font-mono text-neutral-500">$</span>
-							<input
-								type="number"
-								value={hourlyRate}
-								onChange={(e) => setHourlyRate(Number(e.target.value))}
-								className="bg-neutral-950 border border-neutral-700 rounded-lg px-4 py-3 text-2xl font-mono text-emerald-400 w-32 focus:outline-none focus:border-emerald-500"
-							/>
-							<button
-								type="button"
-								onClick={() => saveRate(hourlyRate)}
-								className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-bold"
-							>
-								Save
-							</button>
-						</div>
-					</section>
+					<ShopRateManager
+						intialRate={initialData.hourly_rate}
+						onSaveRate={saveRate}
+					/>
 
 					{/* CATEGORY MANAGEMENT */}
 					<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">
