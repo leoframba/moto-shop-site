@@ -29,6 +29,18 @@ async def create_category(category: CategoryCreate):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# Deletes a Category
+@router.delete("/categories/{category_id}")
+async def delete_category(category_id: str):
+    try:
+        response = supabase.table("categories").delete().eq("id", category_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ==========================================
 # SERVICE MANAGEMENT
 # ==========================================
