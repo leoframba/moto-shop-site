@@ -14,6 +14,15 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 	);
 	const [services, setServices] = useState<Service[]>(initialData.services);
 
+	const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
+
+	const toggleFolder = (categoryName: string) => {
+		setOpenFolders((prev) => ({
+			...prev,
+			[categoryName]: !prev[categoryName],
+		}));
+	};
+
 	// Category Management States
 	const [newCategoryName, setNewCategoryName] = useState("");
 
@@ -72,7 +81,6 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			setCategories([...categories, newCat]);
 			setNewCategoryName("");
 
-			// If this is the first category, set it as default in the form
 			if (categories.length === 0) {
 				setAddForm((prev) => ({ ...prev, category_id: newCat.id }));
 			}
@@ -126,7 +134,6 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				},
 			);
 
-			// Calculate display price and attach category name for UI
 			let calcPrice = null;
 			if (editForm.pricing_type === "hourly")
 				calcPrice = editForm.estimated_hours * hourlyRate;
@@ -185,6 +192,11 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				fixed_price: 0,
 			});
 			setIsAdding(false);
+
+			setOpenFolders((prev) => ({
+				...prev,
+				[selectedCat?.name || "Uncategorized"]: true,
+			}));
 		} catch (error) {
 			console.error(error);
 			alert("Failed to add new service.");
@@ -208,6 +220,16 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			alert("Failed to delete service.");
 		}
 	};
+
+	const groupedServices = services.reduce(
+		(acc, service) => {
+			const cat = service.categories?.name || "Uncategorized";
+			if (!acc[cat]) acc[cat] = [];
+			acc[cat].push(service);
+			return acc;
+		},
+		{} as Record<string, Service[]>,
+	);
 
 	return (
 		<div className="p-8 bg-neutral-950 min-h-screen text-white font-sans">
@@ -367,7 +389,10 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 												onChange={(e) =>
 													setAddForm({
 														...addForm,
-														pricing_type: e.target.value as any,
+														pricing_type: e.target.value as
+															| "hourly"
+															| "fixed"
+															| "contact",
 													})
 												}
 											>
@@ -437,183 +462,233 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 							</div>
 						)}
 
-						{/* LIST */}
-						{services.map((service) => (
-							<div
-								key={service.id}
-								className="border border-neutral-800 rounded-xl bg-neutral-900 overflow-hidden"
-							>
-								{editingId === service.id ? (
-									<div className="p-6 bg-neutral-800/30 border-l-4 border-emerald-500">
-										<div className="grid gap-4 mb-4">
-											<input
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
-												value={editForm.name}
-												onChange={(e) =>
-													setEditForm({ ...editForm, name: e.target.value })
-												}
-											/>
-											<textarea
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white h-24"
-												value={editForm.description}
-												onChange={(e) =>
-													setEditForm({
-														...editForm,
-														description: e.target.value,
-													})
-												}
-											/>
-											<div className="grid grid-cols-2 gap-4">
-												<select
-													className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
-													value={editForm.category_id}
-													onChange={(e) =>
-														setEditForm({
-															...editForm,
-															category_id: e.target.value,
-														})
-													}
-												>
-													{categories.map((cat) => (
-														<option key={cat.id} value={cat.id}>
-															{cat.name}
-														</option>
-													))}
-												</select>
-												<select
-													className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
-													value={editForm.pricing_type}
-													onChange={(e) =>
-														setEditForm({
-															...editForm,
-															pricing_type: e.target.value as any,
-														})
-													}
-												>
-													<option value="hourly">Hourly Rate</option>
-													<option value="fixed">Fixed Price</option>
-													<option value="contact">Call for Quote</option>
-												</select>
-											</div>
+						{/* ACCORDION FOLDERS */}
+						{Object.entries(groupedServices).map(
+							([category, categoryServices]) => {
+								const isOpen = openFolders[category] || false;
 
-											<div className="flex gap-4">
-												{editForm.pricing_type === "hourly" && (
-													<input
-														type="number"
-														step="0.1"
-														value={editForm.estimated_hours}
-														onChange={(e) =>
-															setEditForm({
-																...editForm,
-																estimated_hours: Number(e.target.value),
-															})
-														}
-														className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
-													/>
-												)}
-												{editForm.pricing_type === "fixed" && (
-													<input
-														type="number"
-														step="1"
-														value={editForm.fixed_price}
-														onChange={(e) =>
-															setEditForm({
-																...editForm,
-																fixed_price: Number(e.target.value),
-															})
-														}
-														className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
-													/>
-												)}
-											</div>
-										</div>
-										<div className="flex gap-3">
-											<button
-												type="button"
-												onClick={() => saveEdit(service.id)}
-												className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded font-bold text-sm"
-											>
-												Save
-											</button>
-											<button
-												type="button"
-												onClick={() => deleteService(service)}
-												className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold text-sm"
-											>
-												Delete
-											</button>
-											<button
-												type="button"
-												onClick={() => setEditingId(null)}
-												className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded font-bold text-sm"
-											>
-												Cancel
-											</button>
-										</div>
-									</div>
-								) : (
-									<div className="p-6 md:p-8 hover:bg-neutral-800/50 transition-colors flex flex-col md:flex-row justify-between md:items-center gap-6">
-										<div className="max-w-xl">
-											<span className="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-2 block">
-												{service.categories?.name || "Uncategorized"}
-											</span>
-											<h2 className="text-xl font-semibold text-white mb-1">
-												{service.name}
+								return (
+									<div
+										key={category}
+										className="border border-red-900/30 rounded-lg overflow-hidden bg-neutral-950/50 mb-6 shadow-lg"
+									>
+										<button
+											type="button"
+											onClick={() => toggleFolder(category)}
+											aria-expanded={isOpen}
+											className="w-full flex justify-between items-center p-5 md:p-6 bg-gradient-to-r from-red-950/40 to-neutral-900/40 hover:from-red-900/50 transition-colors text-left border-b border-transparent data-[open=true]:border-red-900/30"
+											data-open={isOpen}
+										>
+											<h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest flex items-center gap-3">
+												<span className="text-red-600">{"///"}</span> {category}
 											</h2>
-											<p className="text-neutral-400 text-sm leading-relaxed">
-												{service.description}
-											</p>
-										</div>
-										<div className="flex items-center gap-8">
-											<div className="flex items-center gap-6">
-												{service.pricing_type === "contact" ? (
-													<div className="text-right">
-														<span className="text-xs text-neutral-500 uppercase">
-															Pricing
-														</span>
-														<p className="text-sm font-bold text-neutral-300 uppercase tracking-widest italic mt-1">
-															Call for Quote
-														</p>
+											<div className="flex items-center gap-4">
+												<span className="text-xs font-mono text-red-500/70 uppercase hidden md:block">
+													{categoryServices.length}{" "}
+													{categoryServices.length === 1
+														? "Service"
+														: "Services"}
+												</span>
+												<span className="text-red-500 font-mono text-3xl font-light leading-none w-6 text-center">
+													{isOpen ? "−" : "+"}
+												</span>
+											</div>
+										</button>
+
+										{isOpen && (
+											<div className="p-2 md:p-4 space-y-2">
+												{categoryServices.map((service) => (
+													<div key={service.id}>
+														{editingId === service.id ? (
+															<div className="p-6 bg-neutral-800/30 border-l-4 border-emerald-500 rounded my-2">
+																<div className="grid gap-4 mb-4">
+																	<input
+																		className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
+																		value={editForm.name}
+																		onChange={(e) =>
+																			setEditForm({
+																				...editForm,
+																				name: e.target.value,
+																			})
+																		}
+																	/>
+																	<textarea
+																		className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white h-24"
+																		value={editForm.description}
+																		onChange={(e) =>
+																			setEditForm({
+																				...editForm,
+																				description: e.target.value,
+																			})
+																		}
+																	/>
+																	<div className="grid grid-cols-2 gap-4">
+																		<select
+																			className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
+																			value={editForm.category_id}
+																			onChange={(e) =>
+																				setEditForm({
+																					...editForm,
+																					category_id: e.target.value,
+																				})
+																			}
+																		>
+																			{categories.map((cat) => (
+																				<option key={cat.id} value={cat.id}>
+																					{cat.name}
+																				</option>
+																			))}
+																		</select>
+																		<select
+																			className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
+																			value={editForm.pricing_type}
+																			onChange={(e) =>
+																				setEditForm({
+																					...editForm,
+																					pricing_type: e.target.value as
+																						| "hourly"
+																						| "fixed"
+																						| "contact",
+																				})
+																			}
+																		>
+																			<option value="hourly">
+																				Hourly Rate
+																			</option>
+																			<option value="fixed">Fixed Price</option>
+																			<option value="contact">
+																				Call for Quote
+																			</option>
+																		</select>
+																	</div>
+
+																	<div className="flex gap-4">
+																		{editForm.pricing_type === "hourly" && (
+																			<input
+																				type="number"
+																				step="0.1"
+																				value={editForm.estimated_hours}
+																				onChange={(e) =>
+																					setEditForm({
+																						...editForm,
+																						estimated_hours: Number(
+																							e.target.value,
+																						),
+																					})
+																				}
+																				className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
+																			/>
+																		)}
+																		{editForm.pricing_type === "fixed" && (
+																			<input
+																				type="number"
+																				step="1"
+																				value={editForm.fixed_price}
+																				onChange={(e) =>
+																					setEditForm({
+																						...editForm,
+																						fixed_price: Number(e.target.value),
+																					})
+																				}
+																				className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white"
+																			/>
+																		)}
+																	</div>
+																</div>
+																<div className="flex gap-3">
+																	<button
+																		type="button"
+																		onClick={() => saveEdit(service.id)}
+																		className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded font-bold text-sm"
+																	>
+																		Save
+																	</button>
+																	<button
+																		type="button"
+																		onClick={() => deleteService(service)}
+																		className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold text-sm"
+																	>
+																		Delete
+																	</button>
+																	<button
+																		type="button"
+																		onClick={() => setEditingId(null)}
+																		className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded font-bold text-sm"
+																	>
+																		Cancel
+																	</button>
+																</div>
+															</div>
+														) : (
+															<div className="group bg-neutral-900/30 hover:bg-neutral-900/80 p-5 rounded border border-neutral-800/50 transition-colors flex flex-col md:flex-row justify-between md:items-center gap-6">
+																<div className="max-w-xl">
+																	<h3 className="text-lg md:text-xl font-bold text-neutral-200 mb-1 tracking-wide uppercase">
+																		{service.name}
+																	</h3>
+																	<p className="text-neutral-400 leading-relaxed text-sm">
+																		{service.description}
+																	</p>
+																</div>
+																<div className="flex items-center shrink-0">
+																	{service.pricing_type === "contact" ? (
+																		<span className="text-lg md:text-xl font-bold text-neutral-400 uppercase tracking-widest italic">
+																			Call for Quote
+																		</span>
+																	) : (
+																		<div className="flex items-center gap-4 md:gap-8">
+																			{service.pricing_type === "hourly" && (
+																				<div className="text-right">
+																					<span className="block text-[10px] md:text-xs text-neutral-500 uppercase tracking-widest mb-1">
+																						Est. Labor
+																					</span>
+																					<span className="text-lg md:text-xl font-mono text-neutral-200">
+																						{service.estimated_hours}{" "}
+																						<span className="text-xs md:text-sm text-neutral-500 font-sans uppercase">
+																							hrs
+																						</span>
+																					</span>
+																				</div>
+																			)}
+
+																			{service.pricing_type === "hourly" && (
+																				<div className="w-px h-10 bg-neutral-800 hidden md:block"></div>
+																			)}
+
+																			<div className="text-right border-l border-neutral-800 pl-4 md:border-none md:pl-0">
+																				<span className="block text-[10px] md:text-xs text-neutral-500 uppercase tracking-widest mb-1">
+																					{service.pricing_type === "fixed"
+																						? "Fixed Rate"
+																						: "Est. Total"}
+																				</span>
+																				<span className="text-2xl md:text-3xl font-mono text-white font-bold group-hover:text-red-400 transition-colors">
+																					$
+																					{service.calculated_price?.toFixed(2)}
+																				</span>
+																			</div>
+																		</div>
+																	)}
+
+																	{/* ADMIN CONTROLS (Edit Button) */}
+																	<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8">
+																		<button
+																			type="button"
+																			onClick={() => startEditing(service)}
+																			className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+																		>
+																			Edit
+																		</button>
+																	</div>
+																</div>
+															</div>
+														)}
 													</div>
-												) : (
-													<>
-														<div className="text-right hidden md:block">
-															<span className="text-xs text-neutral-500 uppercase">
-																{service.pricing_type === "fixed"
-																	? "Type"
-																	: "Est. Time"}
-															</span>
-															<p className="text-sm font-mono text-neutral-300 mt-1">
-																{service.pricing_type === "fixed"
-																	? "Fixed Rate"
-																	: `${service.estimated_hours} hrs`}
-															</p>
-														</div>
-														<div className="text-right">
-															<span className="text-xs text-neutral-500 uppercase">
-																Preview Price
-															</span>
-															<p className="text-2xl font-mono text-white">
-																${service.calculated_price?.toFixed(2)}
-															</p>
-														</div>
-													</>
-												)}
+												))}
 											</div>
-											<div className="pl-6 border-l border-neutral-800">
-												<button
-													type="button"
-													onClick={() => startEditing(service)}
-													className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
-												>
-													Edit
-												</button>
-											</div>
-										</div>
+										)}
 									</div>
-								)}
-							</div>
-						))}
+								);
+							},
+						)}
 					</div>
 				</section>
 			</div>
