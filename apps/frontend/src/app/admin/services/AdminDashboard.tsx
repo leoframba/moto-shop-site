@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import CategoryManager from "@/components/admin/CategoryManager";
 import ShopRateManager from "@/components/admin/ShopRateManager";
 import type { AdminInitialData, Category, Service } from "@/types";
 import { authApiRequest } from "@/utils/api";
@@ -42,9 +43,6 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			[categoryName]: !prev[categoryName],
 		}));
 	};
-
-	// Category Management States
-	const [newCategoryName, setNewCategoryName] = useState("");
 
 	// Editing service states
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,22 +97,24 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		}
 	};
 
-	const saveNewCategory = async () => {
-		if (!newCategoryName.trim()) return;
+	const saveNewCategory = async (nameToSave: string) => {
 		try {
 			const newCat = await authApiRequest<Category>("/api/admin/categories", {
 				method: "POST",
-				body: JSON.stringify({ name: newCategoryName }),
+				body: JSON.stringify({ name: nameToSave }),
 			});
 			setCategories([...categories, newCat]);
-			setNewCategoryName("");
 
 			if (categories.length === 0) {
 				setAddForm((prev) => ({ ...prev, category_id: newCat.id }));
 			}
-		} catch (error) {
-			console.error(error);
-			alert("Failed to create category. Ensure the name is unique.");
+
+			return true;
+		} catch {
+			alert(
+				`Failed to create "${nameToSave}". This category name likely already exists.`,
+			);
+			return false;
 		}
 	};
 
@@ -128,10 +128,9 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		try {
 			await authApiRequest(`/api/admin/categories/${id}`, { method: "DELETE" });
 			setCategories(categories.filter((c) => c.id !== id));
-		} catch (error) {
-			console.error(error);
+		} catch {
 			alert(
-				"Cannot delete category. Check if services are still assigned to it.",
+				"Cannot delete category. There are still services assigned to it. Please edit or delete those services first.",
 			);
 		}
 	};
@@ -268,53 +267,16 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				<div className="grid md:grid-cols-2 gap-6 mb-12">
 					{/* SHOP RATE */}
 					<ShopRateManager
-						intialRate={initialData.hourly_rate}
+						initialRate={initialData.hourly_rate}
 						onSaveRate={saveRate}
 					/>
 
 					{/* CATEGORY MANAGEMENT */}
-					<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">
-						<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">
-							Categories
-						</h2>
-						<div className="flex gap-2 mb-4">
-							<input
-								placeholder="New category..."
-								value={newCategoryName}
-								onChange={(e) => setNewCategoryName(e.target.value)}
-								className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-							/>
-							<button
-								type="button"
-								onClick={saveNewCategory}
-								className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg font-bold text-sm shrink-0"
-							>
-								Add
-							</button>
-						</div>
-						<div className="space-y-2 max-h-32 overflow-y-auto pr-2">
-							{categories.map((cat) => (
-								<div
-									key={cat.id}
-									className="flex justify-between items-center bg-neutral-950 px-3 py-2 rounded border border-neutral-800"
-								>
-									<span className="text-sm">{cat.name}</span>
-									<button
-										type="button"
-										onClick={() => deleteCategory(cat.id)}
-										className="text-red-500 hover:text-red-400 text-xs font-bold uppercase"
-									>
-										Delete
-									</button>
-								</div>
-							))}
-							{categories.length === 0 && (
-								<p className="text-xs text-neutral-500 italic">
-									No categories created yet.
-								</p>
-							)}
-						</div>
-					</section>
+					<CategoryManager
+						categories={categories}
+						onSaveCategory={saveNewCategory}
+						onDeleteCategory={deleteCategory}
+					/>
 				</div>
 
 				{/* SERVICE MANAGEMENT */}
