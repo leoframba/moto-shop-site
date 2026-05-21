@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import type { Category, PricingType, Service, ServiceFormData } from "@/types";
+import type { Category, Service, ServiceFormData } from "@/types";
+import ServiceForm from "./ServiceForm";
 
 interface AdminCategoryFolderProps {
 	category: string;
@@ -22,31 +23,6 @@ export default function AdminCategoryFolder({
 	onDelete,
 }: AdminCategoryFolderProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
-	const [editForm, setEditForm] = useState<ServiceFormData>({
-		name: "",
-		description: "",
-		category_id: "",
-		pricing_type: "hourly",
-		estimated_hours: 1,
-		fixed_price: 0,
-	});
-
-	const startEditing = (service: Service) => {
-		setEditingId(service.id);
-		setEditForm({
-			name: service.name,
-			description: service.description || "",
-			category_id: service.category_id || categories[0]?.id || "",
-			pricing_type: (service.pricing_type as PricingType) || "hourly",
-			estimated_hours: service.estimated_hours || 1,
-			fixed_price: service.fixed_price || 0,
-		});
-	};
-
-	const handleSave = async (id: string) => {
-		await onSaveEdit(id, editForm);
-		setEditingId(null);
-	};
 
 	return (
 		<div className="border border-red-900/30 rounded-lg overflow-hidden bg-neutral-950/50 mb-6 shadow-lg">
@@ -71,14 +47,13 @@ export default function AdminCategoryFolder({
 						</span>
 					)}
 					<span className="text-red-500 font-mono text-3xl font-light leading-none w-6 text-center">
-						{isOpen ? "−" : "+"}
+						{isOpen ? "-" : "+"}
 					</span>
 				</div>
 			</button>
 
 			{isOpen && (
 				<div className="p-2 md:p-4 space-y-2">
-					{/* EMPTY STATE UI */}
 					{services.length === 0 ? (
 						<div className="p-6 text-center border border-dashed border-neutral-800 bg-neutral-900/20 rounded">
 							<span className="text-amber-500 font-bold uppercase tracking-widest text-xs block mb-1">
@@ -93,151 +68,17 @@ export default function AdminCategoryFolder({
 						services.map((service) => (
 							<div key={service.id}>
 								{editingId === service.id ? (
-									<div className="p-6 bg-neutral-800/30 border-l-4 border-emerald-500 rounded my-2">
-										<div className="grid gap-4 mb-4">
-											<input
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-												value={editForm.name}
-												onChange={(e) =>
-													setEditForm({ ...editForm, name: e.target.value })
-												}
-											/>
-											<textarea
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white h-24 focus:border-emerald-500 outline-none"
-												value={editForm.description}
-												onChange={(e) =>
-													setEditForm({
-														...editForm,
-														description: e.target.value,
-													})
-												}
-											/>
-											<div className="grid grid-cols-2 gap-4">
-												<div>
-													<label
-														htmlFor={`edit-cat-${service.id}`}
-														className="text-xs text-neutral-400 block mb-1"
-													>
-														Category
-													</label>
-													<select
-														id={`edit-cat-${service.id}`}
-														className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-														value={editForm.category_id}
-														onChange={(e) =>
-															setEditForm({
-																...editForm,
-																category_id: e.target.value,
-															})
-														}
-													>
-														{categories.map((cat) => (
-															<option key={cat.id} value={cat.id}>
-																{cat.name}
-															</option>
-														))}
-													</select>
-												</div>
-												<div>
-													<label
-														htmlFor={`edit-price-${service.id}`}
-														className="text-xs text-neutral-400 block mb-1"
-													>
-														Pricing Model
-													</label>
-													<select
-														id={`edit-price-${service.id}`}
-														className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-														value={editForm.pricing_type}
-														onChange={(e) =>
-															setEditForm({
-																...editForm,
-																pricing_type: e.target.value as
-																	| "hourly"
-																	| "fixed"
-																	| "contact",
-															})
-														}
-													>
-														<option value="hourly">Hourly Rate</option>
-														<option value="fixed">Fixed Price</option>
-														<option value="contact">Call for Quote</option>
-													</select>
-												</div>
-											</div>
-
-											<div className="flex gap-4">
-												{editForm.pricing_type === "hourly" && (
-													<div>
-														<label
-															htmlFor={`edit-hrs-${service.id}`}
-															className="text-xs text-neutral-400 block mb-1"
-														>
-															Est. Hours
-														</label>
-														<input
-															id={`edit-hrs-${service.id}`}
-															type="number"
-															step="0.1"
-															value={editForm.estimated_hours}
-															onChange={(e) =>
-																setEditForm({
-																	...editForm,
-																	estimated_hours: Number(e.target.value),
-																})
-															}
-															className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-														/>
-													</div>
-												)}
-												{editForm.pricing_type === "fixed" && (
-													<div>
-														<label
-															htmlFor={`edit-fixed-${service.id}`}
-															className="text-xs text-neutral-400 block mb-1"
-														>
-															Fixed Price
-														</label>
-														<input
-															id={`edit-fixed-${service.id}`}
-															type="number"
-															step="1"
-															value={editForm.fixed_price}
-															onChange={(e) =>
-																setEditForm({
-																	...editForm,
-																	fixed_price: Number(e.target.value),
-																})
-															}
-															className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-														/>
-													</div>
-												)}
-											</div>
-										</div>
-										<div className="flex gap-3">
-											<button
-												type="button"
-												onClick={() => handleSave(service.id)}
-												className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded font-bold text-sm"
-											>
-												Save
-											</button>
-											<button
-												type="button"
-												onClick={() => onDelete(service)}
-												className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold text-sm"
-											>
-												Delete
-											</button>
-											<button
-												type="button"
-												onClick={() => setEditingId(null)}
-												className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded font-bold text-sm"
-											>
-												Cancel
-											</button>
-										</div>
+									<div className="my-2">
+										<ServiceForm
+											categories={categories}
+											initialData={service}
+											onSave={async (data) => {
+												await onSaveEdit(service.id, data);
+												setEditingId(null);
+											}}
+											onCancel={() => setEditingId(null)}
+											onDelete={() => onDelete(service)}
+										/>
 									</div>
 								) : (
 									/* PREVIEW MODE */
@@ -288,7 +129,7 @@ export default function AdminCategoryFolder({
 											<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8">
 												<button
 													type="button"
-													onClick={() => startEditing(service)}
+													onClick={() => setEditingId(service.id)}
 													className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
 												>
 													Edit

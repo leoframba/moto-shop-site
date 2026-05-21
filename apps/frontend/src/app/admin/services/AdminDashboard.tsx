@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminCategoryFolder from "@/components/admin/AdminCategoryFolder";
 import CategoryManager from "@/components/admin/CategoryManager";
+import ServiceForm from "@/components/admin/ServiceForm";
 import ShopRateManager from "@/components/admin/ShopRateManager";
 import type {
 	AdminInitialData,
 	Category,
-	PricingType,
 	Service,
 	ServiceFormData,
 } from "@/types";
@@ -51,33 +51,8 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		}));
 	};
 
-	// Editing service states
-	const [editingId, setEditingId] = useState<string | null>(null);
-	const [editForm, setEditForm] = useState({
-		name: "",
-		description: "",
-		category_id: "",
-		pricing_type: "hourly",
-		estimated_hours: 1,
-		fixed_price: 0,
-	});
-
 	// Add service states
 	const [isAdding, setIsAdding] = useState(false);
-	const [addForm, setAddForm] = useState({
-		name: "",
-		description: "",
-		category_id: "",
-		pricing_type: "hourly",
-		estimated_hours: 1,
-		fixed_price: 0,
-	});
-
-	useEffect(() => {
-		if (categories.length > 0 && !addForm.category_id) {
-			setAddForm((prev) => ({ ...prev, category_id: categories[0].id }));
-		}
-	}, [categories, addForm.category_id]);
 
 	// ==========================================
 	// GLOBAL SETTINGS & CATEGORIES
@@ -111,10 +86,6 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 				body: JSON.stringify({ name: nameToSave }),
 			});
 			setCategories([...categories, newCat]);
-
-			if (categories.length === 0) {
-				setAddForm((prev) => ({ ...prev, category_id: newCat.id }));
-			}
 
 			return true;
 		} catch {
@@ -158,7 +129,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
 			const calcPrice = calculateServicePrice(updatedService, hourlyRate);
 
-			const selectedCat = categories.find((c) => c.id === editForm.category_id);
+			const selectedCat = categories.find((c) => c.id === editData.category_id);
 
 			const completeService: Service = {
 				...updatedService,
@@ -169,28 +140,26 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			setServices((prev) =>
 				prev.map((s) => (s.id === id ? completeService : s)),
 			);
-			setEditingId(null);
+
+			setOpenFolders((prev) => ({
+				...prev,
+				[selectedCat?.name || "Uncategorized"]: true,
+			}));
 		} catch (error) {
 			console.error(error);
 			alert("Failed to save changes.");
 		}
 	};
 
-	const saveNewService = async () => {
-		if (!addForm.category_id) {
-			alert("Please create a category first!");
-			return;
-		}
-
+	const saveNewService = async (formData: ServiceFormData) => {
 		try {
 			const newService = await authApiRequest<Service>("/api/admin/services", {
 				method: "POST",
-				body: JSON.stringify(addForm),
+				body: JSON.stringify(formData),
 			});
 
-			const calcPrice = calculateServicePrice(newService, hourlyRate);
-
-			const selectedCat = categories.find((c) => c.id === addForm.category_id);
+			const calcPrice = calculateServicePrice(formData as Service, hourlyRate);
+			const selectedCat = categories.find((c) => c.id === formData.category_id);
 
 			const completeService: Service = {
 				...newService,
@@ -199,14 +168,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			};
 
 			setServices([...services, completeService]);
-			setAddForm({
-				name: "",
-				description: "",
-				category_id: categories[0]?.id || "",
-				pricing_type: "hourly",
-				estimated_hours: 1,
-				fixed_price: 0,
-			});
+
 			setIsAdding(false);
 
 			setOpenFolders((prev) => ({
@@ -237,6 +199,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 		}
 	};
 
+	const UNCATEGORIZED = "Uncategorized";
 	const groupedServices: Record<string, Service[]> = {};
 
 	categories.forEach((cat) => {
@@ -244,16 +207,16 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 	});
 
 	services.forEach((service) => {
-		const catName = service.categories?.name;
+		const catName = service.categories?.name ?? UNCATEGORIZED;
 
-		if (catName && groupedServices[catName] !== undefined) {
-			groupedServices[catName].push(service);
-		} else {
-			if (!groupedServices["Uncategorized"]) {
-				groupedServices["Uncategorized"] = [];
-			}
-			groupedServices["Uncategorized"].push(service);
+		if (!groupedServices[catName]) {
+			groupedServices[catName] = [];
 		}
+		groupedServices[catName].push(service);
+	});
+
+	Object.keys(groupedServices).forEach((key) => {
+		groupedServices[key].sort((a, b) => a.name.localeCompare(b.name));
 	});
 
 	return (
@@ -301,133 +264,11 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 					<div className="space-y-4">
 						{/* ADD FORM */}
 						{isAdding && (
-							<div className="p-6 bg-neutral-900 border border-emerald-500/50 rounded-xl mb-6 shadow-lg shadow-emerald-900/20">
-								<div className="grid gap-4 mb-4">
-									<input
-										placeholder="Service Name (e.g., Oil Change)"
-										className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-										value={addForm.name}
-										onChange={(e) =>
-											setAddForm({ ...addForm, name: e.target.value })
-										}
-									/>
-									<textarea
-										placeholder="Description..."
-										className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none h-24"
-										value={addForm.description}
-										onChange={(e) =>
-											setAddForm({ ...addForm, description: e.target.value })
-										}
-									/>
-
-									<div className="grid grid-cols-2 gap-4">
-										<div>
-											<label
-												htmlFor="set-category"
-												className="text-xs text-neutral-400 block mb-1"
-											>
-												Category
-											</label>
-											<select
-												id="set-category"
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none appearance-none"
-												value={addForm.category_id}
-												onChange={(e) =>
-													setAddForm({
-														...addForm,
-														category_id: e.target.value,
-													})
-												}
-											>
-												{categories.map((cat) => (
-													<option key={cat.id} value={cat.id}>
-														{cat.name}
-													</option>
-												))}
-											</select>
-										</div>
-										<div>
-											<label
-												htmlFor="set-pricing"
-												className="text-xs text-neutral-400 block mb-1"
-											>
-												Pricing Model
-											</label>
-											<select
-												id="set-pricing"
-												className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none appearance-none"
-												value={addForm.pricing_type}
-												onChange={(e) =>
-													setAddForm({
-														...addForm,
-														pricing_type: e.target.value as PricingType,
-													})
-												}
-											>
-												<option value="hourly">Hourly Rate</option>
-												<option value="fixed">Fixed Price</option>
-												<option value="contact">Call for Quote</option>
-											</select>
-										</div>
-									</div>
-
-									<div className="flex items-center gap-4 mt-2">
-										{addForm.pricing_type === "hourly" && (
-											<>
-												<label
-													htmlFor="set-hours"
-													className="text-sm text-neutral-400"
-												>
-													Est. Hours:
-												</label>
-												<input
-													id="set-hours"
-													type="number"
-													step="0.1"
-													className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white outline-none"
-													value={addForm.estimated_hours}
-													onChange={(e) =>
-														setAddForm({
-															...addForm,
-															estimated_hours: Number(e.target.value),
-														})
-													}
-												/>
-											</>
-										)}
-										{addForm.pricing_type === "fixed" && (
-											<>
-												<label
-													htmlFor="set-price"
-													className="text-sm text-neutral-400"
-												>
-													Fixed Price ($):
-												</label>
-												<input
-													id="set-price"
-													type="number"
-													step="1"
-													className="w-32 bg-neutral-950 border border-neutral-700 rounded p-3 text-white outline-none"
-													value={addForm.fixed_price}
-													onChange={(e) =>
-														setAddForm({
-															...addForm,
-															fixed_price: Number(e.target.value),
-														})
-													}
-												/>
-											</>
-										)}
-									</div>
-								</div>
-								<button
-									type="button"
-									onClick={saveNewService}
-									className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded font-bold text-sm"
-								>
-									Create Service
-								</button>
-							</div>
+							<ServiceForm
+								categories={categories}
+								onSave={saveNewService}
+								onCancel={() => setIsAdding(false)}
+							/>
 						)}
 
 						{/* ACCORDION FOLDERS */}

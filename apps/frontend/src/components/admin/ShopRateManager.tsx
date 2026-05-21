@@ -2,15 +2,15 @@
 import { useState } from "react";
 
 type ShopRateManagerProps = {
-	intialRate: number;
+	initialRate: number;
 	onSaveRate: (newRate: number) => Promise<void>;
 };
 
 export default function ShopRateManager({
-	intialRate,
+	initialRate,
 	onSaveRate,
 }: ShopRateManagerProps) {
-	const [hourlyRate, setHourlyRate] = useState<number>(intialRate);
+	const [hourlyRate, setHourlyRate] = useState<number>(initialRate);
 	const [isSaving, setIsSaving] = useState<boolean>(false);
 
 	const handleSave = async () => {

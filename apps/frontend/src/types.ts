@@ -34,3 +34,14 @@ export interface SocialLinkProps {
 	href: string;
 	icon: IconType;
 }
+
+export interface ServiceFormData {
+	name: string;
+	description: string;
+	category_id: string;
+	pricing_type: "hourly" | "fixed" | "contact";
+	estimated_hours: number;
+	fixed_price: number;
+}
+
+export type PricingType = "hourly" | "fixed" | "contact";
