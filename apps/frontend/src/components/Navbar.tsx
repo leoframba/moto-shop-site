@@ -1,9 +1,32 @@
 "use client";
+
+import {
+	AnimatePresence,
+	motion,
+	useMotionValueEvent,
+	useScroll,
+} from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isScrolled, setIsScrolled] = useState(false);
+	const { scrollY } = useScroll();
+
+	const pathname = usePathname();
+	const isHomePage = pathname === "/";
+
+	useMotionValueEvent(scrollY, "change", (latest) => {
+		setIsScrolled(latest > 50);
+	});
+
+	useEffect(() => {
+		setIsOpen(false);
+	}, []);
+
+	const navState = isHomePage ? "hero" : "solid";
 
 	const navLinks = [
 		{ name: "Services", href: "/services" },
@@ -13,47 +36,96 @@ export default function Navbar() {
 	];
 
 	return (
-		<nav className="fixed w-full z-50 bg-black/80 backdrop-blur-md border-b border-neutral-900">
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div className="flex justify-between items-center h-20">
-					{/* LOGO AREA */}
-					<div className="flex-shrink-0 flex items-center">
+		<motion.nav
+			layout
+			initial={false}
+			animate={navState}
+			variants={{
+				hero: {
+					top: 16,
+					width: "calc(100% - 2rem)",
+					maxWidth: "80rem",
+					borderRadius: 22,
+				},
+				solid: {
+					top: 16,
+					width: "calc(100% - 2rem)",
+					maxWidth: "80rem",
+					borderRadius: 18,
+				},
+			}}
+			transition={{
+				duration: 0.35,
+				ease: [0.22, 1, 0.36, 1],
+			}}
+			className="fixed left-1/2 z-50 -translate-x-1/2 overflow-hidden"
+		>
+			<motion.div
+				aria-hidden="true"
+				initial={false}
+				animate={navState}
+				variants={{
+					hero: {
+						backgroundColor: "rgba(0, 0, 0, 0.14)",
+						borderColor: "rgba(255, 255, 255, 0)",
+						boxShadow: "0 12px 35px rgba(0, 0, 0, 0.18)",
+					},
+					solid: {
+						backgroundColor: "rgba(0, 0, 0, 0.92)",
+						borderColor: "rgba(255, 255, 255, 0.08)",
+						boxShadow: "0 18px 50px rgba(0, 0, 0, 0.35)",
+					},
+				}}
+				transition={{
+					duration: 0.25,
+					ease: [0.22, 1, 0.36, 1],
+				}}
+				className="pointer-events-none absolute inset-0 -z-10 border backdrop-blur-sm"
+				style={{
+					borderRadius: "inherit",
+				}}
+			/>
+
+			<div className="px-4 sm:px-6 lg:px-8">
+				<div className="flex h-20 items-center justify-between">
+					<div className="flex flex-shrink-0 items-center">
 						<Link
 							href="/"
-							className="text-4xl font-black text-white tracking-tighter uppercase italic transition-all duration-300 ease-in-out hover:scale-110 active:scale-95"
+							className="text-4xl font-black uppercase italic tracking-tighter text-white drop-shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
 						>
 							A<span className="text-red-600">C</span>S
 						</Link>
 					</div>
-
 					{/* DESKTOP MENU */}
-					<div className="hidden md:flex space-x-8 items-center">
+					<div className="hidden items-center space-x-8 md:flex">
 						{navLinks.map((link) => (
 							<Link
 								key={link.name}
 								href={link.href}
-								className="text-neutral-400 hover:text-white font-bold transition-colors text-sm uppercase tracking-widest"
+								className="group relative text-sm font-bold uppercase tracking-widest text-white/80 drop-shadow-md transition-colors hover:text-white"
 							>
 								{link.name}
+								<span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-red-600 transition-all duration-300 group-hover:w-full" />
 							</Link>
 						))}
+
 						<Link
 							href="/contact"
-							className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded font-bold uppercase tracking-wider transition-all"
+							className="rounded bg-red-600 px-6 py-2 font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all hover:bg-red-500"
 						>
 							Contact Us
 						</Link>
 					</div>
-
 					{/* MOBILE MENU BUTTON */}
-					<div className="md:hidden flex items-center">
+					<div className="flex items-center md:hidden">
 						<button
 							type="button"
-							onClick={() => setIsOpen(!isOpen)}
-							className="text-neutral-300 hover:text-white focus:outline-none"
+							onClick={() => setIsOpen((prev) => !prev)}
+							aria-label={isOpen ? "Close menu" : "Open menu"}
+							className="text-white/90 drop-shadow-md hover:text-white focus:outline-none"
 						>
 							<svg
-								aria-label={isOpen ? "Close menu" : "Open menu"}
+								aria-hidden="true"
 								className="h-8 w-8"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -80,23 +152,30 @@ export default function Navbar() {
 				</div>
 			</div>
 
-			{/* MOBILE MENU DROPDOWN */}
-			{isOpen && (
-				<div className="md:hidden bg-neutral-950 border-b border-neutral-900">
-					<div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-						{navLinks.map((link) => (
-							<Link
-								key={link.name}
-								href={link.href}
-								className="block px-3 py-4 text-base font-bold uppercase tracking-wider text-neutral-400 hover:text-white hover:bg-neutral-900 rounded-md"
-								onClick={() => setIsOpen(false)}
-							>
-								{link.name}
-							</Link>
-						))}
-					</div>
-				</div>
-			)}
-		</nav>
+			{/* MOBILE MENU */}
+			<AnimatePresence initial={false}>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, height: 0 }}
+						animate={{ opacity: 1, height: "auto" }}
+						exit={{ opacity: 0, height: 0 }}
+						transition={{ duration: 0.25, ease: "easeInOut" }}
+						className="md:hidden overflow-hidden border-t border-white/10"
+					>
+						<div className="space-y-1 px-3 pb-4 pt-2">
+							{navLinks.map((link) => (
+								<Link
+									key={link.name}
+									href={link.href}
+									className="block rounded-md px-3 py-4 text-base font-bold uppercase tracking-wider text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+								>
+									{link.name}
+								</Link>
+							))}
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</motion.nav>
 	);
 }
