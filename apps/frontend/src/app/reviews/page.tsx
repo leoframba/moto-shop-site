@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
 import reviewsData from "@/data/reviews.json";
 
 export default function ReviewsPage() {
@@ -7,8 +6,6 @@ export default function ReviewsPage() {
 
 	return (
 		<main className="min-h-screen bg-black font-sans">
-			<Navbar />
-
 			{/* PAGE HEADER */}
 			<div className="pt-32 pb-16 px-4 border-b border-neutral-900 bg-neutral-950/30">
 				<div className="max-w-4xl mx-auto text-center">

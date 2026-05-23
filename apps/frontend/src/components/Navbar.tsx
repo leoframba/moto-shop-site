@@ -32,7 +32,6 @@ export default function Navbar() {
 		{ name: "Services", href: "/services" },
 		{ name: "Reviews", href: "/reviews" },
 		{ name: "About", href: "/about" },
-		{ name: "Contact", href: "/contact" },
 	];
 
 	return (

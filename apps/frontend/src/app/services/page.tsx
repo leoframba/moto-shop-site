@@ -1,6 +1,5 @@
 import Link from "next/link";
 import CategoryFolder from "@/components/CategoryFolder"; // <--- Import the new component
-import Navbar from "@/components/Navbar";
 import type { Service, ServiceResponse } from "@/types";
 import { apiRequest } from "@/utils/api";
 
@@ -34,8 +33,6 @@ export default async function ServicesPage() {
 
 	return (
 		<main className="min-h-screen bg-black font-sans">
-			<Navbar />
-
 			{/* HEADER AREA */}
 			<div className="pt-32 pb-8 px-4 border-b border-neutral-900 bg-neutral-950/30">
 				<div className="max-w-4xl mx-auto text-center">
