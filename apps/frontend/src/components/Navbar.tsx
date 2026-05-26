@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 
 export default function Navbar() {
 	const [isOpen, setIsOpen] = useState(false);
-	const [, setIsScrolled] = useState(false);
+	const [isScrolled, setIsScrolled] = useState(false);
 	const { scrollY } = useScroll();
 
 	const pathname = usePathname();
@@ -33,6 +33,10 @@ export default function Navbar() {
 		{ name: "Reviews", href: "/reviews" },
 		{ name: "About", href: "/about" },
 	];
+
+	if (pathname.startsWith("/admin")) {
+		return null;
+	}
 
 	return (
 		<motion.nav
