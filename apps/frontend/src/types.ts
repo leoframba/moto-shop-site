@@ -45,3 +45,37 @@ export interface ServiceFormData {
 }
 
 export type PricingType = "hourly" | "fixed" | "contact";
+
+export type BikeStatus = "available" | "sold" | "draft";
+
+export interface BikeImage {
+	id: string;
+	listing_id: string;
+	image_url: string;
+	is_primary: boolean;
+	display_order: number;
+	created_at: string;
+}
+
+export interface BikeListing {
+	id: string;
+	year: number;
+	make: string;
+	model: string;
+	price: number;
+	mileage: number;
+	description: string | null;
+	status: BikeStatus;
+	created_at: string;
+	images?: BikeImage[];
+}
+
+export interface BikeFormData {
+	year: number;
+	make: string;
+	model: string;
+	price: number;
+	mileage: number;
+	description: string;
+	status: BikeStatus;
+}
