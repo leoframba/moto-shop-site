@@ -220,12 +220,9 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 	});
 
 	return (
-		<div className="p-8 bg-neutral-950 min-h-screen text-white font-sans">
+		<div className="mt-10 p-8 bg-neutral-950 min-h-screen text-white font-sans">
 			<div className="max-w-5xl mx-auto">
 				<div className="mb-8">
-					<h1 className="text-3xl font-bold tracking-tight text-white mb-1">
-						Admin Dashboard
-					</h1>
 					<p className="text-neutral-400 text-sm">
 						Manage shop rate, categories, and services.
 					</p>
