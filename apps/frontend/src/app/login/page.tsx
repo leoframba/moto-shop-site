@@ -32,7 +32,7 @@ export default function LoginPage() {
 			return;
 		}
 
-		router.push("/admin/services");
+		router.push("/admin");
 		router.refresh();
 	};
 
