@@ -3,6 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
 	reactCompiler: true,
 
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "*.supabase.co",
+			},
+		],
+	},
 	async rewrites() {
 		const backendUrl = process.env.BACKEND_API_URL || "http://127.0.0.1:8000";
 		console.log(backendUrl);

@@ -30,8 +30,8 @@ export default function Navbar() {
 
 	const navLinks = [
 		{ name: "Services", href: "/services" },
+		{ name: "Inventory", href: "/sales" },
 		{ name: "Reviews", href: "/reviews" },
-		{ name: "About", href: "/about" },
 	];
 
 	if (pathname.startsWith("/admin")) {

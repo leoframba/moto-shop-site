@@ -82,7 +82,7 @@ export default function Footer() {
 								href="tel:+14082990508"
 								className="text-2xl font-mono text-white hover:text-red-500 transition-colors"
 							>
-								(408) 299-0508
+								(408)299-0508
 							</a>
 						</p>
 						<p className="pt-2">
