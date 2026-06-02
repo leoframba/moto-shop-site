@@ -52,7 +52,7 @@ export default function Footer() {
 					<ul className="text-neutral-400 space-y-2 text-left">
 						<li className="flex gap-4">
 							<span className="w-32 text-right">Tues - Fri:</span>
-							<span className="text-white w-36">9:30 AM - 5:00 PM</span>
+							<span className="text-white w-36">9:00 AM - 5:00 PM</span>
 						</li>
 						<li className="flex gap-4">
 							<span className="w-32 text-right">Saturday:</span>

@@ -11,11 +11,6 @@ const HERO_IMAGES = [
 	"/hero4.jpg",
 	"/hero5.jpg",
 	"/hero6.jpg",
-	"/hero7.jpg",
-	"/hero8.jpg",
-	"/hero9.jpg",
-	"/hero10.jpg",
-	"/hero11.jpg",
 ];
 
 export default function Home() {
@@ -85,13 +80,11 @@ export default function Home() {
 						style={{ backgroundImage: `url('${src}')` }}
 					/>
 				))}
-
 				{/* READABILITY OVERLAYS */}
 				<div className="absolute inset-0 z-10 bg-black/35" />
 				<div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-black/55 to-transparent" />
 				<div className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
-
-				{/* SLIDE CONTROLS */}
+				{/* SLIDE CONTROLS
 				<div className="pointer-events-none absolute inset-x-0 top-1/2 z-30 hidden -translate-y-1/2 justify-between px-4 sm:flex md:px-8">
 					<button
 						type="button"
@@ -137,8 +130,7 @@ export default function Home() {
 							/>
 						</svg>
 					</button>
-				</div>
-
+				</div> */}
 				{/* HERO */}
 				<motion.div
 					variants={containerVariants}
@@ -150,14 +142,14 @@ export default function Home() {
 						variants={itemVariants}
 						className="mb-4 text-xs font-bold uppercase tracking-[0.35em] text-red-500 sm:text-sm"
 					>
-						Bay Area Motorcycle Shop
+						The Bay Area's Premier Motorcycle Shop
 					</motion.p>
 
 					<motion.h1
 						variants={itemVariants}
 						className="mx-auto mb-5 max-w-[11ch] text-center text-[clamp(3rem,14vw,8rem)] font-black uppercase italic leading-[0.82] tracking-[-0.08em] text-white drop-shadow-2xl md:max-w-none md:text-[clamp(5rem,9vw,8rem)]"
 					>
-						<span className="block md:inline">Advance</span>{" "}
+						<span className="block md:inline">Advanced</span>{" "}
 						<span className="block bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent md:inline pr-7 -mr-7">
 							Cycle
 						</span>{" "}
@@ -169,7 +161,7 @@ export default function Home() {
 						className="mx-auto mb-9 max-w-2xl text-base font-medium leading-relaxed text-neutral-200 drop-shadow-md sm:text-lg md:text-2xl"
 					>
 						Trusted <span className="font-bold text-red-500">Ducati</span>{" "}
-						service for over 20 years.
+						service for over 30 years.
 					</motion.p>
 
 					<motion.div
@@ -191,8 +183,7 @@ export default function Home() {
 						</Link>
 					</motion.div>
 				</motion.div>
-
-				{/* DOTS */}
+				{/* DOTS
 				<div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center">
 					<div className="flex gap-3 rounded-full border border-white/10 bg-black/25 px-4 py-3 backdrop-blur-sm">
 						{HERO_IMAGES.map((src, index) => (
@@ -209,7 +200,7 @@ export default function Home() {
 							/>
 						))}
 					</div>
-				</div>
+				</div> */}
 			</section>
 		</main>
 	);
