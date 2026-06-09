@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BikeCard from "@/components/BikeCard";
 import BikeDetailModal from "@/components/BikeDetailModal";
-import Footer from "@/components/Footer"; // Assuming you have your footer component here
-import Navbar from "@/components/Navbar";
 import type { BikeListing } from "@/types";
 import { sortBikeImages } from "@/utils/helper";
 import { createClient } from "@/utils/supabase/client";
@@ -20,7 +18,6 @@ export default function PublicSalesPage() {
 		setIsLoading(true);
 
 		try {
-			// Only fetch bikes that are NOT drafts
 			const { data, error } = await supabase
 				.from("bike_listings")
 				.select(`*, images:bike_images(*)`)
@@ -48,8 +45,6 @@ export default function PublicSalesPage() {
 
 	return (
 		<main className="min-h-screen bg-black font-sans text-white flex flex-col">
-			<Navbar />
-
 			{/* MODAL MOUNT */}
 			{viewingBike && (
 				<BikeDetailModal
@@ -105,8 +100,6 @@ export default function PublicSalesPage() {
 					</div>
 				)}
 			</section>
-
-			<Footer />
 		</main>
 	);
 }

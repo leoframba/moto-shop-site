@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CategoryFolder from "@/components/CategoryFolder"; // <--- Import the new component
+import CategoryFolder from "@/components/CategoryFolder";
 import type { Service, ServiceResponse } from "@/types";
 import { apiRequest } from "@/utils/api";
 

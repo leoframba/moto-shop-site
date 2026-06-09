@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FiMenu, FiX } from "react-icons/fi";
 
 export default function Navbar() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +33,7 @@ export default function Navbar() {
 		{ name: "Services", href: "/services" },
 		{ name: "Inventory", href: "/sales" },
 		{ name: "Reviews", href: "/reviews" },
+		{ name: "Contact", href: "/contact" },
 	];
 
 	if (pathname.startsWith("/admin")) {
@@ -125,31 +127,13 @@ export default function Navbar() {
 							type="button"
 							onClick={() => setIsOpen((prev) => !prev)}
 							aria-label={isOpen ? "Close menu" : "Open menu"}
-							className="text-white/90 drop-shadow-md hover:text-white focus:outline-none"
+							className="flex h-11 w-11 items-center justify-center text-white/90 drop-shadow-md hover:text-white focus:outline-none"
 						>
-							<svg
-								aria-hidden="true"
-								className="h-8 w-8"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								{isOpen ? (
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M6 18L18 6M6 6l12 12"
-									/>
-								) : (
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M4 6h16M4 12h16M4 18h16"
-									/>
-								)}
-							</svg>
+							{isOpen ? (
+								<FiX className="h-7 w-7" />
+							) : (
+								<FiMenu className="h-7 w-7" />
+							)}
 						</button>
 					</div>
 				</div>
@@ -170,6 +154,7 @@ export default function Navbar() {
 								<Link
 									key={link.name}
 									href={link.href}
+									onClick={() => setIsOpen(false)}
 									className="block rounded-md px-3 py-4 text-base font-bold uppercase tracking-wider text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
 								>
 									{link.name}

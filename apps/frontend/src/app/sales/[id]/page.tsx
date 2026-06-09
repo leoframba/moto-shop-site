@@ -75,8 +75,8 @@ export default function SalesDetailPage() {
 								src={activeImage}
 								alt={`${bike.year} ${bike.make} ${bike.model}`}
 								fill
-								sizes="(max-width: 768px) 100vw, 50vw" // Tells the browser what size to download
-								className="object-cover" // Replaces standard CSS object-fit
+								sizes="(max-width: 768px) 100vw, 50vw"
+								className="object-cover"
 								preload
 							/>
 						</div>
@@ -153,7 +153,6 @@ export default function SalesDetailPage() {
 							</p>
 						</div>
 
-						{/* Deep link back to contact form! */}
 						{bike.status === "available" && (
 							<Link
 								href={`/contact?service=Inquiry:+${bike.year}+${bike.make}+${bike.model}`}

@@ -336,13 +336,13 @@ export default function ContactPage() {
 								</div>
 								<div>
 									<h3 className="text-white font-bold uppercase tracking-widest text-sm">
-										Call Us
+										Call <span className="text-red-500 lowercase">|</span> Text
 									</h3>
 									<a
 										href="tel:+14082990508"
 										className="text-2xl font-mono text-white hover:text-red-400 transition-colors"
 									>
-										(408) 299-0508
+										(408)&thinsp;299-0508
 									</a>
 									<p className="mt-1">
 										<a
