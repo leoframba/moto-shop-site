@@ -96,6 +96,7 @@ export default function Navbar() {
 					<div className="flex flex-shrink-0 items-center">
 						<Link
 							href="/"
+							onClick={() => setIsOpen(false)}
 							className="text-4xl font-black uppercase italic tracking-tighter text-white drop-shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95"
 						>
 							A<span className="text-red-600">C</span>S
