@@ -3,13 +3,8 @@ import { useState } from "react";
 import AdminSalesTab from "@/components/admin/AdminSalesTab";
 import AdminServiceTab from "@/components/admin/AdminServiceTab";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import type { AdminInitialData } from "@/types";
 
-interface AdminDashboardProps {
-	initialData: AdminInitialData;
-}
-
-export default function AdminDashboard({ initialData }: AdminDashboardProps) {
+export default function AdminDashboard() {
 	const [activeTab, setActiveTab] = useState<"services" | "sales">("services");
 
 	return (
@@ -17,9 +12,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 			<AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
 			<main className="flex-1 p-6 md:p-10 overflow-y-auto max-h-screen pb-24 md:pb-10">
-				{activeTab === "services" && (
-					<AdminServiceTab initialData={initialData} />
-				)}
+				{activeTab === "services" && <AdminServiceTab />}
 				{activeTab === "sales" && <AdminSalesTab />}
 			</main>
 		</div>

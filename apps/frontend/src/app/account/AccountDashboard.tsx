@@ -4,11 +4,9 @@ import type { User } from "@supabase/supabase-js";
 import { useState } from "react";
 import UserProfileTab from "@/components/account/UserProfileTab";
 import UserSidebar, { type AccountTab } from "@/components/account/UserSidebar";
-import type { AdminInitialData } from "@/types";
 
 interface AccountDashboardProps {
 	user: User;
-	initialData: AdminInitialData;
 }
 
 export default function AccountDashboard({ user }: AccountDashboardProps) {

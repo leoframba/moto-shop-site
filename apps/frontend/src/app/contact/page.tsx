@@ -1,17 +1,16 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { sendContactEmail } from "@/actions/contact";
-import type { Service, ServiceResponse } from "@/types";
-import { apiRequest } from "@/utils/api";
+import { groupServicesByCategory, useServices } from "@/hooks/useServices";
 
 function ContactForm() {
 	const searchParams = useSearchParams();
 	const preselectedService = searchParams.get("service") || "";
 
-	const [services, setServices] = useState<Service[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const { data, isLoading: isLoadingServices } = useServices();
+	const services = data?.services ?? [];
 
 	const currentYear = new Date().getFullYear();
 	const years = Array.from(
@@ -30,32 +29,7 @@ function ContactForm() {
 		selectedService: preselectedService,
 	});
 
-	useEffect(() => {
-		async function fetchServices() {
-			try {
-				const data = await apiRequest<ServiceResponse>("/api/services", {
-					cache: "no-store",
-				});
-				setServices(data.services);
-			} catch (error) {
-				console.error("Failed to load services for form:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		}
-		fetchServices();
-	}, []);
-
-	// Group services by category for the dropdown
-	const groupedServices = services.reduce(
-		(acc, service) => {
-			const cat = service.categories?.name || "General";
-			if (!acc[cat]) acc[cat] = [];
-			acc[cat].push(service);
-			return acc;
-		},
-		{} as Record<string, Service[]>,
-	);
+	const groupedServices = groupServicesByCategory(services, "General");
 
 	const clearForm = () => {
 		setFormData({
@@ -238,14 +212,18 @@ function ContactForm() {
 						</label>
 						<select
 							id="service-contact"
-							className="w-full bg-neutral-950 border border-neutral-800 text-white px-4 py-3 focus:outline-none focus:border-red-600 transition-colors appearance-none"
+							className="w-full bg-neutral-950 border border-neutral-800 text-white px-4 py-3 focus:outline-none focus:border-red-600 transition-colors appearance-none disabled:opacity-60"
 							value={formData.selectedService}
 							onChange={(e) =>
 								setFormData({ ...formData, selectedService: e.target.value })
 							}
-							disabled={isLoading}
+							disabled={isLoadingServices}
 						>
-							<option value="">-- Select a Service --</option>
+							<option value="">
+								{isLoadingServices
+									? "Loading services..."
+									: "-- Select a Service --"}
+							</option>
 							<option value="Not Sure / Diagnostic">
 								Not Sure / Diagnostic
 							</option>

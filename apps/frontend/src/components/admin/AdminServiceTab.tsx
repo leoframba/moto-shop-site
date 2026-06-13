@@ -1,15 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminCategoryFolder from "@/components/admin/AdminCategoryFolder";
 import CategoryManager from "@/components/admin/CategoryManager";
 import ServiceForm from "@/components/admin/ServiceForm";
 import ShopRateManager from "@/components/admin/ShopRateManager";
-import type {
-	AdminInitialData,
-	Category,
-	Service,
-	ServiceFormData,
-} from "@/types";
+import AdminServicesSkeleton from "@/components/services/AdminServicesSkeleton";
+import { useServices } from "@/hooks/useServices";
+import type { Category, Service, ServiceFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
 const calculateServicePrice = (
@@ -31,16 +28,18 @@ const roundToTwoDecimals = (num: number): number => {
 	return Math.round((num + Number.EPSILON) * 100) / 100;
 };
 
-export default function AdminServiceTab({
-	initialData,
-}: {
-	initialData: AdminInitialData;
-}) {
-	const [hourlyRate, setHourlyRate] = useState<number>(initialData.hourly_rate);
-	const [categories, setCategories] = useState<Category[]>(
-		initialData.categories,
-	);
-	const [services, setServices] = useState<Service[]>(initialData.services);
+export default function AdminServiceTab() {
+	const { data, isLoading, hasError } = useServices();
+	const [hourlyRate, setHourlyRate] = useState(0);
+	const [categories, setCategories] = useState<Category[]>([]);
+	const [services, setServices] = useState<Service[]>([]);
+
+	useEffect(() => {
+		if (!data) return;
+		setHourlyRate(data.hourly_rate);
+		setCategories(data.categories);
+		setServices(data.services);
+	}, [data]);
 
 	const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
@@ -218,6 +217,38 @@ export default function AdminServiceTab({
 		groupedServices[key].sort((a, b) => a.name.localeCompare(b.name));
 	});
 
+	if (isLoading) {
+		return (
+			<div className="max-w-5xl mx-auto pb-20">
+				<div className="mb-8">
+					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
+						Service Management
+					</h2>
+					<p className="text-neutral-400 text-sm">
+						Manage shop rate, categories, and services.
+					</p>
+				</div>
+				<AdminServicesSkeleton />
+			</div>
+		);
+	}
+
+	if (hasError) {
+		return (
+			<div className="max-w-5xl mx-auto pb-20">
+				<div className="bg-red-950/30 border border-red-900/50 p-8 text-center rounded">
+					<h3 className="text-red-500 font-bold uppercase tracking-widest mb-2">
+						Failed to Load Services
+					</h3>
+					<p className="text-neutral-400 text-sm">
+						Could not reach the backend. Check your connection and try
+						refreshing.
+					</p>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="max-w-5xl mx-auto pb-20">
 			<div className="mb-8">
@@ -230,10 +261,7 @@ export default function AdminServiceTab({
 			</div>
 
 			<div className="grid md:grid-cols-2 gap-6 mb-12">
-				<ShopRateManager
-					initialRate={initialData.hourly_rate}
-					onSaveRate={saveRate}
-				/>
+				<ShopRateManager initialRate={hourlyRate} onSaveRate={saveRate} />
 				<CategoryManager
 					categories={categories}
 					onSaveCategory={saveNewCategory}
