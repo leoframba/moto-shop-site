@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 
 type ShopRateManagerProps = {
-	initialRate: number;
+	initialRate: number | null;
 	onSaveRate: (newRate: number) => Promise<void>;
 };
 
@@ -10,10 +11,16 @@ export default function ShopRateManager({
 	initialRate,
 	onSaveRate,
 }: ShopRateManagerProps) {
-	const [hourlyRate, setHourlyRate] = useState<number>(initialRate);
-	const [isSaving, setIsSaving] = useState<boolean>(false);
+	const [hourlyRate, setHourlyRate] = useState<number | null>(initialRate);
+	const [isSaving, setIsSaving] = useState(false);
+
+	useEffect(() => {
+		setHourlyRate(initialRate);
+	}, [initialRate]);
 
 	const handleSave = async () => {
+		if (hourlyRate === null) return;
+
 		setIsSaving(true);
 		try {
 			await onSaveRate(hourlyRate);
@@ -21,6 +28,18 @@ export default function ShopRateManager({
 			setIsSaving(false);
 		}
 	};
+
+	if (initialRate === null || hourlyRate === null) {
+		return (
+			<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl animate-pulse">
+				<div className="h-3 w-32 bg-neutral-800 rounded mb-6" />
+				<div className="flex items-center gap-4 mt-4">
+					<div className="h-12 w-40 bg-neutral-800 rounded-lg" />
+					<div className="h-12 w-24 bg-neutral-800 rounded-lg" />
+				</div>
+			</section>
+		);
+	}
 
 	return (
 		<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">

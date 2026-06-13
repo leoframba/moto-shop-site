@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiPlus } from "react-icons/fi";
+import { toast } from "sonner";
 import AdminBikeForm, {
 	type UnifiedImage,
 } from "@/components/admin/AdminBikeForm";
@@ -133,13 +134,15 @@ export default function AdminSalesTab() {
 
 			if (updatePromises.length > 0) await Promise.all(updatePromises);
 
-			alert(`Motorcycle ${editingBike ? "updated" : "added"} successfully!`);
+			toast.success(
+				`Motorcycle ${editingBike ? "updated" : "added"} successfully!`,
+			);
 			setIsAdding(false);
 			setEditingBike(null);
 			await fetchBikes();
 		} catch (error) {
 			console.error("Save bike error:", error);
-			alert(
+			toast.error(
 				error instanceof Error
 					? error.message
 					: "An error occurred while saving the bike.",
@@ -171,11 +174,11 @@ export default function AdminSalesTab() {
 				.eq("id", bikeId);
 			if (error) throw new Error(error.message);
 
-			alert("Motorcycle deleted successfully.");
+			toast.success("Motorcycle deleted successfully.");
 			await fetchBikes();
 		} catch {
 			console.error("Delete error");
-			alert("Failed to delete bike.");
+			toast.error("Failed to delete bike.");
 		} finally {
 			setIsDeleting(false);
 		}

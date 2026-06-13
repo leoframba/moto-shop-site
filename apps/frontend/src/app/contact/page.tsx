@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { toast } from "sonner";
 import { sendContactEmail } from "@/actions/contact";
 import { groupServicesByCategory, useServices } from "@/hooks/useServices";
 
@@ -54,11 +55,11 @@ function ContactForm() {
 			const res = await sendContactEmail(formData);
 
 			if (res.success) {
-				alert("Thanks for reaching out! We'll be in touch soon.");
+				toast.success("Thanks for reaching out! We'll be in touch soon.");
 				clearForm();
 			}
 		} catch {
-			alert("Something went wrong. Please try again later.");
+			toast.error("Something went wrong. Please try again later.");
 		} finally {
 			setIsSubmitting(false);
 		}

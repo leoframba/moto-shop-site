@@ -1,11 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { toast } from "sonner";
 import AdminCategoryFolder from "@/components/admin/AdminCategoryFolder";
 import CategoryManager from "@/components/admin/CategoryManager";
 import ServiceForm from "@/components/admin/ServiceForm";
 import ShopRateManager from "@/components/admin/ShopRateManager";
 import AdminServicesSkeleton from "@/components/services/AdminServicesSkeleton";
 import { useServices } from "@/hooks/useServices";
+import { confirmDeleteToast } from "@/lib/confirm-toast";
 import type { Category, Service, ServiceFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
@@ -30,15 +32,21 @@ const roundToTwoDecimals = (num: number): number => {
 
 export default function AdminServiceTab() {
 	const { data, isLoading, hasError } = useServices();
-	const [hourlyRate, setHourlyRate] = useState(0);
+	const [hourlyRate, setHourlyRate] = useState<number | null>(null);
 	const [categories, setCategories] = useState<Category[]>([]);
 	const [services, setServices] = useState<Service[]>([]);
+	const [isHydrated, setIsHydrated] = useState(false);
 
-	useEffect(() => {
-		if (!data) return;
+	useLayoutEffect(() => {
+		if (!data) {
+			setIsHydrated(false);
+			return;
+		}
+
 		setHourlyRate(data.hourly_rate);
 		setCategories(data.categories);
 		setServices(data.services);
+		setIsHydrated(true);
 	}, [data]);
 
 	const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
@@ -66,10 +74,10 @@ export default function AdminServiceTab() {
 				})),
 			);
 			setHourlyRate(newRate);
-			alert("Shop rate updated successfully!");
+			toast.success("Shop rate updated successfully!");
 		} catch (error) {
 			console.error(error);
-			alert("Failed to save rate.");
+			toast.error("Failed to save rate.");
 		}
 	};
 
@@ -86,28 +94,33 @@ export default function AdminServiceTab() {
 
 			return true;
 		} catch {
-			alert(
+			toast.error(
 				`Failed to create "${nameToSave}". This category name likely already exists.`,
 			);
 			return false;
 		}
 	};
 
-	const deleteCategory = async (id: string) => {
-		if (
-			!confirm(
-				"Are you sure? This will fail if services are currently using this category.",
-			)
-		)
-			return;
+	const performDeleteCategory = async (id: string) => {
 		try {
 			await authApiRequest(`/api/admin/categories/${id}`, { method: "DELETE" });
-			setCategories(categories.filter((c) => c.id !== id));
+			setCategories((prev) => prev.filter((c) => c.id !== id));
+			toast.success("Category deleted.");
 		} catch {
-			alert(
+			toast.error(
 				"Cannot delete category. There are still services assigned to it. Please edit or delete those services first.",
 			);
 		}
+	};
+
+	const deleteCategory = async (id: string) => {
+		const category = categories.find((c) => c.id === id);
+		confirmDeleteToast({
+			title: `Delete "${category?.name ?? "category"}"?`,
+			description:
+				"This will fail if services are currently assigned to this category.",
+			onConfirm: () => performDeleteCategory(id),
+		});
 	};
 
 	// ==========================================
@@ -123,7 +136,7 @@ export default function AdminServiceTab() {
 				},
 			);
 
-			const calcPrice = calculateServicePrice(updatedService, hourlyRate);
+			const calcPrice = calculateServicePrice(updatedService, hourlyRate ?? 0);
 
 			const selectedCat = categories.find((c) => c.id === editData.category_id);
 
@@ -143,7 +156,7 @@ export default function AdminServiceTab() {
 			}));
 		} catch (error) {
 			console.error(error);
-			alert("Failed to save changes.");
+			toast.error("Failed to save changes.");
 		}
 	};
 
@@ -154,7 +167,10 @@ export default function AdminServiceTab() {
 				body: JSON.stringify(formData),
 			});
 
-			const calcPrice = calculateServicePrice(formData as Service, hourlyRate);
+			const calcPrice = calculateServicePrice(
+				formData as Service,
+				hourlyRate ?? 0,
+			);
 			const selectedCat = categories.find((c) => c.id === formData.category_id);
 
 			const completeService: Service = {
@@ -173,26 +189,34 @@ export default function AdminServiceTab() {
 			}));
 		} catch (error) {
 			console.error(error);
-			alert("Failed to add new service.");
+			toast.error("Failed to add new service.");
 		}
 	};
 
-	const deleteService = async (service_to_delete: Service) => {
-		if (!confirm("Are you sure you want to delete this service?")) return;
+	const performDeleteService = async (serviceToDelete: Service) => {
 		const prevServices = [...services];
-		setServices(
-			services.filter((service) => service.id !== service_to_delete.id),
+		setServices((prev) =>
+			prev.filter((service) => service.id !== serviceToDelete.id),
 		);
 
 		try {
-			await authApiRequest(`/api/admin/services/${service_to_delete.id}`, {
+			await authApiRequest(`/api/admin/services/${serviceToDelete.id}`, {
 				method: "DELETE",
 			});
+			toast.success(`"${serviceToDelete.name}" deleted.`);
 		} catch (error) {
 			console.error("Error deleting service:", error);
 			setServices(prevServices);
-			alert("Failed to delete service.");
+			toast.error("Failed to delete service.");
 		}
+	};
+
+	const deleteService = async (serviceToDelete: Service) => {
+		confirmDeleteToast({
+			title: `Delete "${serviceToDelete.name}"?`,
+			description: "This service will be permanently removed from the menu.",
+			onConfirm: () => performDeleteService(serviceToDelete),
+		});
 	};
 
 	// Group logic
@@ -217,7 +241,7 @@ export default function AdminServiceTab() {
 		groupedServices[key].sort((a, b) => a.name.localeCompare(b.name));
 	});
 
-	if (isLoading) {
+	if (isLoading || !data || !isHydrated || hourlyRate === null) {
 		return (
 			<div className="max-w-5xl mx-auto pb-20">
 				<div className="mb-8">
@@ -261,7 +285,11 @@ export default function AdminServiceTab() {
 			</div>
 
 			<div className="grid md:grid-cols-2 gap-6 mb-12">
-				<ShopRateManager initialRate={hourlyRate} onSaveRate={saveRate} />
+				<ShopRateManager
+					key={hourlyRate}
+					initialRate={hourlyRate}
+					onSaveRate={saveRate}
+				/>
 				<CategoryManager
 					categories={categories}
 					onSaveCategory={saveNewCategory}

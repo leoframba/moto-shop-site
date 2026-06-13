@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { Category, PricingType, Service, ServiceFormData } from "@/types";
 
 interface ServiceFormProps {
 	categories: Category[];
-	initialData?: Service; // Optional: If passed, we are Editing. If missing, we are Adding.
+	initialData?: Service;
 	onSave: (data: ServiceFormData) => Promise<void>;
 	onCancel: () => void;
 	onDelete?: () => void;
@@ -30,7 +31,7 @@ export default function ServiceForm({
 
 	const handleSubmit = async () => {
 		if (!formData.category_id) {
-			alert("Please create a category first!");
+			toast.warning("Please create a category first!");
 			return;
 		}
 		setIsSaving(true);
