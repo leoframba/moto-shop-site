@@ -6,7 +6,11 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
-		"test": "echo \"No tests yet\" && exit 0"
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:integration": "vitest run --config vitest.integration.config.ts",
+		"test:e2e": "playwright test",
+		"test:e2e:ui": "playwright test --ui"
 	},
 	"dependencies": {
 		"@supabase/ssr": "^0.10.3",
@@ -20,12 +24,15 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
+		"@playwright/test": "^1.52.0",
 		"@tailwindcss/postcss": "^4",
 		"@types/node": "^20",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
 		"babel-plugin-react-compiler": "1.0.0",
+		"dotenv": "^17.4.2",
 		"tailwindcss": "^4",
-		"typescript": "^5"
+		"typescript": "^5",
+		"vitest": "^3.2.0"
 	}
 }

@@ -1,19 +1,24 @@
-// apps/frontend/app/login/page.tsx
-
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import AuthCard, {
+	authInputClassName,
+	authLabelClassName,
+} from "@/components/auth/AuthCard";
+import { isAdminUser } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/client";
 
-export default function LoginPage() {
+function LoginForm() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const next = searchParams.get("next") ?? "/account";
 
-	// Init Supabase client
 	const supabase = createClient();
 
 	const handleLogin = async (e: React.SyntheticEvent) => {
@@ -21,83 +26,114 @@ export default function LoginPage() {
 		setLoading(true);
 		setError(null);
 
-		const { error } = await supabase.auth.signInWithPassword({
-			email,
-			password,
-		});
+		const { data, error: signInError } = await supabase.auth.signInWithPassword(
+			{
+				email,
+				password,
+			},
+		);
 
-		if (error) {
-			setError(error.message);
+		if (signInError) {
+			setError(signInError.message);
 			setLoading(false);
 			return;
 		}
 
-		router.push("/admin");
+		const redirectTo = data.user
+			? isAdminUser(data.user)
+				? "/admin"
+				: next
+			: next;
+
+		router.push(redirectTo);
 		router.refresh();
 	};
 
 	return (
-		<main className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-			<div className="max-w-md w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
-				<div className="mb-8">
-					<h1 className="text-2xl font-bold text-white mb-2">Shop Admin</h1>
-					<p className="text-neutral-400 text-sm">
-						Sign in to manage services and pricing.
-					</p>
+		<AuthCard
+			title="Rider Login"
+			subtitle="Sign in to view services, inventory, and manage your account."
+			footer={
+				<p className="text-center text-sm text-neutral-400">
+					New here?{" "}
+					<Link
+						href="/signup"
+						className="text-red-500 hover:text-red-400 font-semibold transition-colors"
+					>
+						Create an account
+					</Link>
+				</p>
+			}
+		>
+			<form onSubmit={handleLogin} className="space-y-6">
+				<div>
+					<label htmlFor="email-login" className={authLabelClassName}>
+						Email Address
+					</label>
+					<input
+						type="email"
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
+						id="email-login"
+						className={authInputClassName}
+						placeholder="you@example.com"
+						required
+					/>
 				</div>
 
-				<form onSubmit={handleLogin} className="space-y-6">
-					<div>
-						<label
-							htmlFor="email-login"
-							className="block text-sm font-medium text-neutral-300 mb-2"
-						>
-							Email Address
-						</label>
-						<input
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							id="email-login"
-							className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-							placeholder="admin@motoshop.com"
-							required
-						/>
-					</div>
-
-					<div>
-						<label
-							htmlFor="password-login"
-							className="block text-sm font-medium text-neutral-300 mb-2"
-						>
+				<div>
+					<div className="flex items-center justify-between mb-2">
+						<label htmlFor="password-login" className={authLabelClassName}>
 							Password
 						</label>
-						<input
-							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							id="password-login"
-							className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-							placeholder="••••••••"
-							required
-						/>
+						<Link
+							href="/forgot-password"
+							className="text-xs text-red-500 hover:text-red-400 transition-colors"
+						>
+							Forgot password?
+						</Link>
 					</div>
+					<input
+						type="password"
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						id="password-login"
+						className={authInputClassName}
+						placeholder="••••••••"
+						required
+					/>
+				</div>
 
-					{error && (
-						<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-							<p className="text-sm text-red-400 text-center">{error}</p>
-						</div>
-					)}
+				{error && (
+					<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+						<p className="text-sm text-red-400 text-center">{error}</p>
+					</div>
+				)}
 
-					<button
-						type="submit"
-						disabled={loading}
-						className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{loading ? "Authenticating..." : "Sign In"}
-					</button>
-				</form>
-			</div>
-		</main>
+				<button
+					type="submit"
+					disabled={loading}
+					className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{loading ? "Signing in..." : "Sign In"}
+				</button>
+			</form>
+		</AuthCard>
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense
+			fallback={
+				<main className="min-h-screen bg-black flex items-center justify-center">
+					<p className="text-neutral-500 uppercase tracking-widest text-sm animate-pulse">
+						Loading...
+					</p>
+				</main>
+			}
+		>
+			<LoginForm />
+		</Suspense>
 	);
 }

@@ -1,8 +1,9 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "scripts": {
-    "lint": "ruff check .",
-    "format": "ruff format ."
-  }
+	"name": "backend",
+	"version": "1.0.0",
+	"scripts": {
+		"lint": "venv/Scripts/ruff check .",
+		"format": "venv/Scripts/ruff format .",
+		"test": "venv/Scripts/pytest"
+	}
 }

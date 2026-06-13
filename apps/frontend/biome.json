@@ -33,5 +33,7 @@
 	},
 	"css": {
 		"parser": {
-			"tailwindDirectives": true		 }	 }
+			"tailwindDirectives": true
+		}
+	}
 }

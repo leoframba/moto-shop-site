@@ -16,14 +16,27 @@ supabase: Client = create_client(url, key)
 security = HTTPBearer()
 
 
-# JWT Verifier
+def _is_admin_user(user) -> bool:
+    app_metadata = user.app_metadata or {}
+    return app_metadata.get("role") == "admin"
+
+
+# JWT Verifier — requires valid token AND app_metadata.role = admin
 async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     try:
         user_response = supabase.auth.get_user(token)
-        if not user_response.user:
+        user = user_response.user
+        if not user:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return user_response.user
+        if not _is_admin_user(user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required",
+            )
+        return user
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

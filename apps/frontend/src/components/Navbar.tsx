@@ -1,31 +1,53 @@
 "use client";
 
-import {
-	AnimatePresence,
-	motion,
-	useMotionValueEvent,
-	useScroll,
-} from "framer-motion";
+import type { User } from "@supabase/supabase-js";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { FiMenu, FiX } from "react-icons/fi";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { FiLogOut, FiMenu, FiUser, FiX } from "react-icons/fi";
+import { getUserDisplayName, isAdminUser } from "@/utils/auth";
+import { createClient } from "@/utils/supabase/client";
 
 export default function Navbar() {
 	const [isOpen, setIsOpen] = useState(false);
-	const [isScrolled, setIsScrolled] = useState(false);
-	const { scrollY } = useScroll();
+	const [user, setUser] = useState<User | null>(null);
+	const router = useRouter();
 
 	const pathname = usePathname();
 	const isHomePage = pathname === "/";
-
-	useMotionValueEvent(scrollY, "change", (latest) => {
-		setIsScrolled(latest > 50);
-	});
+	const supabase = useMemo(() => createClient(), []);
 
 	useEffect(() => {
+		if (pathname) setIsOpen(false);
+	}, [pathname]);
+
+	useEffect(() => {
+		const loadUser = async () => {
+			const {
+				data: { user: currentUser },
+			} = await supabase.auth.getUser();
+			setUser(currentUser);
+		};
+
+		void loadUser();
+
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange((_event, session) => {
+			setUser(session?.user ?? null);
+		});
+
+		return () => subscription.unsubscribe();
+	}, [supabase]);
+
+	const handleSignOut = async () => {
+		await supabase.auth.signOut();
+		setUser(null);
 		setIsOpen(false);
-	}, []);
+		router.push("/");
+		router.refresh();
+	};
 
 	const navState = isHomePage ? "hero" : "solid";
 
@@ -36,9 +58,11 @@ export default function Navbar() {
 		{ name: "Contact", href: "/contact" },
 	];
 
-	if (pathname.startsWith("/admin")) {
+	if (pathname.startsWith("/admin") || pathname.startsWith("/account")) {
 		return null;
 	}
+
+	const displayName = user ? getUserDisplayName(user) : null;
 
 	return (
 		<motion.nav
@@ -103,7 +127,7 @@ export default function Navbar() {
 						</Link>
 					</div>
 					{/* DESKTOP MENU */}
-					<div className="hidden items-center space-x-8 md:flex">
+					<div className="hidden items-center gap-6 md:flex lg:gap-8">
 						{navLinks.map((link) => (
 							<Link
 								key={link.name}
@@ -115,12 +139,43 @@ export default function Navbar() {
 							</Link>
 						))}
 
-						<Link
-							href="/contact"
-							className="rounded bg-red-600 px-6 py-2 font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all hover:bg-red-500"
-						>
-							Contact Us
-						</Link>
+						{user ? (
+							<div className="flex items-center gap-6">
+								{isAdminUser(user) && (
+									<Link
+										href="/admin"
+										className="group relative text-sm font-bold uppercase tracking-widest text-white/80 drop-shadow-md transition-colors hover:text-white"
+									>
+										Admin
+										<span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-red-600 transition-all duration-300 group-hover:w-full" />
+									</Link>
+								)}
+								<Link
+									href="/account"
+									className="flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white transition-all hover:border-red-600 hover:bg-red-600/10"
+								>
+									<FiUser className="h-4 w-4 text-red-500" />
+									<span className="max-w-[8rem] truncate">{displayName}</span>
+								</Link>
+								<button
+									type="button"
+									onClick={handleSignOut}
+									aria-label="Sign out"
+									className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+								>
+									<FiLogOut className="h-4 w-4" />
+								</button>
+							</div>
+						) : (
+							<div className="flex items-center gap-3">
+								<Link
+									href="/login"
+									className="rounded bg-red-600 px-6 py-2 font-bold uppercase tracking-wider text-white drop-shadow-lg transition-all hover:bg-red-500"
+								>
+									Rider Portal
+								</Link>
+							</div>
+						)}
 					</div>
 					{/* MOBILE MENU BUTTON */}
 					<div className="flex items-center md:hidden">
@@ -161,6 +216,46 @@ export default function Navbar() {
 									{link.name}
 								</Link>
 							))}
+
+							<div className="mt-2 border-t border-white/10 pt-2">
+								{user ? (
+									<>
+										<Link
+											href="/account"
+											onClick={() => setIsOpen(false)}
+											className="flex items-center gap-3 rounded-md px-3 py-4 text-base font-bold uppercase tracking-wider text-white transition-colors hover:bg-white/10"
+										>
+											<FiUser className="h-5 w-5 text-red-500" />
+											{displayName}
+										</Link>
+										{isAdminUser(user) && (
+											<Link
+												href="/admin"
+												onClick={() => setIsOpen(false)}
+												className="block rounded-md px-3 py-4 text-base font-bold uppercase tracking-wider text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
+											>
+												Admin Dashboard
+											</Link>
+										)}
+										<button
+											type="button"
+											onClick={handleSignOut}
+											className="flex w-full items-center gap-3 rounded-md px-3 py-4 text-base font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-white/10"
+										>
+											<FiLogOut className="h-5 w-5" />
+											Sign Out
+										</button>
+									</>
+								) : (
+									<Link
+										href="/login"
+										onClick={() => setIsOpen(false)}
+										className="block rounded-md bg-red-600 px-3 py-4 text-center text-base font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-500"
+									>
+										Rider Portal
+									</Link>
+								)}
+							</div>
 						</div>
 					</motion.div>
 				)}

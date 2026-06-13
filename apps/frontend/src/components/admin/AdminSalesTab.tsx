@@ -173,9 +173,9 @@ export default function AdminSalesTab() {
 
 			alert("Motorcycle deleted successfully.");
 			await fetchBikes();
-		} catch (error: any) {
-			console.error("Delete error:", error);
-			alert(error.message || "Failed to delete bike.");
+		} catch {
+			console.error("Delete error");
+			alert("Failed to delete bike.");
 		} finally {
 			setIsDeleting(false);
 		}

@@ -83,7 +83,7 @@ function ContactForm() {
 				alert("Thanks for reaching out! We'll be in touch soon.");
 				clearForm();
 			}
-		} catch (error) {
+		} catch {
 			alert("Something went wrong. Please try again later.");
 		} finally {
 			setIsSubmitting(false);

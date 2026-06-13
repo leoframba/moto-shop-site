@@ -24,15 +24,15 @@ export default function Home() {
 		return () => clearInterval(timer);
 	}, []);
 
-	const nextImage = () => {
-		setCurrentIndex((prev) => (prev + 1) % HERO_IMAGES.length);
-	};
+	// const nextImage = () => {
+	// 	setCurrentIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+	// };
 
-	const prevImage = () => {
-		setCurrentIndex(
-			(prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
-		);
-	};
+	// const prevImage = () => {
+	// 	setCurrentIndex(
+	// 		(prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
+	// 	);
+	// };
 
 	const containerVariants = {
 		hidden: { opacity: 0 },

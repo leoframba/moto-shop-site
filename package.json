@@ -12,7 +12,10 @@
 	"scripts": {
 		"prepare": "husky install",
 		"lint": "yarn workspace frontend lint && yarn workspace backend lint",
-		"format": "yarn workspace frontend format && ruff format apps/backend",
-		"check-all": "yarn lint && yarn format"
+		"format": "yarn workspace frontend format && yarn workspace backend format",
+		"check-all": "yarn lint && yarn format",
+		"test": "yarn workspace frontend test && yarn workspace backend test",
+		"test:integration": "yarn workspace frontend test:integration",
+		"test:e2e": "yarn workspace frontend test:e2e"
 	}
 }

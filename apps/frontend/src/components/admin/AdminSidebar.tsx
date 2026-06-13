@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 interface AdminSidebarProps {
 	activeTab: "services" | "sales";
@@ -9,6 +13,15 @@ export default function AdminSidebar({
 	activeTab,
 	setActiveTab,
 }: AdminSidebarProps) {
+	const router = useRouter();
+	const supabase = createClient();
+
+	const handleSignOut = async () => {
+		await supabase.auth.signOut();
+		router.push("/login");
+		router.refresh();
+	};
+
 	return (
 		<aside className="fixed bottom-0 left-0 w-full z-50 bg-neutral-950 border-t border-neutral-900 md:static md:w-64 md:border-r md:border-t-0 md:bg-neutral-900/50 flex flex-row md:flex-col shrink-0 pb-safe">
 			{/* Logo */}
@@ -44,7 +57,7 @@ export default function AdminSidebar({
 				</button>
 			</nav>
 
-			<div className="md:mt-auto p-2 md:p-4 md:border-t border-neutral-900 flex items-center justify-center md:justify-start">
+			<div className="md:mt-auto p-2 md:p-4 md:border-t border-neutral-900 flex flex-col items-center md:items-start gap-2">
 				<Link
 					href="/"
 					className="text-[10px] md:text-xs text-neutral-500 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-2 text-center md:text-left"
@@ -52,6 +65,13 @@ export default function AdminSidebar({
 					<span className="hidden md:inline">&larr; Back to Live Site</span>
 					<span className="md:hidden">Exit</span>
 				</Link>
+				<button
+					type="button"
+					onClick={handleSignOut}
+					className="hidden md:block text-xs text-red-500 hover:text-red-400 uppercase tracking-widest font-bold transition-colors"
+				>
+					Sign Out
+				</button>
 			</div>
 		</aside>
 	);

@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Expose backend venv tools (ruff, pytest) to lint-staged
+if [ -d "apps/backend/venv/Scripts" ]; then
+  export PATH="$(pwd)/apps/backend/venv/Scripts:$PATH"
+elif [ -d "apps/backend/venv/bin" ]; then
+  export PATH="$(pwd)/apps/backend/venv/bin:$PATH"
+fi
+
 yarn dlx lint-staged

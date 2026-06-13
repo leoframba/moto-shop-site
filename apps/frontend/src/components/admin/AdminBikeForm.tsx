@@ -133,7 +133,7 @@ export default function AdminBikeForm({
 		generatedUrlsRef.current.forEach(URL.revokeObjectURL);
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <false positive>
 	useEffect(() => {
 		return cleanupMemory;
 	}, []);

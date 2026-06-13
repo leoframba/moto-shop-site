@@ -21,7 +21,7 @@ export async function sendContactEmail(formData: ContactFormData) {
 		const { name, phone, email, year, make, model, selectedService, message } =
 			formData;
 
-		const { data, error } = await resend.emails.send({
+		const { error } = await resend.emails.send({
 			from: "onboarding@resend.dev",
 			to: "leframba@usfca.edu",
 			replyTo: email,
