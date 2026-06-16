@@ -360,7 +360,7 @@ export default function AcceptInvitePage() {
 			subtitle="Set a password to access your garage and service history."
 			footer={
 				<p className="text-center text-sm text-neutral-400">
-					Need help? Contact the shop that invited you.
+					Having Issues? Contact the shop to setup your account manually.
 				</p>
 			}
 		>
