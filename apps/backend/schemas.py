@@ -214,6 +214,10 @@ class UserInvite(BaseModel):
         return v
 
 
+class UserResendInvite(BaseModel):
+    redirect_base_url: str | None = None
+
+
 class ShopSettingsUpdate(BaseModel):
     shop_name: str | None = None
     shop_address: str | None = None

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiMail, FiUserPlus } from "react-icons/fi";
+import { FiCopy, FiMail, FiRefreshCw, FiUserPlus, FiX } from "react-icons/fi";
 import { toast } from "sonner";
 import type { AdminUser } from "@/types";
 import { authApiRequest } from "@/utils/api";
@@ -33,6 +33,11 @@ export default function AdminUsersTab() {
 	const [editingUserId, setEditingUserId] = useState<string | null>(null);
 	const [formData, setFormData] = useState<UserFormData>(getInitialFormData);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [resendingUserId, setResendingUserId] = useState<string | null>(null);
+	const [inviteLink, setInviteLink] = useState<{
+		email: string;
+		url: string;
+	} | null>(null);
 
 	const isEditing = editingUserId !== null;
 
@@ -137,6 +142,33 @@ export default function AdminUsersTab() {
 			);
 		} finally {
 			setIsSaving(false);
+		}
+	};
+
+	const handleResendInvite = async (user: AdminUser) => {
+		setResendingUserId(user.id);
+		try {
+			const result = await authApiRequest<{
+				email: string;
+				action_link: string;
+			}>(`/api/admin/users/${user.id}/resend-invite`, {
+				method: "POST",
+				body: JSON.stringify({ redirect_base_url: window.location.origin }),
+			});
+			setInviteLink({ email: result.email, url: result.action_link });
+			try {
+				await navigator.clipboard.writeText(result.action_link);
+				toast.success(`Fresh invite link copied for ${result.email}.`);
+			} catch {
+				toast.success(`Fresh invite link generated for ${result.email}.`);
+			}
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to generate link.",
+			);
+		} finally {
+			setResendingUserId(null);
 		}
 	};
 
@@ -280,6 +312,48 @@ export default function AdminUsersTab() {
 				</div>
 			)}
 
+			{inviteLink && (
+				<div className="bg-neutral-900 border border-emerald-600/40 p-4 rounded-lg mb-8">
+					<div className="flex items-start justify-between gap-4 mb-2">
+						<p className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
+							Invite link for {inviteLink.email}
+						</p>
+						<button
+							type="button"
+							onClick={() => setInviteLink(null)}
+							className="text-neutral-500 hover:text-white"
+							aria-label="Dismiss invite link"
+						>
+							<FiX className="h-4 w-4" />
+						</button>
+					</div>
+					<p className="text-xs text-neutral-500 mb-3">
+						Copied to your clipboard. Open it once in an incognito window —
+						don't preview it in your email client (that can consume the one-time
+						token).
+					</p>
+					<div className="flex items-center gap-2">
+						<input
+							readOnly
+							value={inviteLink.url}
+							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-xs text-neutral-300 outline-none"
+						/>
+						<button
+							type="button"
+							onClick={() => {
+								void navigator.clipboard
+									.writeText(inviteLink.url)
+									.then(() => toast.success("Link copied."))
+									.catch(() => toast.error("Couldn't copy link."));
+							}}
+							className="bg-neutral-800 hover:bg-neutral-700 px-4 py-3 rounded font-bold text-xs uppercase tracking-widest inline-flex items-center gap-2 shrink-0"
+						>
+							<FiCopy className="h-3.5 w-3.5" /> Copy
+						</button>
+					</div>
+				</div>
+			)}
+
 			{isLoading ? (
 				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
 					Loading Users...
@@ -322,6 +396,21 @@ export default function AdminUsersTab() {
 										</p>
 									</div>
 									<div className="self-start md:self-auto flex items-center gap-2">
+										<button
+											type="button"
+											onClick={() => void handleResendInvite(user)}
+											disabled={resendingUserId === user.id}
+											className="bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest inline-flex items-center gap-2"
+										>
+											<FiRefreshCw
+												className={`h-3.5 w-3.5 ${
+													resendingUserId === user.id ? "animate-spin" : ""
+												}`}
+											/>
+											{resendingUserId === user.id
+												? "Generating..."
+												: "Resend Invite"}
+										</button>
 										<button
 											type="button"
 											onClick={() => openEditForm(user)}

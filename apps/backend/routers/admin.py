@@ -20,6 +20,7 @@ from schemas import (
     ServiceVisibilityUpdate,
     ShopSettingsUpdate,
     UserInvite,
+    UserResendInvite,
     UserUpdate,
 )
 from service_pricing import serialize_service
@@ -309,9 +310,11 @@ async def invite_user(payload: UserInvite):
 
         try:
             site_url = _resolve_invite_redirect_base(payload.redirect_base_url)
-            # Server callback exchanges the PKCE code once (avoids duplicate client-side
-            # verify/exchange races that leave #error=otp_expired on an otherwise valid link).
-            redirect_to = f"{site_url}/auth/callback?next=/accept-invite"
+            # Invites are server-initiated, so the user's browser has no PKCE code
+            # verifier — the /auth/callback exchangeCodeForSession path cannot work.
+            # Send the implicit-flow tokens straight to the client page, which
+            # consumes the #access_token / #refresh_token hash via setSession().
+            redirect_to = f"{site_url}/accept-invite"
 
             invite_response = supabase.auth.admin.invite_user_by_email(
                 payload.email,
@@ -345,6 +348,82 @@ async def invite_user(payload: UserInvite):
         return {
             "user": upserted_rows[0] if upserted_rows else profile_payload,
             "message": "Invitation sent.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _extract_action_link(link_response) -> str | None:
+    """Pull the action_link out of a generate_link response across SDK shapes."""
+    properties = getattr(link_response, "properties", None)
+    if properties is not None:
+        action_link = getattr(properties, "action_link", None)
+        if action_link:
+            return action_link
+    if isinstance(link_response, dict):
+        props = link_response.get("properties") or {}
+        return props.get("action_link")
+    return None
+
+
+@router.post("/users/{user_id}/resend-invite")
+async def resend_invite(user_id: str, payload: UserResendInvite):
+    try:
+        record = (
+            supabase.table("users")
+            .select("id, email, first_name, last_name, phone_number")
+            .eq("id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        user_row = record.data if record else None
+        if not user_row or not user_row.get("email"):
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        email = user_row["email"]
+        site_url = _resolve_invite_redirect_base(payload.redirect_base_url)
+        redirect_to = f"{site_url}/accept-invite"
+        user_metadata = {
+            key: value
+            for key, value in {
+                "first_name": user_row.get("first_name"),
+                "last_name": user_row.get("last_name"),
+                "phone_number": user_row.get("phone_number"),
+            }.items()
+            if value is not None
+        }
+
+        # Mint a fresh one-time link. "invite" works for never-confirmed users;
+        # already-existing users fall back to a magiclink (same /accept-invite
+        # landing where they set their password). generate_link does not send an
+        # email, so the link is returned for the admin to share/copy directly.
+        action_link = None
+        last_error = None
+        for link_type in ("invite", "magiclink"):
+            try:
+                options = {"redirect_to": redirect_to}
+                if link_type == "invite" and user_metadata:
+                    options["data"] = user_metadata
+                link_response = supabase.auth.admin.generate_link(
+                    {"type": link_type, "email": email, "options": options}
+                )
+                action_link = _extract_action_link(link_response)
+                if action_link:
+                    break
+            except Exception as link_error:  # noqa: BLE001
+                last_error = link_error
+                continue
+
+        if not action_link:
+            detail = str(last_error) if last_error else "Failed to generate link."
+            raise HTTPException(status_code=400, detail=detail)
+
+        return {
+            "email": email,
+            "action_link": action_link,
+            "message": "Fresh invite link generated.",
         }
     except HTTPException:
         raise
