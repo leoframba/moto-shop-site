@@ -9,7 +9,11 @@ import AuthCard, {
 	authLabelClassName,
 } from "@/components/auth/AuthCard";
 import { authApiRequest } from "@/utils/api";
-import { clearAuthHashFromUrl, parseAuthHashError } from "@/utils/auth-errors";
+import {
+	clearAuthHashFromUrl,
+	parseAuthHashError,
+	parseAuthHashTokens,
+} from "@/utils/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type InviteMetadata = {
@@ -60,23 +64,47 @@ export default function AcceptInvitePage() {
 		const bootstrap = async () => {
 			setBootstrapping(true);
 
-			// Prefer ?code= exchange before reading #error= hash — Supabase can fire
-			// duplicate /verify requests; one succeeds (?code=) while the other lands
-			// #error=otp_expired in the same URL. Session/code wins over stale hash errors.
-			const code = new URLSearchParams(window.location.search).get("code");
-			if (code && !codeExchangeStarted.current) {
+			// Resolve the invite session before reading any #error= hash — Supabase
+			// can fire duplicate /verify requests where one succeeds and the other
+			// leaves a stale #error=otp_expired on an otherwise valid link.
+			if (!codeExchangeStarted.current) {
 				codeExchangeStarted.current = true;
-				const { error: exchangeError } =
-					await supabase.auth.exchangeCodeForSession(code);
-				if (exchangeError) {
-					if (!cancelled) {
-						setError(exchangeError.message);
-						setReady(false);
+
+				// Implicit flow: tokens delivered in the URL hash. The PKCE browser
+				// client won't auto-consume these, so set the session explicitly.
+				const hashTokens = parseAuthHashTokens();
+				if (hashTokens) {
+					const { error: setSessionError } = await supabase.auth.setSession({
+						access_token: hashTokens.accessToken,
+						refresh_token: hashTokens.refreshToken,
+					});
+					if (setSessionError) {
+						if (!cancelled) {
+							setError(setSessionError.message);
+							setReady(false);
+						}
+						clearAuthHashFromUrl();
+						setBootstrapping(false);
+						return;
 					}
-					setBootstrapping(false);
-					return;
+					window.history.replaceState({}, "", "/accept-invite");
+				} else {
+					// PKCE flow: code delivered in the query string.
+					const code = new URLSearchParams(window.location.search).get("code");
+					if (code) {
+						const { error: exchangeError } =
+							await supabase.auth.exchangeCodeForSession(code);
+						if (exchangeError) {
+							if (!cancelled) {
+								setError(exchangeError.message);
+								setReady(false);
+							}
+							setBootstrapping(false);
+							return;
+						}
+						window.history.replaceState({}, "", "/accept-invite");
+					}
 				}
-				window.history.replaceState({}, "", "/accept-invite");
 			}
 
 			const {

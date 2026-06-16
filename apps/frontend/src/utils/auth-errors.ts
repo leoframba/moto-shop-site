@@ -20,6 +20,30 @@ export function parseAuthHashError(): string | null {
 	return params.get("error");
 }
 
+/**
+ * Parse Supabase implicit-flow tokens from the URL hash
+ * (e.g. #access_token=...&refresh_token=...&type=invite).
+ */
+export function parseAuthHashTokens(): {
+	accessToken: string;
+	refreshToken: string;
+} | null {
+	if (typeof window === "undefined") return null;
+
+	const hash = window.location.hash.replace(/^#/, "");
+	if (!hash) return null;
+
+	const params = new URLSearchParams(hash);
+	const accessToken = params.get("access_token");
+	const refreshToken = params.get("refresh_token");
+
+	if (accessToken && refreshToken) {
+		return { accessToken, refreshToken };
+	}
+
+	return null;
+}
+
 export function clearAuthHashFromUrl(): void {
 	if (typeof window === "undefined") return;
 
