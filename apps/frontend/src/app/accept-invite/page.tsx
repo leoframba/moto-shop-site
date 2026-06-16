@@ -3,7 +3,7 @@
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthCard, {
 	authInputClassName,
 	authLabelClassName,
@@ -41,6 +41,7 @@ export default function AcceptInvitePage() {
 	const router = useRouter();
 
 	const supabase = createClient();
+	const codeExchangeStarted = useRef(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -53,24 +54,18 @@ export default function AcceptInvitePage() {
 			setLastName(metadata.last_name ?? "");
 			setPhoneNumber(metadata.phone_number ?? "");
 			setReady(true);
+			setError(null);
 		};
 
 		const bootstrap = async () => {
 			setBootstrapping(true);
 
-			const hashError = parseAuthHashError();
-			if (hashError) {
-				if (!cancelled) {
-					setError(hashError);
-					setReady(false);
-				}
-				clearAuthHashFromUrl();
-				setBootstrapping(false);
-				return;
-			}
-
+			// Prefer ?code= exchange before reading #error= hash — Supabase can fire
+			// duplicate /verify requests; one succeeds (?code=) while the other lands
+			// #error=otp_expired in the same URL. Session/code wins over stale hash errors.
 			const code = new URLSearchParams(window.location.search).get("code");
-			if (code) {
+			if (code && !codeExchangeStarted.current) {
+				codeExchangeStarted.current = true;
 				const { error: exchangeError } =
 					await supabase.auth.exchangeCodeForSession(code);
 				if (exchangeError) {
@@ -87,8 +82,28 @@ export default function AcceptInvitePage() {
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
+			if (session?.user) {
+				if (!cancelled) {
+					clearAuthHashFromUrl();
+					hydrateFromUser(session.user);
+					setBootstrapping(false);
+				}
+				return;
+			}
+
+			const hashError = parseAuthHashError();
+			if (hashError) {
+				if (!cancelled) {
+					setError(hashError);
+					setReady(false);
+				}
+				clearAuthHashFromUrl();
+				setBootstrapping(false);
+				return;
+			}
+
 			if (!cancelled) {
-				hydrateFromUser(session?.user ?? null);
+				hydrateFromUser(null);
 				setBootstrapping(false);
 			}
 		};

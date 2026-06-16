@@ -309,9 +309,9 @@ async def invite_user(payload: UserInvite):
 
         try:
             site_url = _resolve_invite_redirect_base(payload.redirect_base_url)
-            # Client page handles PKCE ?code= and hash tokens; avoids server route
-            # dropping hash fragments when Supabase returns implicit-flow errors.
-            redirect_to = f"{site_url}/accept-invite"
+            # Server callback exchanges the PKCE code once (avoids duplicate client-side
+            # verify/exchange races that leave #error=otp_expired on an otherwise valid link).
+            redirect_to = f"{site_url}/auth/callback?next=/accept-invite"
 
             invite_response = supabase.auth.admin.invite_user_by_email(
                 payload.email,
