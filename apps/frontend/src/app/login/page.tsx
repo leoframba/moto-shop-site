@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import AuthCard, {
 	authInputClassName,
 	authLabelClassName,
 } from "@/components/auth/AuthCard";
 import { isAdminUser } from "@/utils/auth";
+import {
+	clearAuthHashFromUrl,
+	getAuthCallbackErrorMessage,
+	parseAuthHashError,
+} from "@/utils/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 
 function LoginForm() {
@@ -18,8 +23,21 @@ function LoginForm() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const next = searchParams.get("next") ?? "/account";
+	const callbackError = searchParams.get("error");
 
 	const supabase = createClient();
+
+	useEffect(() => {
+		const hashError = parseAuthHashError();
+		if (hashError) {
+			setError(hashError);
+			clearAuthHashFromUrl();
+			return;
+		}
+
+		const message = getAuthCallbackErrorMessage(callbackError);
+		if (message) setError(message);
+	}, [callbackError]);
 
 	const handleLogin = async (e: React.SyntheticEvent) => {
 		e.preventDefault();

@@ -124,6 +124,7 @@ export default function AdminUsersTab() {
 					first_name: formData.first_name.trim() || null,
 					last_name: formData.last_name.trim() || null,
 					phone_number: formData.phone_number.trim() || null,
+					redirect_base_url: window.location.origin,
 				}),
 			});
 			toast.success(`Invitation sent to ${email}.`);

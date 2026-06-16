@@ -1,6 +1,7 @@
 # routers/admin.py
 import os
 import uuid
+from urllib.parse import urlparse
 
 from dependencies import supabase, verify_admin
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -261,6 +262,38 @@ async def update_user(user_id: str, payload: UserUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _resolve_invite_redirect_base(explicit: str | None) -> str:
+    """Pick the frontend origin embedded in invite links.
+
+    Prefers the admin UI origin sent by the browser, then SITE_URL env.
+    Only allows known hostnames to avoid open-redirect abuse.
+    """
+    env_default = os.environ.get("SITE_URL", "http://localhost:3000").rstrip("/")
+    if not explicit:
+        return env_default
+
+    explicit = explicit.strip().rstrip("/")
+    parsed = urlparse(explicit)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return env_default
+
+    hostname = (parsed.hostname or "").lower()
+    allowed_hosts = {
+        h.strip().lower()
+        for h in os.environ.get(
+            "ALLOWED_SITE_HOSTS",
+            "localhost,127.0.0.1,advcycles.com,www.advcycles.com,"
+            "moto-shop-site-frontend.vercel.app",
+        ).split(",")
+        if h.strip()
+    }
+
+    if hostname in allowed_hosts or hostname.endswith(".vercel.app"):
+        return f"{parsed.scheme}://{parsed.netloc}"
+
+    return env_default
+
+
 @router.post("/users/invite")
 async def invite_user(payload: UserInvite):
     try:
@@ -275,8 +308,10 @@ async def invite_user(payload: UserInvite):
         }
 
         try:
-            site_url = os.environ.get("SITE_URL", "http://localhost:3000").rstrip("/")
-            redirect_to = f"{site_url}/auth/callback?next=/accept-invite"
+            site_url = _resolve_invite_redirect_base(payload.redirect_base_url)
+            # Client page handles PKCE ?code= and hash tokens; avoids server route
+            # dropping hash fragments when Supabase returns implicit-flow errors.
+            redirect_to = f"{site_url}/accept-invite"
 
             invite_response = supabase.auth.admin.invite_user_by_email(
                 payload.email,

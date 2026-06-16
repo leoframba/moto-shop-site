@@ -15,5 +15,11 @@ export async function GET(request: NextRequest) {
 		}
 	}
 
+	// Hash errors (e.g. expired invite) never reach the server — send invite flows
+	// to the client page where the hash can be read.
+	if (next === "/accept-invite") {
+		return NextResponse.redirect(`${origin}/accept-invite`);
+	}
+
 	return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }

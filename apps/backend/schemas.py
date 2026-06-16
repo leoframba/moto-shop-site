@@ -189,6 +189,7 @@ class UserInvite(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone_number: str | None = None
+    redirect_base_url: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod

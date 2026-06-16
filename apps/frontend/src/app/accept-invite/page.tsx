@@ -9,6 +9,7 @@ import AuthCard, {
 	authLabelClassName,
 } from "@/components/auth/AuthCard";
 import { authApiRequest } from "@/utils/api";
+import { clearAuthHashFromUrl, parseAuthHashError } from "@/utils/auth-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type InviteMetadata = {
@@ -36,11 +37,14 @@ export default function AcceptInvitePage() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [ready, setReady] = useState(false);
+	const [bootstrapping, setBootstrapping] = useState(true);
 	const router = useRouter();
 
 	const supabase = createClient();
 
 	useEffect(() => {
+		let cancelled = false;
+
 		const hydrateFromUser = (user: User | null) => {
 			if (!user) return;
 			const metadata = readInviteMetadata(user);
@@ -51,22 +55,56 @@ export default function AcceptInvitePage() {
 			setReady(true);
 		};
 
-		const checkSession = async () => {
+		const bootstrap = async () => {
+			setBootstrapping(true);
+
+			const hashError = parseAuthHashError();
+			if (hashError) {
+				if (!cancelled) {
+					setError(hashError);
+					setReady(false);
+				}
+				clearAuthHashFromUrl();
+				setBootstrapping(false);
+				return;
+			}
+
+			const code = new URLSearchParams(window.location.search).get("code");
+			if (code) {
+				const { error: exchangeError } =
+					await supabase.auth.exchangeCodeForSession(code);
+				if (exchangeError) {
+					if (!cancelled) {
+						setError(exchangeError.message);
+						setReady(false);
+					}
+					setBootstrapping(false);
+					return;
+				}
+				window.history.replaceState({}, "", "/accept-invite");
+			}
+
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
-			hydrateFromUser(session?.user ?? null);
+			if (!cancelled) {
+				hydrateFromUser(session?.user ?? null);
+				setBootstrapping(false);
+			}
 		};
 
-		void checkSession();
+		void bootstrap();
 
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((_event, session) => {
-			hydrateFromUser(session?.user ?? null);
+			if (!cancelled) hydrateFromUser(session?.user ?? null);
 		});
 
-		return () => subscription.unsubscribe();
+		return () => {
+			cancelled = true;
+			subscription.unsubscribe();
+		};
 	}, [supabase]);
 
 	const handleComplete = async (e: React.SyntheticEvent) => {
@@ -118,6 +156,19 @@ export default function AcceptInvitePage() {
 		router.refresh();
 	};
 
+	if (bootstrapping) {
+		return (
+			<AuthCard
+				title="Accept Invitation"
+				subtitle="Confirming your invitation..."
+			>
+				<p className="text-center text-neutral-500 text-sm animate-pulse">
+					Loading...
+				</p>
+			</AuthCard>
+		);
+	}
+
 	if (!ready) {
 		return (
 			<AuthCard
@@ -136,10 +187,16 @@ export default function AcceptInvitePage() {
 				}
 			>
 				<div className="space-y-4 text-center">
-					<p className="text-neutral-400 text-sm">
-						No active invite session found. Open the invitation link from your
-						email, or ask the shop to resend it.
-					</p>
+					{error ? (
+						<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+							<p className="text-sm text-red-400">{error}</p>
+						</div>
+					) : (
+						<p className="text-neutral-400 text-sm">
+							No active invite session found. Open the invitation link from your
+							email, or ask the shop to resend it.
+						</p>
+					)}
 				</div>
 			</AuthCard>
 		);
