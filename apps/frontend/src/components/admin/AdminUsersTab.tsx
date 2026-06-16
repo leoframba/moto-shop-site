@@ -248,8 +248,7 @@ export default function AdminUsersTab() {
 					{!isEditing && (
 						<p className="text-xs text-neutral-500 mb-4 inline-flex items-center gap-2">
 							<FiMail className="h-3.5 w-3.5" />
-							An invite email will be sent so the rider can set a password and
-							access their garage.
+							An invite email will be sent with a link to finish account setup.
 						</p>
 					)}
 

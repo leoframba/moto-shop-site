@@ -1,6 +1,7 @@
 # routers/portal.py
 from dependencies import supabase, verify_user
 from fastapi import APIRouter, Depends, HTTPException
+from schemas import UserUpdate
 from storage_utils import attach_signed_urls
 
 # Router — every endpoint requires an authenticated (non-admin or admin) user.
@@ -134,6 +135,35 @@ async def get_invoice_photos(invoice_id: str, user=Depends(verify_user)):
         return attach_signed_urls(
             photos_response.data or [], include_storage_path=False
         )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/profile")
+async def update_profile(payload: UserUpdate, user=Depends(verify_user)):
+    """Let riders update their own profile after accepting an invite."""
+    try:
+        app_metadata = getattr(user, "app_metadata", None) or {}
+        if app_metadata.get("role") == "admin":
+            raise HTTPException(
+                status_code=403, detail="Admins cannot update profile here."
+            )
+
+        update_payload = {
+            "first_name": payload.first_name,
+            "last_name": payload.last_name,
+            "phone_number": payload.phone_number,
+        }
+
+        response = (
+            supabase.table("users").update(update_payload).eq("id", user.id).execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        return rows[0]
     except HTTPException:
         raise
     except Exception as e:

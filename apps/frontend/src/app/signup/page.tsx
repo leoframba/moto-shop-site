@@ -13,7 +13,7 @@ import { createClient } from "@/utils/supabase/client";
 const SIGNUP_ENABLED = false;
 
 const INVITE_ONLY_MESSAGE =
-	"Sign ups are currently invite only while we roll out the rider portal. If you received an invite email from the shop, use that link to create your account.";
+	"Sign ups are currently invite only while we roll out the rider portal. If you received an invite email, open that link to finish setting up your account.";
 
 function InviteOnlySignup() {
 	return (
@@ -34,7 +34,8 @@ function InviteOnlySignup() {
 		>
 			<div className="p-4 bg-neutral-950 border border-neutral-800 rounded-lg text-center">
 				<p className="text-sm text-neutral-300 leading-relaxed">
-					Need access? Contact the shop and an admin can send you an invitation.
+					Need access? Contact the shop and an admin can send you an invitation
+					email with a link to finish setup.
 				</p>
 			</div>
 		</AuthCard>

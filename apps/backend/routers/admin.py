@@ -1,15 +1,9 @@
 # routers/admin.py
+import os
 import uuid
 
 from dependencies import supabase, verify_admin
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from service_pricing import serialize_service
-from storage_utils import (
-    INVOICE_PHOTOS_BUCKET,
-    attach_signed_urls,
-    extension_for,
-    remove_objects,
-)
 from schemas import (
     BikeCreate,
     BikeUpdate,
@@ -20,12 +14,19 @@ from schemas import (
     PartCreate,
     PartUpdate,
     RateUpdate,
-    ShopSettingsUpdate,
     ServiceCreate,
     ServiceUpdate,
     ServiceVisibilityUpdate,
+    ShopSettingsUpdate,
     UserInvite,
     UserUpdate,
+)
+from service_pricing import serialize_service
+from storage_utils import (
+    INVOICE_PHOTOS_BUCKET,
+    attach_signed_urls,
+    extension_for,
+    remove_objects,
 )
 
 # Router
@@ -274,9 +275,12 @@ async def invite_user(payload: UserInvite):
         }
 
         try:
+            site_url = os.environ.get("SITE_URL", "http://localhost:3000").rstrip("/")
+            redirect_to = f"{site_url}/auth/callback?next=/accept-invite"
+
             invite_response = supabase.auth.admin.invite_user_by_email(
                 payload.email,
-                {"data": user_metadata},
+                {"data": user_metadata, "redirect_to": redirect_to},
             )
         except Exception as invite_error:
             message = str(invite_error)
