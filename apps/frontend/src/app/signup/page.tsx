@@ -9,7 +9,39 @@ import AuthCard, {
 } from "@/components/auth/AuthCard";
 import { createClient } from "@/utils/supabase/client";
 
-export default function SignupPage() {
+/** Flip to true when public self-service signup reopens. */
+const SIGNUP_ENABLED = false;
+
+const INVITE_ONLY_MESSAGE =
+	"Sign ups are currently invite only while we roll out the rider portal. If you received an invite email from the shop, use that link to create your account.";
+
+function InviteOnlySignup() {
+	return (
+		<AuthCard
+			title="Invite Only"
+			subtitle={INVITE_ONLY_MESSAGE}
+			footer={
+				<p className="text-center text-sm text-neutral-400">
+					Already have an account?{" "}
+					<Link
+						href="/login"
+						className="text-red-500 hover:text-red-400 font-semibold transition-colors"
+					>
+						Sign in
+					</Link>
+				</p>
+			}
+		>
+			<div className="p-4 bg-neutral-950 border border-neutral-800 rounded-lg text-center">
+				<p className="text-sm text-neutral-300 leading-relaxed">
+					Need access? Contact the shop and an admin can send you an invitation.
+				</p>
+			</div>
+		</AuthCard>
+	);
+}
+
+function SignupForm() {
 	const [fullName, setFullName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -138,4 +170,11 @@ export default function SignupPage() {
 			</form>
 		</AuthCard>
 	);
+}
+
+export default function SignupPage() {
+	if (!SIGNUP_ENABLED) {
+		return <InviteOnlySignup />;
+	}
+	return <SignupForm />;
 }

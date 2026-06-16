@@ -54,14 +54,8 @@ function LoginForm() {
 			title="Rider Login"
 			subtitle="Sign in to view services, inventory, and manage your account."
 			footer={
-				<p className="text-center text-sm text-neutral-400">
-					New here?{" "}
-					<Link
-						href="/signup"
-						className="text-red-500 hover:text-red-400 font-semibold transition-colors"
-					>
-						Create an account
-					</Link>
+				<p className="text-center text-sm text-neutral-400 leading-relaxed">
+					Sign ups are currently invite only while we roll out the rider portal.
 				</p>
 			}
 		>
