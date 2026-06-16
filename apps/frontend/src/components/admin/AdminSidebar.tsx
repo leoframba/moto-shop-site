@@ -4,9 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
+type AdminTab =
+	| "services"
+	| "sales"
+	| "bikes"
+	| "parts"
+	| "invoices"
+	| "users"
+	| "settings";
+
 interface AdminSidebarProps {
-	activeTab: "services" | "sales";
-	setActiveTab: (tab: "services" | "sales") => void;
+	activeTab: AdminTab;
+	setActiveTab: (tab: AdminTab) => void;
 }
 
 export default function AdminSidebar({
@@ -54,6 +63,61 @@ export default function AdminSidebar({
 					}`}
 				>
 					Bike Sales
+				</button>
+				<button
+					type="button"
+					onClick={() => setActiveTab("bikes")}
+					className={`flex-1 md:flex-none px-2 md:px-4 py-3 md:py-3 rounded text-xs md:text-sm font-bold uppercase tracking-widest transition-all text-center md:text-left ${
+						activeTab === "bikes"
+							? "bg-red-600 text-white shadow-lg"
+							: "text-neutral-500 hover:bg-neutral-800 hover:text-white"
+					}`}
+				>
+					Bikes
+				</button>
+				<button
+					type="button"
+					onClick={() => setActiveTab("parts")}
+					className={`flex-1 md:flex-none px-2 md:px-4 py-3 md:py-3 rounded text-xs md:text-sm font-bold uppercase tracking-widest transition-all text-center md:text-left ${
+						activeTab === "parts"
+							? "bg-red-600 text-white shadow-lg"
+							: "text-neutral-500 hover:bg-neutral-800 hover:text-white"
+					}`}
+				>
+					Parts
+				</button>
+				<button
+					type="button"
+					onClick={() => setActiveTab("invoices")}
+					className={`flex-1 md:flex-none px-2 md:px-4 py-3 md:py-3 rounded text-xs md:text-sm font-bold uppercase tracking-widest transition-all text-center md:text-left ${
+						activeTab === "invoices"
+							? "bg-red-600 text-white shadow-lg"
+							: "text-neutral-500 hover:bg-neutral-800 hover:text-white"
+					}`}
+				>
+					Invoices
+				</button>
+				<button
+					type="button"
+					onClick={() => setActiveTab("users")}
+					className={`flex-1 md:flex-none px-2 md:px-4 py-3 md:py-3 rounded text-xs md:text-sm font-bold uppercase tracking-widest transition-all text-center md:text-left ${
+						activeTab === "users"
+							? "bg-red-600 text-white shadow-lg"
+							: "text-neutral-500 hover:bg-neutral-800 hover:text-white"
+					}`}
+				>
+					Users
+				</button>
+				<button
+					type="button"
+					onClick={() => setActiveTab("settings")}
+					className={`flex-1 md:flex-none px-2 md:px-4 py-3 md:py-3 rounded text-xs md:text-sm font-bold uppercase tracking-widest transition-all text-center md:text-left ${
+						activeTab === "settings"
+							? "bg-red-600 text-white shadow-lg"
+							: "text-neutral-500 hover:bg-neutral-800 hover:text-white"
+					}`}
+				>
+					Settings
 				</button>
 			</nav>
 

@@ -31,7 +31,7 @@ const roundToTwoDecimals = (num: number): number => {
 };
 
 export default function AdminServiceTab() {
-	const { data, isLoading, hasError } = useServices();
+	const { data, isLoading, hasError } = useServices({ admin: true });
 	const [hourlyRate, setHourlyRate] = useState<number | null>(null);
 	const [categories, setCategories] = useState<Category[]>([]);
 	const [services, setServices] = useState<Service[]>([]);
@@ -219,6 +219,37 @@ export default function AdminServiceTab() {
 		});
 	};
 
+	const toggleServiceVisibility = async (serviceToToggle: Service) => {
+		const nextHidden = !serviceToToggle.is_hidden;
+		const prevServices = [...services];
+		setServices((prev) =>
+			prev.map((service) =>
+				service.id === serviceToToggle.id
+					? { ...service, is_hidden: nextHidden }
+					: service,
+			),
+		);
+
+		try {
+			await authApiRequest(
+				`/api/admin/services/${serviceToToggle.id}/visibility`,
+				{
+					method: "PATCH",
+					body: JSON.stringify({ is_hidden: nextHidden }),
+				},
+			);
+			toast.success(
+				nextHidden
+					? `"${serviceToToggle.name}" hidden from the public menu.`
+					: `"${serviceToToggle.name}" is now visible on the public menu.`,
+			);
+		} catch (error) {
+			console.error(error);
+			setServices(prevServices);
+			toast.error("Failed to update visibility.");
+		}
+	};
+
 	// Group logic
 	const UNCATEGORIZED = "Uncategorized";
 	const groupedServices: Record<string, Service[]> = {};
@@ -334,6 +365,7 @@ export default function AdminServiceTab() {
 								toggleFolder={() => toggleFolder(category)}
 								onSaveEdit={saveEdit}
 								onDelete={deleteService}
+								onToggleHidden={toggleServiceVisibility}
 							/>
 						),
 					)}

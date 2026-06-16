@@ -15,6 +15,7 @@ export interface Service {
 	estimated_hours?: number | null;
 	calculated_price?: number | null;
 	fixed_price?: number | null;
+	is_hidden?: boolean;
 }
 
 export interface AdminInitialData {
@@ -27,6 +28,16 @@ export interface ServiceResponse {
 	hourly_rate: number;
 	categories: Category[];
 	services: Service[];
+}
+
+export interface ShopSettings {
+	id: number;
+	shop_name?: string | null;
+	shop_address?: string | null;
+	shop_phone?: string | null;
+	shop_email?: string | null;
+	hourly_rate: number;
+	tax_rate?: number | null;
 }
 
 export interface SocialLinkProps {
@@ -78,4 +89,128 @@ export interface BikeFormData {
 	mileage: number;
 	description: string;
 	status: BikeStatus;
+}
+
+export interface AdminUser {
+	id: string;
+	email: string;
+	first_name?: string | null;
+	last_name?: string | null;
+	address?: string | null;
+	phone_number?: string | null;
+	is_admin?: boolean;
+}
+
+export interface InvoiceBike {
+	id: string;
+	owner_id?: string | null;
+	year: number;
+	make: string;
+	model: string;
+	vin?: string | null;
+	license_plate?: string | null;
+	color?: string | null;
+	admin_notes?: string | null;
+	created_at?: string;
+	updated_at?: string;
+	owner?: AdminUser | null;
+}
+
+export interface InvoiceBikeFormData {
+	owner_id: string;
+	year: number;
+	make: string;
+	model: string;
+	vin: string;
+	license_plate: string;
+	color: string;
+	admin_notes: string;
+}
+
+export interface Part {
+	id: string;
+	part_number: string;
+	description: string;
+	base_price: number;
+	created_at?: string;
+	updated_at?: string;
+}
+
+export interface PartFormData {
+	part_number: string;
+	description: string;
+	base_price: number;
+}
+
+export type InvoiceItemType = "service" | "part";
+
+export type InvoiceStatus =
+	| "draft"
+	| "estimate"
+	| "in_progress"
+	| "completed"
+	| "paid"
+	| "void";
+
+export type LinePricingType = "hourly" | "fixed";
+
+export interface InvoiceLineItemPayload {
+	item_type: InvoiceItemType;
+	service_id?: string | null;
+	part_id?: string | null;
+	snapshot_name: string;
+	pricing_type?: LinePricingType | null;
+	unit_price: number;
+	quantity: number;
+}
+
+export interface InvoiceCreatePayload {
+	owner_id?: string | null;
+	bike_id?: string | null;
+	status?: InvoiceStatus;
+	odometer_in?: number | null;
+	odometer_out?: number | null;
+	mechanic_notes?: string | null;
+	line_items: InvoiceLineItemPayload[];
+}
+
+export interface InvoiceRecord {
+	id: string;
+	invoice_number: number;
+	owner_id?: string | null;
+	bike_id?: string | null;
+	status: InvoiceStatus;
+	odometer_in?: number | null;
+	odometer_out?: number | null;
+	mechanic_notes?: string | null;
+	created_at?: string;
+}
+
+export interface InvoiceLineItemRecord {
+	id: string;
+	invoice_id: string;
+	item_type: InvoiceItemType;
+	service_id?: string | null;
+	part_id?: string | null;
+	snapshot_name: string;
+	pricing_type?: LinePricingType | null;
+	unit_price: number;
+	quantity: number;
+	total_price?: number | null;
+	created_at?: string;
+}
+
+export interface InvoiceWithRelations extends InvoiceRecord {
+	owner?: AdminUser | null;
+	bike?: InvoiceBike | null;
+	line_items: InvoiceLineItemRecord[];
+}
+
+export interface InvoicePhoto {
+	id: string;
+	invoice_id?: string;
+	caption?: string | null;
+	storage_path?: string | null;
+	created_at?: string;
+	signed_url?: string | null;
 }

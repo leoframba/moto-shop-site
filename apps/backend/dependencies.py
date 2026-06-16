@@ -21,6 +21,25 @@ def _is_admin_user(user) -> bool:
     return app_metadata.get("role") == "admin"
 
 
+# JWT Verifier — requires only a valid token (any authenticated user)
+async def verify_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        user_response = supabase.auth.get_user(token)
+        user = user_response.user
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 # JWT Verifier — requires valid token AND app_metadata.role = admin
 async def verify_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials

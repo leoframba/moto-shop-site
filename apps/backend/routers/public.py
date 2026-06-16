@@ -1,6 +1,7 @@
 # routers/public.py
 from dependencies import supabase
 from fastapi import APIRouter, HTTPException
+from service_pricing import serialize_service
 
 # Router
 router = APIRouter(
@@ -31,33 +32,14 @@ async def get_services():
         )
         services = services_response.data
 
-        # Calculate Prices
-        calculated_services = []
-        for service in services:
-            final_price = None
-            pricing_type = service.get("pricing_type", "hourly")
-
-            # Added `is not None` checks to prevent TypeError if these columns are null
-            if pricing_type == "hourly" and service.get("estimated_hours") is not None:
-                final_price = round(float(service["estimated_hours"]) * hourly_rate, 2)
-            elif pricing_type == "fixed" and service.get("fixed_price") is not None:
-                final_price = round(float(service["fixed_price"]), 2)
-
-            calculated_services.append(
-                {
-                    "id": service["id"],
-                    "name": service["name"],
-                    "description": service["description"],
-                    "category_id": service.get("category_id"),  # NEW: Pass the ID
-                    "categories": service.get(
-                        "categories"
-                    ),  # NEW: Pass the joined object
-                    "pricing_type": pricing_type,
-                    "estimated_hours": service.get("estimated_hours"),
-                    "fixed_price": service.get("fixed_price"),
-                    "calculated_price": final_price,
-                }
-            )
+        # Calculate prices and drop services flagged as hidden so they never
+        # appear on the public menu. Categories with no visible services simply
+        # won't render, since the menu groups by the services present.
+        calculated_services = [
+            serialize_service(service, hourly_rate)
+            for service in services
+            if not service.get("is_hidden")
+        ]
 
         return {
             "hourly_rate": hourly_rate,

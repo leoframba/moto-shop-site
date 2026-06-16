@@ -1,7 +1,32 @@
 # routers/admin.py
+import uuid
+
 from dependencies import supabase, verify_admin
-from fastapi import APIRouter, Depends, HTTPException
-from schemas import CategoryCreate, RateUpdate, ServiceCreate, ServiceUpdate
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from service_pricing import serialize_service
+from storage_utils import (
+    INVOICE_PHOTOS_BUCKET,
+    attach_signed_urls,
+    extension_for,
+    remove_objects,
+)
+from schemas import (
+    BikeCreate,
+    BikeUpdate,
+    CategoryCreate,
+    InvoiceCreate,
+    InvoiceStatusUpdate,
+    InvoiceUpdate,
+    PartCreate,
+    PartUpdate,
+    RateUpdate,
+    ShopSettingsUpdate,
+    ServiceCreate,
+    ServiceUpdate,
+    ServiceVisibilityUpdate,
+    UserInvite,
+    UserUpdate,
+)
 
 # Router
 router = APIRouter(
@@ -83,6 +108,52 @@ async def update_service(service_id: str, service: ServiceUpdate):
     return response.data[0]
 
 
+# Lists all services (including hidden) for admin management.
+@router.get("/services")
+async def list_admin_services():
+    try:
+        settings_response = (
+            supabase.table("shop_settings").select("hourly_rate").eq("id", 1).execute()
+        )
+        if not settings_response.data:
+            raise HTTPException(status_code=500, detail="Shop settings not found")
+        hourly_rate = float(settings_response.data[0]["hourly_rate"])
+
+        categories_response = supabase.table("categories").select("*").execute()
+        services_response = (
+            supabase.table("services").select("*, categories(id, name)").execute()
+        )
+
+        services = [
+            serialize_service(service, hourly_rate)
+            for service in (services_response.data or [])
+        ]
+
+        return {
+            "hourly_rate": hourly_rate,
+            "categories": categories_response.data,
+            "services": services,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Toggles a service's visibility on the public menu.
+@router.patch("/services/{service_id}/visibility")
+async def update_service_visibility(service_id: str, payload: ServiceVisibilityUpdate):
+    response = (
+        supabase.table("services")
+        .update({"is_hidden": payload.is_hidden})
+        .eq("id", service_id)
+        .execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Service not found")
+    return response.data[0]
+
+
 # Updates the Shop Rate
 @router.patch("/shop-rate")
 async def update_hourly_rate(update: RateUpdate):
@@ -95,3 +166,653 @@ async def update_hourly_rate(update: RateUpdate):
     if len(response.data) == 0:
         raise HTTPException(status_code=400, detail="Failed to update rate")
     return response.data[0]
+
+
+@router.get("/shop-settings")
+async def get_shop_settings():
+    try:
+        response = supabase.table("shop_settings").select("*").eq("id", 1).execute()
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Shop settings not found")
+        return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/shop-settings")
+async def update_shop_settings(payload: ShopSettingsUpdate):
+    try:
+        update_payload = {
+            key: value
+            for key, value in payload.model_dump().items()
+            if value is not None
+        }
+        if not update_payload:
+            raise HTTPException(status_code=400, detail="No settings provided")
+
+        response = (
+            supabase.table("shop_settings").update(update_payload).eq("id", 1).execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Shop settings not found")
+        return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# USER MANAGEMENT
+# ==========================================
+
+
+@router.get("/users")
+async def list_users():
+    try:
+        response = (
+            supabase.table("users")
+            .select("id, email, first_name, last_name, phone_number, is_admin")
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        users = response.data or []
+        return [user for user in users if not user.get("is_admin")]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/users/{user_id}")
+async def update_user(user_id: str, payload: UserUpdate):
+    try:
+        existing = (
+            supabase.table("users").select("id, is_admin").eq("id", user_id).execute()
+        )
+        existing_rows = existing.data or []
+        if not existing_rows:
+            raise HTTPException(status_code=404, detail="User not found")
+        if existing_rows[0].get("is_admin"):
+            raise HTTPException(
+                status_code=403, detail="Admin accounts cannot be edited here."
+            )
+
+        update_payload = {
+            "first_name": payload.first_name,
+            "last_name": payload.last_name,
+            "phone_number": payload.phone_number,
+        }
+
+        updated = (
+            supabase.table("users").update(update_payload).eq("id", user_id).execute()
+        )
+        updated_rows = updated.data or []
+        if not updated_rows:
+            raise HTTPException(status_code=404, detail="User not found")
+        return updated_rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/users/invite")
+async def invite_user(payload: UserInvite):
+    try:
+        user_metadata = {
+            key: value
+            for key, value in {
+                "first_name": payload.first_name,
+                "last_name": payload.last_name,
+                "phone_number": payload.phone_number,
+            }.items()
+            if value is not None
+        }
+
+        try:
+            invite_response = supabase.auth.admin.invite_user_by_email(
+                payload.email,
+                {"data": user_metadata},
+            )
+        except Exception as invite_error:
+            message = str(invite_error)
+            if "already" in message.lower() and "registered" in message.lower():
+                raise HTTPException(
+                    status_code=409,
+                    detail="A user with that email already exists.",
+                )
+            raise HTTPException(status_code=400, detail=message)
+
+        invited_user = getattr(invite_response, "user", None)
+        if invited_user is None or not getattr(invited_user, "id", None):
+            raise HTTPException(status_code=400, detail="Failed to invite user.")
+
+        profile_payload = {
+            "id": invited_user.id,
+            "email": payload.email,
+            "first_name": payload.first_name,
+            "last_name": payload.last_name,
+            "phone_number": payload.phone_number,
+        }
+
+        upserted = (
+            supabase.table("users").upsert(profile_payload, on_conflict="id").execute()
+        )
+        upserted_rows = upserted.data or []
+        return {
+            "user": upserted_rows[0] if upserted_rows else profile_payload,
+            "message": "Invitation sent.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# BIKE MANAGEMENT (INVOICES)
+# ==========================================
+
+
+@router.get("/bikes")
+async def list_bikes():
+    try:
+        response = (
+            supabase.table("bikes")
+            .select("*, owner:users(id, email, first_name, last_name, phone_number)")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/bikes")
+async def create_bike(bike: BikeCreate):
+    try:
+        response = supabase.table("bikes").insert(bike.model_dump()).execute()
+        if not response.data:
+            raise HTTPException(status_code=400, detail="Failed to create bike")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/bikes/{bike_id}")
+async def delete_bike(bike_id: str):
+    try:
+        response = supabase.table("bikes").delete().eq("id", bike_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Bike not found")
+        return {"message": "Bike deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# INVOICE MANAGEMENT
+# ==========================================
+
+
+@router.get("/invoices")
+async def list_invoices():
+    try:
+        invoices_response = (
+            supabase.table("invoices")
+            .select("*")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        invoices = invoices_response.data or []
+
+        if not invoices:
+            return []
+
+        invoice_ids = [invoice["id"] for invoice in invoices]
+        owner_ids = list(
+            {invoice["owner_id"] for invoice in invoices if invoice.get("owner_id")}
+        )
+        bike_ids = list(
+            {invoice["bike_id"] for invoice in invoices if invoice.get("bike_id")}
+        )
+
+        line_items_response = (
+            supabase.table("invoice_line_items")
+            .select("*")
+            .in_("invoice_id", invoice_ids)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        line_items = line_items_response.data or []
+
+        users_by_id = {}
+        if owner_ids:
+            users_response = (
+                supabase.table("users")
+                .select("id, email, first_name, last_name, phone_number")
+                .in_("id", owner_ids)
+                .execute()
+            )
+            users_by_id = {user["id"]: user for user in (users_response.data or [])}
+
+        bikes_by_id = {}
+        if bike_ids:
+            bikes_response = (
+                supabase.table("bikes")
+                .select("id, owner_id, year, make, model, vin, license_plate")
+                .in_("id", bike_ids)
+                .execute()
+            )
+            bikes_by_id = {bike["id"]: bike for bike in (bikes_response.data or [])}
+
+        line_items_by_invoice = {}
+        for item in line_items:
+            invoice_id = item.get("invoice_id")
+            if not invoice_id:
+                continue
+            line_items_by_invoice.setdefault(invoice_id, []).append(item)
+
+        hydrated_invoices = []
+        for invoice in invoices:
+            hydrated_invoices.append(
+                {
+                    **invoice,
+                    "owner": (
+                        users_by_id.get(invoice.get("owner_id"))
+                        if invoice.get("owner_id")
+                        else None
+                    ),
+                    "bike": (
+                        bikes_by_id.get(invoice.get("bike_id"))
+                        if invoice.get("bike_id")
+                        else None
+                    ),
+                    "line_items": line_items_by_invoice.get(invoice["id"], []),
+                }
+            )
+
+        return hydrated_invoices
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/invoices")
+async def create_invoice(invoice: InvoiceCreate):
+    created_invoice = None
+
+    try:
+        invoice_payload = {
+            "owner_id": invoice.owner_id,
+            "bike_id": invoice.bike_id,
+            "status": invoice.status,
+            "odometer_in": invoice.odometer_in,
+            "odometer_out": invoice.odometer_out,
+            "mechanic_notes": invoice.mechanic_notes,
+        }
+
+        created_invoice_response = (
+            supabase.table("invoices").insert(invoice_payload).execute()
+        )
+        created_invoice_rows = created_invoice_response.data or []
+        created_invoice = created_invoice_rows[0] if created_invoice_rows else None
+
+        if not created_invoice:
+            raise HTTPException(status_code=400, detail="Failed to create invoice")
+
+        line_items_payload = []
+        for item in invoice.line_items:
+            line_items_payload.append(
+                {
+                    "invoice_id": created_invoice["id"],
+                    "item_type": item.item_type,
+                    "service_id": item.service_id
+                    if item.item_type == "service"
+                    else None,
+                    "part_id": item.part_id if item.item_type == "part" else None,
+                    "snapshot_name": item.snapshot_name,
+                    "pricing_type": item.pricing_type
+                    if item.item_type == "service"
+                    else None,
+                    "unit_price": item.unit_price,
+                    "quantity": item.quantity,
+                }
+            )
+
+        line_items_response = (
+            supabase.table("invoice_line_items").insert(line_items_payload).execute()
+        )
+
+        return {
+            "invoice": created_invoice,
+            "line_items": line_items_response.data or [],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Best-effort rollback to avoid orphaned invoice headers if line insert fails.
+        if created_invoice and created_invoice.get("id"):
+            try:
+                supabase.table("invoices").delete().eq(
+                    "id", created_invoice["id"]
+                ).execute()
+            except Exception:
+                pass
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/invoices/{invoice_id}")
+async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
+    try:
+        invoice_payload = {
+            "owner_id": invoice.owner_id,
+            "bike_id": invoice.bike_id,
+            "status": invoice.status,
+            "odometer_in": invoice.odometer_in,
+            "odometer_out": invoice.odometer_out,
+            "mechanic_notes": invoice.mechanic_notes,
+        }
+
+        updated_invoice_response = (
+            supabase.table("invoices")
+            .update(invoice_payload)
+            .eq("id", invoice_id)
+            .execute()
+        )
+        updated_invoice_rows = updated_invoice_response.data or []
+        if not updated_invoice_rows:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+
+        supabase.table("invoice_line_items").delete().eq(
+            "invoice_id", invoice_id
+        ).execute()
+
+        line_items_payload = []
+        for item in invoice.line_items:
+            line_items_payload.append(
+                {
+                    "invoice_id": invoice_id,
+                    "item_type": item.item_type,
+                    "service_id": item.service_id
+                    if item.item_type == "service"
+                    else None,
+                    "part_id": item.part_id if item.item_type == "part" else None,
+                    "snapshot_name": item.snapshot_name,
+                    "pricing_type": item.pricing_type
+                    if item.item_type == "service"
+                    else None,
+                    "unit_price": item.unit_price,
+                    "quantity": item.quantity,
+                }
+            )
+
+        line_items_response = (
+            supabase.table("invoice_line_items").insert(line_items_payload).execute()
+        )
+
+        return {
+            "invoice": updated_invoice_rows[0],
+            "line_items": line_items_response.data or [],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/invoices/{invoice_id}")
+async def delete_invoice(invoice_id: str):
+    try:
+        # Remove any stored photos so we don't orphan objects in the bucket.
+        photos_response = (
+            supabase.table("invoice_photos")
+            .select("storage_path")
+            .eq("invoice_id", invoice_id)
+            .execute()
+        )
+        photo_paths = [
+            photo["storage_path"]
+            for photo in (photos_response.data or [])
+            if photo.get("storage_path")
+        ]
+        remove_objects(photo_paths)
+
+        supabase.table("invoice_line_items").delete().eq(
+            "invoice_id", invoice_id
+        ).execute()
+        deleted_invoice_response = (
+            supabase.table("invoices").delete().eq("id", invoice_id).execute()
+        )
+        if not deleted_invoice_response.data:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        return {"message": "Invoice deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# INVOICE PHOTOS
+# ==========================================
+
+ALLOWED_PHOTO_MIME_PREFIX = "image/"
+MAX_PHOTO_BYTES = 12 * 1024 * 1024  # safety cap; clients compress before upload
+
+
+@router.get("/invoices/{invoice_id}/photos")
+async def list_invoice_photos(invoice_id: str):
+    try:
+        response = (
+            supabase.table("invoice_photos")
+            .select("*")
+            .eq("invoice_id", invoice_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        return attach_signed_urls(response.data or [])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/invoices/{invoice_id}/photos")
+async def upload_invoice_photos(
+    invoice_id: str,
+    files: list[UploadFile] = File(...),
+    caption: str | None = Form(None),
+    admin=Depends(verify_admin),
+):
+    try:
+        invoice_response = (
+            supabase.table("invoices").select("id").eq("id", invoice_id).execute()
+        )
+        if not (invoice_response.data or []):
+            raise HTTPException(status_code=404, detail="Invoice not found")
+
+        normalized_caption = (caption or "").strip() or None
+        created_rows: list[dict] = []
+
+        for upload in files:
+            content_type = upload.content_type or "application/octet-stream"
+            if not content_type.startswith(ALLOWED_PHOTO_MIME_PREFIX):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{upload.filename or 'File'} is not an image.",
+                )
+
+            data = await upload.read()
+            if not data:
+                continue
+            if len(data) > MAX_PHOTO_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"{upload.filename or 'File'} is too large.",
+                )
+
+            ext = extension_for(upload.filename, content_type)
+            storage_path = f"{invoice_id}/{uuid.uuid4().hex}{ext}"
+
+            try:
+                supabase.storage.from_(INVOICE_PHOTOS_BUCKET).upload(
+                    storage_path,
+                    data,
+                    {"content-type": content_type, "upsert": "false"},
+                )
+            except Exception as upload_error:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Failed to upload {upload.filename or 'file'}: {upload_error}",
+                )
+
+            insert_response = (
+                supabase.table("invoice_photos")
+                .insert(
+                    {
+                        "invoice_id": invoice_id,
+                        "storage_path": storage_path,
+                        "caption": normalized_caption,
+                        "uploaded_by": getattr(admin, "id", None),
+                    }
+                )
+                .execute()
+            )
+            created_rows.extend(insert_response.data or [])
+
+        if not created_rows:
+            raise HTTPException(status_code=400, detail="No valid images uploaded.")
+
+        return attach_signed_urls(created_rows)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/invoices/{invoice_id}/photos/{photo_id}")
+async def delete_invoice_photo(invoice_id: str, photo_id: str):
+    try:
+        photo_response = (
+            supabase.table("invoice_photos")
+            .select("*")
+            .eq("id", photo_id)
+            .eq("invoice_id", invoice_id)
+            .execute()
+        )
+        rows = photo_response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        remove_objects([rows[0].get("storage_path")])
+        supabase.table("invoice_photos").delete().eq("id", photo_id).execute()
+        return {"message": "Photo deleted."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/invoices/{invoice_id}/status")
+async def update_invoice_status(invoice_id: str, payload: InvoiceStatusUpdate):
+    try:
+        response = (
+            supabase.table("invoices")
+            .update({"status": payload.status})
+            .eq("id", invoice_id)
+            .execute()
+        )
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/bikes/{bike_id}")
+async def update_bike(bike_id: str, bike: BikeUpdate):
+    try:
+        response = (
+            supabase.table("bikes")
+            .update(bike.model_dump())
+            .eq("id", bike_id)
+            .execute()
+        )
+        if len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Bike not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# PART MANAGEMENT (INVOICES)
+# ==========================================
+
+
+@router.get("/parts")
+async def list_parts():
+    try:
+        response = (
+            supabase.table("parts")
+            .select("*")
+            .order("part_number", desc=False)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/parts")
+async def create_part(part: PartCreate):
+    try:
+        response = supabase.table("parts").insert(part.model_dump()).execute()
+        if not response.data:
+            raise HTTPException(status_code=400, detail="Failed to create part")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/parts/{part_id}")
+async def delete_part(part_id: str):
+    try:
+        response = supabase.table("parts").delete().eq("id", part_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Part not found")
+        return {"message": "Part deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/parts/{part_id}")
+async def update_part(part_id: str, part: PartUpdate):
+    try:
+        response = (
+            supabase.table("parts")
+            .update(part.model_dump())
+            .eq("id", part_id)
+            .execute()
+        )
+        if len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Part not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

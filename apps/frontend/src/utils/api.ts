@@ -67,3 +67,44 @@ export async function authApiRequest<T>(
 
 	return apiRequest<T>(endpoint, config);
 }
+
+export async function authApiUpload<T>(
+	endpoint: string,
+	formData: FormData,
+): Promise<T> {
+	const supabase = createClient();
+
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
+	const token = session?.access_token;
+
+	if (!token) {
+		throw new Error("Unauthorized: No active session found");
+	}
+
+	const isServer = typeof window === "undefined";
+	const url = isServer ? `${CLOUD_RUN_URL}${endpoint}` : endpoint;
+
+	// Intentionally omit Content-Type so the browser sets the multipart boundary.
+	const res = await fetch(url, {
+		method: "POST",
+		body: formData,
+		headers: { Authorization: `Bearer ${token}` },
+	});
+
+	if (!res.ok) {
+		const errorData = await res.json().catch(() => ({}));
+		const errorMessage =
+			errorData.detail ||
+			errorData.message ||
+			`HTTP error! status: ${res.status}`;
+		throw new Error(errorMessage);
+	}
+
+	if (res.status === 204) {
+		return {} as T;
+	}
+
+	return res.json();
+}

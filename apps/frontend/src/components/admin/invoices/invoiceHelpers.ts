@@ -1,0 +1,112 @@
+import type {
+	AdminUser,
+	InvoiceBike,
+	InvoiceLineItemRecord,
+	InvoiceRecord,
+	InvoiceWithRelations,
+	Service,
+	ShopSettings,
+} from "@/types";
+
+export interface DraftServiceLine {
+	id: string;
+	service_id: string;
+	snapshot_name: string;
+	is_custom: boolean;
+	pricing_type: Service["pricing_type"] | "";
+	unit_price: number;
+	quantity: number;
+}
+
+export interface DraftPartLine {
+	id: string;
+	part_id: string;
+	snapshot_name: string;
+	is_custom: boolean;
+	unit_price: number;
+	quantity: number;
+}
+
+export const INVOICE_STATUSES: InvoiceRecord["status"][] = [
+	"draft",
+	"estimate",
+	"in_progress",
+	"completed",
+	"paid",
+	"void",
+];
+
+export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
+	id: 1,
+	shop_name: "Moto Shop",
+	shop_address: null,
+	shop_phone: null,
+	shop_email: null,
+	hourly_rate: 0,
+	tax_rate: 0,
+};
+
+export const createDraftId = (): string => {
+	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+		return crypto.randomUUID();
+	}
+	return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+export const getUserDisplayName = (user: AdminUser): string => {
+	const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+	return fullName || user.email;
+};
+
+export const toCurrency = (value: number): string => `$${value.toFixed(2)}`;
+
+export const parseNumberInput = (value: string, fallback = 0): number => {
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const calculateLineTotal = (line: InvoiceLineItemRecord): number =>
+	Number(line.unit_price) * Number(line.quantity);
+
+export const calculateInvoiceTotal = (invoice: InvoiceWithRelations): number =>
+	invoice.line_items.reduce((sum, line) => sum + calculateLineTotal(line), 0);
+
+export const getInvoiceOwnerLabel = (invoice: InvoiceWithRelations): string => {
+	if (!invoice.owner) return "Unlinked";
+	return `${getUserDisplayName(invoice.owner)} (${invoice.owner.email})`;
+};
+
+export const getInvoiceBikeLabel = (invoice: InvoiceWithRelations): string => {
+	if (!invoice.bike) return "Unlinked";
+	return `${invoice.bike.year} ${invoice.bike.make} ${invoice.bike.model}`;
+};
+
+export const getBikeDisplayLabel = (bike: InvoiceBike): string =>
+	`${bike.year} ${bike.make} ${bike.model}`;
+
+export const getInvoiceStatusTagClasses = (
+	status: InvoiceRecord["status"],
+): string => {
+	switch (status) {
+		case "paid":
+			return "bg-emerald-900/60 text-emerald-300 border border-emerald-700/60";
+		case "completed":
+			return "bg-blue-900/60 text-blue-300 border border-blue-700/60";
+		case "in_progress":
+			return "bg-amber-900/60 text-amber-300 border border-amber-700/60";
+		case "estimate":
+			return "bg-violet-900/60 text-violet-300 border border-violet-700/60";
+		case "void":
+			return "bg-rose-900/60 text-rose-300 border border-rose-700/60";
+		default:
+			return "bg-neutral-800 text-neutral-300 border border-neutral-700";
+	}
+};
+
+export const toStatusLabel = (status: InvoiceRecord["status"]): string =>
+	status.replaceAll("_", " ");
+
+export const formatDateTime = (value?: string): string => {
+	if (!value) return "N/A";
+	return new Date(value).toLocaleString();
+};

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-export type AccountTab = "services" | "inventory" | "profile";
+export type AccountTab = "garage" | "services" | "inventory" | "profile";
 
 interface UserSidebarProps {
 	activeTab: AccountTab;
@@ -13,6 +13,7 @@ interface UserSidebarProps {
 }
 
 const tabs: { id: AccountTab; label: string; mobileLabel: string }[] = [
+	{ id: "garage", label: "Garage", mobileLabel: "Garage" },
 	{ id: "profile", label: "Profile", mobileLabel: "Profile" },
 ];
 

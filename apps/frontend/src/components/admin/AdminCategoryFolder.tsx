@@ -11,6 +11,7 @@ interface AdminCategoryFolderProps {
 	toggleFolder: () => void;
 	onSaveEdit: (id: string, updatedData: ServiceFormData) => Promise<void>;
 	onDelete: (service: Service) => Promise<void>;
+	onToggleHidden?: (service: Service) => void | Promise<void>;
 }
 
 export default function AdminCategoryFolder({
@@ -21,8 +22,11 @@ export default function AdminCategoryFolder({
 	toggleFolder,
 	onSaveEdit,
 	onDelete,
+	onToggleHidden,
 }: AdminCategoryFolderProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
+	const allHidden =
+		services.length > 0 && services.every((service) => service.is_hidden);
 
 	return (
 		<div className="border border-red-900/30 rounded-lg overflow-hidden bg-neutral-950/50 mb-6 shadow-lg">
@@ -37,6 +41,11 @@ export default function AdminCategoryFolder({
 					<span className="text-red-600">{"///"}</span> {category}
 				</h2>
 				<div className="flex items-center gap-4">
+					{allHidden && (
+						<span className="text-xs font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-1 rounded hidden md:block">
+							Hidden from menu
+						</span>
+					)}
 					{services.length === 0 ? (
 						<span className="text-xs font-bold text-amber-500 uppercase bg-amber-500/10 px-2 py-1 rounded hidden md:block">
 							Empty
@@ -82,10 +91,21 @@ export default function AdminCategoryFolder({
 									</div>
 								) : (
 									/* PREVIEW MODE */
-									<div className="group bg-neutral-900/30 hover:bg-neutral-900/80 p-5 rounded border border-neutral-800/50 transition-colors flex flex-col md:flex-row justify-between md:items-center gap-6">
+									<div
+										className={`group bg-neutral-900/30 hover:bg-neutral-900/80 p-5 rounded border transition-colors flex flex-col md:flex-row justify-between md:items-center gap-6 ${
+											service.is_hidden
+												? "border-neutral-700/60 border-dashed opacity-60"
+												: "border-neutral-800/50"
+										}`}
+									>
 										<div className="max-w-xl">
-											<h3 className="text-lg md:text-xl font-bold text-neutral-200 mb-1 tracking-wide uppercase">
+											<h3 className="text-lg md:text-xl font-bold text-neutral-200 mb-1 tracking-wide uppercase flex items-center gap-2 flex-wrap">
 												{service.name}
+												{service.is_hidden && (
+													<span className="text-[10px] font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-0.5 rounded tracking-widest">
+														Hidden
+													</span>
+												)}
 											</h3>
 											<p className="text-neutral-400 leading-relaxed text-sm">
 												{service.description}
@@ -126,7 +146,21 @@ export default function AdminCategoryFolder({
 													</div>
 												</div>
 											)}
-											<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8">
+											<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8 flex items-center gap-2">
+												{onToggleHidden && (
+													<button
+														type="button"
+														onClick={() => void onToggleHidden(service)}
+														title={
+															service.is_hidden
+																? "Show on public menu"
+																: "Hide from public menu"
+														}
+														className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+													>
+														{service.is_hidden ? "Show" : "Hide"}
+													</button>
+												)}
 												<button
 													type="button"
 													onClick={() => setEditingId(service.id)}
