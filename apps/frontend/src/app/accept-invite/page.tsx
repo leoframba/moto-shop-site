@@ -62,6 +62,7 @@ export default function AcceptInvitePage() {
 		type: EmailOtpType;
 	} | null>(null);
 	const [activating, setActivating] = useState(false);
+	const [completed, setCompleted] = useState(false);
 	const router = useRouter();
 
 	const supabase = createClient();
@@ -185,6 +186,21 @@ export default function AcceptInvitePage() {
 		};
 	}, [supabase, hydrateFromUser]);
 
+	// Warn if the user tries to leave (refresh/close) after their account is
+	// activated but before they've set a password — otherwise they'd be left
+	// with a passwordless account they can't log back into.
+	useEffect(() => {
+		if (!ready || completed) return;
+
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			event.returnValue = "";
+		};
+
+		window.addEventListener("beforeunload", handleBeforeUnload);
+		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+	}, [ready, completed]);
+
 	const handleActivate = async () => {
 		if (!pendingToken) return;
 		setActivating(true);
@@ -222,8 +238,8 @@ export default function AcceptInvitePage() {
 			return;
 		}
 
-		if (password.length < 6) {
-			setError("Password must be at least 6 characters.");
+		if (password.length < 8) {
+			setError("Password must be at least 8 characters.");
 			return;
 		}
 
@@ -258,6 +274,7 @@ export default function AcceptInvitePage() {
 			// Password is set — profile sync is best-effort.
 		}
 
+		setCompleted(true);
 		router.push("/account");
 		router.refresh();
 	};
@@ -414,8 +431,8 @@ export default function AcceptInvitePage() {
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
 						className={authInputClassName}
-						placeholder="At least 6 characters"
-						minLength={6}
+						placeholder="At least 8 characters"
+						minLength={8}
 						required
 					/>
 				</div>
@@ -434,7 +451,7 @@ export default function AcceptInvitePage() {
 						onChange={(e) => setConfirmPassword(e.target.value)}
 						className={authInputClassName}
 						placeholder="Repeat password"
-						minLength={6}
+						minLength={8}
 						required
 					/>
 				</div>
