@@ -391,7 +391,7 @@ export default function ContactPage() {
 						</div>
 					</div>
 
-					{/* VISUAL DIVIDER */}
+					{/* VISUAL DIVIDER
 					<div className="flex items-center gap-4 mb-12">
 						<div className="flex-1 h-px bg-neutral-800"></div>
 						<span className="text-neutral-500 text-xs font-bold uppercase tracking-widest text-center">
@@ -407,7 +407,7 @@ export default function ContactPage() {
 						}
 					>
 						<ContactForm />
-					</Suspense>
+					</Suspense> */}
 				</div>
 			</div>
 		</main>

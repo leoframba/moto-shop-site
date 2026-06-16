@@ -46,23 +46,95 @@ export const buildInvoicePrintHtml = (
 		.replaceAll("_", " ")
 		.toUpperCase();
 
-	const renderRows = (items: typeof safeLineItems) => {
-		if (items.length === 0) {
-			return `<tr><td colspan="4" class="empty-row">No line items</td></tr>`;
-		}
-		return items
+	const hasBike = Boolean(bike);
+	const hasServices = services.length > 0;
+	const hasParts = parts.length > 0;
+	const hasNotes = mechanicNotes.length > 0;
+
+	const renderRows = (items: typeof safeLineItems) =>
+		items
 			.map(
 				(line) => `<tr>
 		<td class="num">${Number(line.quantity).toFixed(2)}</td>
-		<td class="desc-cell">
-			<div class="item-name">${escapeHtml(line.snapshot_name)}</div>
-		</td>
+		<td class="desc-cell"><div class="item-name">${escapeHtml(line.snapshot_name)}</div></td>
 		<td class="num">$${Number(line.unit_price).toFixed(2)}</td>
 		<td class="num strong">$${calculateLineTotal(line).toFixed(2)}</td>
 	</tr>`,
 			)
 			.join("");
-	};
+
+	const lineItemsTable = (
+		title: string,
+		items: typeof safeLineItems,
+		subtotalLabel: string,
+		subtotal: number,
+	) => `
+		<section class="section">
+			<h2 class="section-title">${title}</h2>
+			<table>
+				<thead>
+					<tr>
+						<th class="num">Qty</th>
+						<th>Description</th>
+						<th class="num">Unit</th>
+						<th class="num">Total</th>
+					</tr>
+				</thead>
+				<tbody>${renderRows(items)}</tbody>
+			</table>
+			<div class="subtotal">${subtotalLabel}: $${subtotal.toFixed(2)}</div>
+		</section>`;
+
+	const bikeSection = hasBike
+		? `<section class="kv">
+			<div class="kv-item"><span class="label">Year</span><span class="val">${bike?.year ?? ""}</span></div>
+			<div class="kv-item"><span class="label">Make</span><span class="val">${escapeHtml(bike?.make ?? "")}</span></div>
+			<div class="kv-item"><span class="label">Model</span><span class="val">${escapeHtml(bike?.model ?? "")}</span></div>
+			<div class="kv-item"><span class="label">License</span><span class="val">${bike?.license_plate ? escapeHtml(bike.license_plate) : "—"}</span></div>
+			<div class="kv-item"><span class="label">VIN</span><span class="val">${bike?.vin ? escapeHtml(bike.vin) : "—"}</span></div>
+			${invoice.odometer_in != null ? `<div class="kv-item"><span class="label">Odo In</span><span class="val">${invoice.odometer_in}</span></div>` : ""}
+			${invoice.odometer_out != null ? `<div class="kv-item"><span class="label">Odo Out</span><span class="val">${invoice.odometer_out}</span></div>` : ""}
+		</section>`
+		: "";
+
+	const servicesSection = hasServices
+		? lineItemsTable(
+				"Labor & Services",
+				services,
+				"Labor Total",
+				servicesSubtotal,
+			)
+		: "";
+
+	const partsSection = hasParts
+		? lineItemsTable("Parts & Materials", parts, "Parts Total", partsSubtotal)
+		: "";
+
+	const notesSection = hasNotes
+		? `<section class="section section-compact">
+			<h2 class="section-title">Mechanic Notes</h2>
+			<div class="notes"><pre>${mechanicNotes}</pre></div>
+		</section>`
+		: "";
+
+	const laborTotalRow = hasServices
+		? `<div class="totals-row"><span>Labor subtotal</span><strong>$${servicesSubtotal.toFixed(2)}</strong></div>`
+		: "";
+	const partsTotalRow = hasParts
+		? `<div class="totals-row"><span>Parts subtotal</span><strong>$${partsSubtotal.toFixed(2)}</strong></div>`
+		: "";
+	const taxRow =
+		hasParts || salesTax > 0
+			? `<div class="totals-row"><span>Sales tax &middot; parts only (${normalizedTaxRate.toFixed(3)}%)</span><strong>$${salesTax.toFixed(2)}</strong></div>`
+			: "";
+
+	const providerLines = [
+		safeShopAddress ? `<div>${safeShopAddress}</div>` : "",
+		safeShopPhone ? `<div>${safeShopPhone}</div>` : "",
+		safeShopEmail ? `<div>${safeShopEmail}</div>` : "",
+	]
+		.filter(Boolean)
+		.join("");
 
 	return `<!doctype html>
 <html lang="en">
@@ -81,101 +153,105 @@ export const buildInvoicePrintHtml = (
 	* { box-sizing: border-box; }
 	body {
 		margin: 0;
-		padding: 28px;
+		padding: 16px;
 		color: var(--text);
 		font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-		font-size: 12px;
-		line-height: 1.45;
+		font-size: 11px;
+		line-height: 1.35;
 		background: #fff;
 	}
 	.invoice {
 		max-width: 900px;
 		margin: 0 auto;
 		border: 1px solid var(--line);
-		padding: 18px;
+		padding: 12px 14px;
 	}
 	.top {
 		display: grid;
 		grid-template-columns: 1.3fr 1fr;
-		gap: 16px;
+		gap: 10px;
 		border-bottom: 2px solid var(--brand);
-		padding-bottom: 12px;
-		margin-bottom: 14px;
+		padding-bottom: 8px;
+		margin-bottom: 8px;
 	}
 	.h1 {
-		font-size: 24px;
+		font-size: 20px;
 		font-weight: 800;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		margin: 0 0 4px;
+		margin: 0 0 2px;
 	}
-	.muted { color: var(--muted); }
+	.muted { color: var(--muted); font-size: 10px; }
 	.meta {
 		border: 1px solid var(--line);
-		padding: 10px;
+		padding: 6px 8px;
+		font-size: 10px;
 	}
 	.meta-row {
 		display: flex;
 		justify-content: space-between;
-		gap: 8px;
-		padding: 2px 0;
+		gap: 6px;
+		padding: 1px 0;
 	}
 	.status-pill {
 		display: inline-block;
 		background: var(--soft);
 		border: 1px solid var(--line);
 		font-weight: 700;
-		padding: 2px 8px;
+		padding: 1px 6px;
+		font-size: 9px;
 		letter-spacing: 0.04em;
 	}
 	.grid-2 {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 12px;
-		margin-bottom: 12px;
+		gap: 8px;
+		margin-bottom: 8px;
 	}
 	.card {
 		border: 1px solid var(--line);
-		padding: 10px;
-		min-height: 96px;
+		padding: 6px 8px;
+		font-size: 10px;
+		line-height: 1.4;
 	}
 	.card-title {
-		font-size: 11px;
+		font-size: 9px;
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		color: var(--muted);
-		margin: 0 0 6px;
+		margin: 0 0 3px;
 	}
 	.kv {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
-		gap: 8px;
+		gap: 4px 8px;
 		border: 1px solid var(--line);
 		background: var(--soft);
-		padding: 10px;
-		margin-bottom: 12px;
+		padding: 6px 8px;
+		margin-bottom: 8px;
 	}
 	.kv-item .label {
 		display: block;
-		font-size: 10px;
+		font-size: 8px;
 		color: var(--muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
 	.kv-item .val {
 		display: block;
-		font-size: 12px;
+		font-size: 10px;
 		font-weight: 700;
-		margin-top: 1px;
+		margin-top: 0;
 	}
-	.section { margin-top: 14px; }
+	.section { margin-top: 8px; }
+	.section-compact { margin-top: 6px; }
 	.section-title {
-		font-size: 13px;
+		font-size: 11px;
 		font-weight: 800;
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
-		margin: 0 0 6px;
+		margin: 0 0 4px;
 	}
 	table {
 		width: 100%;
@@ -183,73 +259,77 @@ export const buildInvoicePrintHtml = (
 		border: 1px solid var(--line);
 	}
 	th, td {
-		padding: 7px 8px;
+		padding: 4px 6px;
 		border-bottom: 1px solid var(--line);
+		font-size: 10px;
 	}
 	th {
 		background: var(--soft);
-		font-size: 10px;
+		font-size: 8px;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		text-align: left;
 	}
 	.num { text-align: right; white-space: nowrap; }
 	.strong { font-weight: 700; }
-	.empty-row { text-align: center; color: var(--muted); padding: 12px; }
 	.item-name { font-weight: 600; }
 	.subtotal {
 		border: 1px solid var(--line);
 		border-top: none;
-		padding: 7px 8px;
+		padding: 4px 6px;
 		text-align: right;
 		font-weight: 700;
+		font-size: 10px;
 		background: var(--soft);
 	}
 	.notes {
 		border: 1px solid var(--line);
-		padding: 10px;
+		padding: 6px 8px;
 		background: #fff;
-		margin-top: 8px;
 	}
 	.notes pre {
 		margin: 0;
 		white-space: pre-wrap;
 		font-family: inherit;
+		font-size: 10px;
+		line-height: 1.35;
 	}
 	.totals {
-		margin-top: 14px;
+		margin-top: 8px;
 		margin-left: auto;
-		width: 320px;
+		width: 280px;
 		border: 1px solid var(--line);
 	}
 	.totals-row {
 		display: flex;
 		justify-content: space-between;
-		padding: 7px 10px;
+		padding: 4px 8px;
 		border-bottom: 1px solid var(--line);
+		font-size: 10px;
 	}
 	.totals-row:last-child { border-bottom: 0; }
 	.totals-row.grand {
 		background: var(--soft);
-		font-size: 14px;
+		font-size: 12px;
 		font-weight: 800;
 	}
 	.footer {
-		margin-top: 16px;
-		padding-top: 8px;
+		margin-top: 10px;
+		padding-top: 6px;
 		border-top: 1px dashed var(--line);
-		font-size: 11px;
+		font-size: 9px;
 		color: var(--muted);
 		text-align: center;
 	}
 	.footer-fine {
-		margin-top: 4px;
-		font-size: 9px;
+		margin-top: 2px;
+		font-size: 8px;
 		letter-spacing: 0.02em;
 	}
 	@media print {
 		body { padding: 0; }
 		.invoice { border: 0; padding: 0; }
+		@page { margin: 0.4in; }
 		th, .kv, .subtotal, .totals-row.grand {
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
@@ -275,74 +355,26 @@ export const buildInvoicePrintHtml = (
 			<div class="card">
 				<p class="card-title">Customer</p>
 				<div><strong>${owner ? escapeHtml(getUserDisplayName(owner)) : "Walk-in Customer"}</strong></div>
-				<div>${owner?.email ? escapeHtml(owner.email) : "No email on file"}</div>
-				<div>${owner?.phone_number ? escapeHtml(owner.phone_number) : ""}</div>
+				${owner?.email ? `<div>${escapeHtml(owner.email)}</div>` : ""}
+				${owner?.phone_number ? `<div>${escapeHtml(owner.phone_number)}</div>` : ""}
 			</div>
 			<div class="card">
 				<p class="card-title">Service Provider</p>
 				<div><strong>${safeShopName}</strong></div>
-				<div>Motorcycle Service & Repair</div>
-				${safeShopAddress ? `<div>${safeShopAddress}</div>` : ""}
-				${safeShopPhone ? `<div>${safeShopPhone}</div>` : ""}
-				${safeShopEmail ? `<div>${safeShopEmail}</div>` : ""}
+				${providerLines}
 			</div>
 		</section>
 
-		<section class="kv">
-			<div class="kv-item"><span class="label">Year</span><span class="val">${bike?.year ?? "N/A"}</span></div>
-			<div class="kv-item"><span class="label">Make</span><span class="val">${bike ? escapeHtml(bike.make) : "N/A"}</span></div>
-			<div class="kv-item"><span class="label">Model</span><span class="val">${bike ? escapeHtml(bike.model) : "N/A"}</span></div>
-			<div class="kv-item"><span class="label">License</span><span class="val">${bike?.license_plate ? escapeHtml(bike.license_plate) : "N/A"}</span></div>
-			<div class="kv-item"><span class="label">VIN</span><span class="val">${bike?.vin ? escapeHtml(bike.vin) : "N/A"}</span></div>
-			<div class="kv-item"><span class="label">Odometer In</span><span class="val">${invoice.odometer_in ?? "N/A"}</span></div>
-			<div class="kv-item"><span class="label">Odometer Out</span><span class="val">${invoice.odometer_out ?? "N/A"}</span></div>
-			<div class="kv-item"><span class="label">Line Items</span><span class="val">${safeLineItems.length}</span></div>
-		</section>
-
-		<section class="section">
-			<h2 class="section-title">Labor & Services</h2>
-			<table>
-				<thead>
-					<tr>
-						<th class="num">Qty</th>
-						<th>Description</th>
-						<th class="num">Unit</th>
-						<th class="num">Total</th>
-					</tr>
-				</thead>
-				<tbody>${renderRows(services)}</tbody>
-			</table>
-			<div class="subtotal">Labor Total: $${servicesSubtotal.toFixed(2)}</div>
-		</section>
-
-		<section class="section">
-			<h2 class="section-title">Parts & Materials</h2>
-			<table>
-				<thead>
-					<tr>
-						<th class="num">Qty</th>
-						<th>Description</th>
-						<th class="num">Unit</th>
-						<th class="num">Total</th>
-					</tr>
-				</thead>
-				<tbody>${renderRows(parts)}</tbody>
-			</table>
-			<div class="subtotal">Parts Total: $${partsSubtotal.toFixed(2)}</div>
-		</section>
-
-		<section class="section">
-			<h2 class="section-title">Mechanic Notes</h2>
-			<div class="notes">
-				<pre>${mechanicNotes || "No notes provided."}</pre>
-			</div>
-		</section>
+		${bikeSection}
+		${servicesSection}
+		${partsSection}
+		${notesSection}
 
 		<section class="totals">
-			<div class="totals-row"><span>Labor subtotal</span><strong>$${servicesSubtotal.toFixed(2)}</strong></div>
-			<div class="totals-row"><span>Parts subtotal</span><strong>$${partsSubtotal.toFixed(2)}</strong></div>
+			${laborTotalRow}
+			${partsTotalRow}
 			<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
-			<div class="totals-row"><span>Sales tax &middot; parts only (${normalizedTaxRate.toFixed(3)}%)</span><strong>$${salesTax.toFixed(2)}</strong></div>
+			${taxRow}
 			<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>
 		</section>
 
