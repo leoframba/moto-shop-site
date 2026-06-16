@@ -355,17 +355,23 @@ async def invite_user(payload: UserInvite):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _extract_action_link(link_response) -> str | None:
-    """Pull the action_link out of a generate_link response across SDK shapes."""
+def _extract_link_properties(link_response) -> dict:
+    """Normalize generate_link properties across SDK response shapes."""
     properties = getattr(link_response, "properties", None)
     if properties is not None:
-        action_link = getattr(properties, "action_link", None)
-        if action_link:
-            return action_link
+        return {
+            "hashed_token": getattr(properties, "hashed_token", None),
+            "verification_type": getattr(properties, "verification_type", None),
+            "action_link": getattr(properties, "action_link", None),
+        }
     if isinstance(link_response, dict):
         props = link_response.get("properties") or {}
-        return props.get("action_link")
-    return None
+        return {
+            "hashed_token": props.get("hashed_token"),
+            "verification_type": props.get("verification_type"),
+            "action_link": props.get("action_link"),
+        }
+    return {}
 
 
 @router.post("/users/{user_id}/resend-invite")
@@ -395,11 +401,12 @@ async def resend_invite(user_id: str, payload: UserResendInvite):
             if value is not None
         }
 
-        # Mint a fresh one-time link. "invite" works for never-confirmed users;
+        # Mint a fresh one-time token. "invite" works for never-confirmed users;
         # already-existing users fall back to a magiclink (same /accept-invite
-        # landing where they set their password). generate_link does not send an
-        # email, so the link is returned for the admin to share/copy directly.
-        action_link = None
+        # landing where they set their password). We build a button-gated
+        # token_hash link to /accept-invite so email scanners that GET the page
+        # don't consume the token — only a human click runs verifyOtp().
+        props = {}
         last_error = None
         for link_type in ("invite", "magiclink"):
             try:
@@ -409,16 +416,22 @@ async def resend_invite(user_id: str, payload: UserResendInvite):
                 link_response = supabase.auth.admin.generate_link(
                     {"type": link_type, "email": email, "options": options}
                 )
-                action_link = _extract_action_link(link_response)
-                if action_link:
+                props = _extract_link_properties(link_response)
+                if props.get("hashed_token"):
                     break
             except Exception as link_error:  # noqa: BLE001
                 last_error = link_error
                 continue
 
-        if not action_link:
+        hashed_token = props.get("hashed_token")
+        if not hashed_token:
             detail = str(last_error) if last_error else "Failed to generate link."
             raise HTTPException(status_code=400, detail=detail)
+
+        verification_type = props.get("verification_type") or "invite"
+        action_link = (
+            f"{redirect_to}?token_hash={hashed_token}&type={verification_type}"
+        )
 
         return {
             "email": email,

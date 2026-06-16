@@ -1,9 +1,9 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
+import type { EmailOtpType, User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AuthCard, {
 	authInputClassName,
 	authLabelClassName,
@@ -31,6 +31,21 @@ const readInviteMetadata = (user: User | null): InviteMetadata => {
 	};
 };
 
+const SUPPORTED_OTP_TYPES: EmailOtpType[] = [
+	"invite",
+	"magiclink",
+	"signup",
+	"recovery",
+	"email",
+];
+
+const normalizeOtpType = (value: string | null): EmailOtpType | null => {
+	if (value && (SUPPORTED_OTP_TYPES as string[]).includes(value)) {
+		return value as EmailOtpType;
+	}
+	return null;
+};
+
 export default function AcceptInvitePage() {
 	const [email, setEmail] = useState("");
 	const [firstName, setFirstName] = useState("");
@@ -42,27 +57,47 @@ export default function AcceptInvitePage() {
 	const [loading, setLoading] = useState(false);
 	const [ready, setReady] = useState(false);
 	const [bootstrapping, setBootstrapping] = useState(true);
+	const [pendingToken, setPendingToken] = useState<{
+		tokenHash: string;
+		type: EmailOtpType;
+	} | null>(null);
+	const [activating, setActivating] = useState(false);
 	const router = useRouter();
 
 	const supabase = createClient();
 	const codeExchangeStarted = useRef(false);
 
+	const hydrateFromUser = useCallback((user: User | null) => {
+		if (!user) return;
+		const metadata = readInviteMetadata(user);
+		setEmail(user.email ?? "");
+		setFirstName(metadata.first_name ?? "");
+		setLastName(metadata.last_name ?? "");
+		setPhoneNumber(metadata.phone_number ?? "");
+		setReady(true);
+		setError(null);
+	}, []);
+
 	useEffect(() => {
 		let cancelled = false;
 
-		const hydrateFromUser = (user: User | null) => {
-			if (!user) return;
-			const metadata = readInviteMetadata(user);
-			setEmail(user.email ?? "");
-			setFirstName(metadata.first_name ?? "");
-			setLastName(metadata.last_name ?? "");
-			setPhoneNumber(metadata.phone_number ?? "");
-			setReady(true);
-			setError(null);
-		};
-
 		const bootstrap = async () => {
 			setBootstrapping(true);
+
+			// Button-gated token_hash flow (defeats email link scanners). The link is
+			// /accept-invite?token_hash=...&type=invite and we DO NOT verify on load —
+			// a scanner GETs the page and leaves; only a human clicking "Activate"
+			// consumes the one-time token via verifyOtp().
+			const search = new URLSearchParams(window.location.search);
+			const tokenHash = search.get("token_hash");
+			const otpType = normalizeOtpType(search.get("type"));
+			if (tokenHash && otpType) {
+				if (!cancelled) {
+					setPendingToken({ tokenHash, type: otpType });
+					setBootstrapping(false);
+				}
+				return;
+			}
 
 			// Resolve the invite session before reading any #error= hash — Supabase
 			// can fire duplicate /verify requests where one succeeds and the other
@@ -148,7 +183,35 @@ export default function AcceptInvitePage() {
 			cancelled = true;
 			subscription.unsubscribe();
 		};
-	}, [supabase]);
+	}, [supabase, hydrateFromUser]);
+
+	const handleActivate = async () => {
+		if (!pendingToken) return;
+		setActivating(true);
+		setError(null);
+
+		const { error: verifyError } = await supabase.auth.verifyOtp({
+			token_hash: pendingToken.tokenHash,
+			type: pendingToken.type,
+		});
+
+		if (verifyError) {
+			setError(
+				"This invite link has expired or was already used. Ask the shop to send a new invitation.",
+			);
+			setActivating(false);
+			setPendingToken(null);
+			return;
+		}
+
+		window.history.replaceState({}, "", "/accept-invite");
+		const {
+			data: { session },
+		} = await supabase.auth.getSession();
+		hydrateFromUser(session?.user ?? null);
+		setPendingToken(null);
+		setActivating(false);
+	};
 
 	const handleComplete = async (e: React.SyntheticEvent) => {
 		e.preventDefault();
@@ -208,6 +271,35 @@ export default function AcceptInvitePage() {
 				<p className="text-center text-neutral-500 text-sm animate-pulse">
 					Loading...
 				</p>
+			</AuthCard>
+		);
+	}
+
+	if (pendingToken) {
+		return (
+			<AuthCard
+				title="Accept Invitation"
+				subtitle="Confirm it's really you to activate your rider portal account."
+			>
+				<div className="space-y-5 text-center">
+					<p className="text-neutral-400 text-sm">
+						Click the button below to activate your account and set your
+						password.
+					</p>
+					{error && (
+						<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+							<p className="text-sm text-red-400">{error}</p>
+						</div>
+					)}
+					<button
+						type="button"
+						onClick={() => void handleActivate()}
+						disabled={activating}
+						className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{activating ? "Activating..." : "Activate My Account"}
+					</button>
+				</div>
 			</AuthCard>
 		);
 	}
