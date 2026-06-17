@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import Footer from "@/components/Footer";
@@ -41,6 +42,7 @@ export default function RootLayout({
 					{children}
 					<Toaster theme="dark" richColors position="top-right" />
 					<Analytics />
+					<SpeedInsights />
 				</div>
 
 				<Footer />
