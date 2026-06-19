@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FiPrinter } from "react-icons/fi";
 import { toast } from "sonner";
 import GaragePhotos from "@/components/account/GaragePhotos";
+import { buildInvoicePrintHtml } from "@/components/admin/invoices/buildInvoicePrintHtml";
 import {
 	calculateLineTotal,
 	formatDateTime,
@@ -10,7 +12,12 @@ import {
 	toCurrency,
 	toStatusLabel,
 } from "@/components/admin/invoices/invoiceHelpers";
-import type { InvoiceBike, InvoiceWithRelations } from "@/types";
+import type {
+	CustomerInvoiceViewLevel,
+	InvoiceBike,
+	InvoiceWithRelations,
+	ShopSettings,
+} from "@/types";
 import { authApiRequest } from "@/utils/api";
 
 interface GarageResponse {
@@ -19,8 +26,24 @@ interface GarageResponse {
 	invoices: InvoiceWithRelations[];
 }
 
+interface InvoicePrintResponse {
+	invoice: InvoiceWithRelations;
+	shop_settings: ShopSettings;
+}
+
 const getBikeLabel = (bike: InvoiceBike): string =>
 	`${bike.year} ${bike.make} ${bike.model}`.trim();
+
+const getCustomerViewLevel = (
+	invoice: InvoiceWithRelations,
+): CustomerInvoiceViewLevel => {
+	if (invoice.customer_view_level) return invoice.customer_view_level;
+	if (invoice.status === "in_progress") return "summary";
+	if (invoice.status === "estimate") return "estimate";
+	if (invoice.status === "completed" || invoice.status === "paid")
+		return "full";
+	return "summary";
+};
 
 const sumParts = (invoice: InvoiceWithRelations): number =>
 	invoice.line_items
@@ -39,6 +62,9 @@ export default function GarageTab() {
 	const [taxRate, setTaxRate] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
 	const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<string[]>([]);
+	const [printingInvoiceId, setPrintingInvoiceId] = useState<string | null>(
+		null,
+	);
 
 	const fetchGarage = useCallback(async () => {
 		setIsLoading(true);
@@ -69,9 +95,42 @@ export default function GarageTab() {
 		);
 	};
 
+	const openPrintPreview = async (invoiceId: string) => {
+		setPrintingInvoiceId(invoiceId);
+		try {
+			const data = await authApiRequest<InvoicePrintResponse>(
+				`/api/portal/invoices/${invoiceId}/print`,
+				{ cache: "no-store" },
+			);
+			const printWindow = window.open("", "_blank", "width=960,height=720");
+			if (!printWindow) {
+				toast.error("Could not open print preview window.");
+				return;
+			}
+			printWindow.document.open();
+			printWindow.document.write(
+				buildInvoicePrintHtml(
+					{ ...data.invoice, line_items: data.invoice.line_items ?? [] },
+					data.shop_settings,
+				),
+			);
+			printWindow.document.close();
+			printWindow.focus();
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message : "Print preview failed.",
+			);
+		} finally {
+			setPrintingInvoiceId(null);
+		}
+	};
+
 	const lifetimeTotal = useMemo(
 		() =>
 			invoices.reduce((total, invoice) => {
+				const viewLevel = getCustomerViewLevel(invoice);
+				if (viewLevel !== "full") return total;
 				const subtotal = sumAll(invoice);
 				const tax = (sumParts(invoice) * taxRate) / 100;
 				return total + subtotal + tax;
@@ -133,7 +192,7 @@ export default function GarageTab() {
 					</h3>
 					{invoices.length > 0 && (
 						<p className="text-xs text-neutral-500">
-							Lifetime total{" "}
+							Completed total{" "}
 							<span className="text-red-500 font-bold">
 								{toCurrency(lifetimeTotal)}
 							</span>
@@ -148,7 +207,12 @@ export default function GarageTab() {
 				) : (
 					<div className="space-y-3">
 						{invoices.map((invoice) => {
-							const isExpanded = expandedInvoiceIds.includes(invoice.id);
+							const viewLevel = getCustomerViewLevel(invoice);
+							const canExpand =
+								viewLevel === "estimate" || viewLevel === "full";
+							const canPrint = viewLevel === "full";
+							const isExpanded =
+								canExpand && expandedInvoiceIds.includes(invoice.id);
 							const subtotal = sumAll(invoice);
 							const partsSubtotal = sumParts(invoice);
 							const servicesSubtotal = subtotal - partsSubtotal;
@@ -157,45 +221,61 @@ export default function GarageTab() {
 							);
 							const grandTotal = subtotal + salesTax;
 
+							const headerContent = (
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<p className="text-white font-bold">
+											Invoice #{invoice.invoice_number}
+										</p>
+										<p className="text-xs text-neutral-500 truncate">
+											{invoice.bike
+												? getBikeLabel(invoice.bike)
+												: "No bike linked"}
+										</p>
+										<p className="text-xs text-neutral-500">
+											{formatDateTime(invoice.created_at)}
+										</p>
+									</div>
+									<div className="flex flex-col items-end gap-1.5 shrink-0">
+										<span
+											className={`px-2 py-1 rounded uppercase tracking-widest font-bold text-[10px] ${getInvoiceStatusTagClasses(invoice.status)}`}
+										>
+											{toStatusLabel(invoice.status)}
+										</span>
+										{viewLevel === "summary" ? (
+											<span className="text-xs text-neutral-500 text-right max-w-[10rem]">
+												Details available when service is complete
+											</span>
+										) : (
+											<span className="text-red-500 font-bold text-sm">
+												{toCurrency(grandTotal)}
+											</span>
+										)}
+										{canExpand && (
+											<span className="text-neutral-500 text-xs">
+												{isExpanded ? "Hide details ▾" : "View details ▸"}
+											</span>
+										)}
+									</div>
+								</div>
+							);
+
 							return (
 								<div
 									key={invoice.id}
 									className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden"
 								>
-									<button
-										type="button"
-										onClick={() => toggleInvoice(invoice.id)}
-										className="w-full text-left p-4 hover:bg-neutral-800/40 transition-colors"
-									>
-										<div className="flex items-start justify-between gap-3">
-											<div className="min-w-0">
-												<p className="text-white font-bold">
-													Invoice #{invoice.invoice_number}
-												</p>
-												<p className="text-xs text-neutral-500 truncate">
-													{invoice.bike
-														? getBikeLabel(invoice.bike)
-														: "No bike linked"}
-												</p>
-												<p className="text-xs text-neutral-500">
-													{formatDateTime(invoice.created_at)}
-												</p>
-											</div>
-											<div className="flex flex-col items-end gap-1.5 shrink-0">
-												<span
-													className={`px-2 py-1 rounded uppercase tracking-widest font-bold text-[10px] ${getInvoiceStatusTagClasses(invoice.status)}`}
-												>
-													{toStatusLabel(invoice.status)}
-												</span>
-												<span className="text-red-500 font-bold text-sm">
-													{toCurrency(grandTotal)}
-												</span>
-												<span className="text-neutral-500 text-xs">
-													{isExpanded ? "Hide details ▾" : "View details ▸"}
-												</span>
-											</div>
-										</div>
-									</button>
+									{canExpand ? (
+										<button
+											type="button"
+											onClick={() => toggleInvoice(invoice.id)}
+											className="w-full text-left p-4 hover:bg-neutral-800/40 transition-colors"
+										>
+											{headerContent}
+										</button>
+									) : (
+										<div className="p-4">{headerContent}</div>
+									)}
 
 									{isExpanded && (
 										<div className="px-4 pb-4">
@@ -241,7 +321,7 @@ export default function GarageTab() {
 												</table>
 											</div>
 
-											{invoice.mechanic_notes && (
+											{viewLevel === "full" && invoice.mechanic_notes && (
 												<div className="mt-3 text-sm">
 													<p className="text-neutral-500 uppercase tracking-widest text-[10px] font-bold mb-1">
 														Notes
@@ -283,7 +363,25 @@ export default function GarageTab() {
 												</div>
 											</div>
 
-											<GaragePhotos invoiceId={invoice.id} />
+											{canPrint && (
+												<div className="mt-4 flex justify-end">
+													<button
+														type="button"
+														onClick={() => void openPrintPreview(invoice.id)}
+														disabled={printingInvoiceId === invoice.id}
+														className="inline-flex items-center gap-2 rounded bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 disabled:opacity-50"
+													>
+														<FiPrinter className="h-3.5 w-3.5" />
+														{printingInvoiceId === invoice.id
+															? "Opening..."
+															: "Print"}
+													</button>
+												</div>
+											)}
+
+											{viewLevel === "full" && (
+												<GaragePhotos invoiceId={invoice.id} />
+											)}
 										</div>
 									)}
 								</div>

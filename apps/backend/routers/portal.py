@@ -1,6 +1,12 @@
 # routers/portal.py
 from dependencies import supabase, verify_user
 from fastapi import APIRouter, Depends, HTTPException
+from portal_invoice_view import (
+    CUSTOMER_VISIBLE_STATUSES,
+    PRINTABLE_STATUSES,
+    serialize_customer_invoice,
+    serialize_customer_invoice_for_print,
+)
 from schemas import UserUpdate
 from storage_utils import attach_signed_urls
 
@@ -11,11 +17,40 @@ router = APIRouter(
     dependencies=[Depends(verify_user)],
 )
 
-# Statuses a customer should be able to see in their garage. Internal drafts and
-# voided invoices are intentionally hidden.
-CUSTOMER_VISIBLE_STATUSES = ["estimate", "in_progress", "completed", "paid"]
-
 _BIKE_FIELDS = "id, owner_id, year, make, model, vin, license_plate"
+_USER_FIELDS = "id, email, first_name, last_name, phone_number"
+
+
+def _fetch_owned_invoice(invoice_id: str, user_id: str) -> dict:
+    invoice_response = (
+        supabase.table("invoices")
+        .select("*")
+        .eq("id", invoice_id)
+        .eq("owner_id", user_id)
+        .in_("status", list(CUSTOMER_VISIBLE_STATUSES))
+        .execute()
+    )
+    rows = invoice_response.data or []
+    if not rows:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return rows[0]
+
+
+def _hydrate_invoice(
+    invoice: dict,
+    *,
+    bikes_by_id: dict[str, dict],
+    line_items_by_invoice: dict[str, list[dict]],
+    users_by_id: dict[str, dict] | None = None,
+) -> tuple[dict | None, list[dict], dict | None]:
+    bike = bikes_by_id.get(invoice.get("bike_id")) if invoice.get("bike_id") else None
+    line_items = line_items_by_invoice.get(invoice["id"], [])
+    owner = (
+        users_by_id.get(invoice.get("owner_id"))
+        if users_by_id and invoice.get("owner_id")
+        else None
+    )
+    return bike, line_items, owner
 
 
 @router.get("/garage")
@@ -48,13 +83,13 @@ async def get_garage(user=Depends(verify_user)):
             supabase.table("invoices")
             .select("*")
             .eq("owner_id", user_id)
-            .in_("status", CUSTOMER_VISIBLE_STATUSES)
+            .in_("status", list(CUSTOMER_VISIBLE_STATUSES))
             .order("created_at", desc=True)
             .execute()
         )
         invoices = invoices_response.data or []
 
-        line_items_by_invoice = {}
+        line_items_by_invoice: dict[str, list[dict]] = {}
         if invoices:
             invoice_ids = [invoice["id"] for invoice in invoices]
             line_items_response = (
@@ -69,8 +104,6 @@ async def get_garage(user=Depends(verify_user)):
                 if invoice_id:
                     line_items_by_invoice.setdefault(invoice_id, []).append(item)
 
-        # Hydrate bikes referenced by invoices but not in the owner's current list
-        # (e.g. a bike that was reassigned). Keeps the historical record intact.
         missing_bike_ids = list(
             {
                 invoice["bike_id"]
@@ -90,16 +123,17 @@ async def get_garage(user=Depends(verify_user)):
 
         hydrated_invoices = []
         for invoice in invoices:
+            bike, line_items, _owner = _hydrate_invoice(
+                invoice,
+                bikes_by_id=bikes_by_id,
+                line_items_by_invoice=line_items_by_invoice,
+            )
             hydrated_invoices.append(
-                {
-                    **invoice,
-                    "bike": (
-                        bikes_by_id.get(invoice.get("bike_id"))
-                        if invoice.get("bike_id")
-                        else None
-                    ),
-                    "line_items": line_items_by_invoice.get(invoice["id"], []),
-                }
+                serialize_customer_invoice(
+                    invoice,
+                    bike=bike,
+                    line_items=line_items,
+                )
             )
 
         return {
@@ -107,22 +141,79 @@ async def get_garage(user=Depends(verify_user)):
             "bikes": bikes,
             "invoices": hydrated_invoices,
         }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/invoices/{invoice_id}/print")
+async def get_invoice_print_data(invoice_id: str, user=Depends(verify_user)):
+    """Return full invoice + shop settings for print (completed/paid only)."""
+    try:
+        invoice = _fetch_owned_invoice(invoice_id, user.id)
+        status = str(invoice.get("status") or "")
+        if status not in PRINTABLE_STATUSES:
+            raise HTTPException(
+                status_code=403,
+                detail="Print preview is only available for completed or paid invoices.",
+            )
+
+        line_items_response = (
+            supabase.table("invoice_line_items")
+            .select("*")
+            .eq("invoice_id", invoice_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        line_items = line_items_response.data or []
+
+        bike = None
+        if invoice.get("bike_id"):
+            bike_response = (
+                supabase.table("bikes")
+                .select(_BIKE_FIELDS)
+                .eq("id", invoice["bike_id"])
+                .execute()
+            )
+            bike_rows = bike_response.data or []
+            bike = bike_rows[0] if bike_rows else None
+
+        owner_response = (
+            supabase.table("users").select(_USER_FIELDS).eq("id", user.id).execute()
+        )
+        owner_rows = owner_response.data or []
+        owner = owner_rows[0] if owner_rows else None
+
+        settings_response = (
+            supabase.table("shop_settings").select("*").eq("id", 1).execute()
+        )
+        settings_rows = settings_response.data or []
+        if not settings_rows:
+            raise HTTPException(status_code=500, detail="Shop settings not found")
+
+        return {
+            "invoice": serialize_customer_invoice_for_print(
+                invoice,
+                bike=bike,
+                line_items=line_items,
+                owner=owner,
+            ),
+            "shop_settings": settings_rows[0],
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/invoices/{invoice_id}/photos")
 async def get_invoice_photos(invoice_id: str, user=Depends(verify_user)):
-    """Return signed URLs for photos on an invoice the rider owns."""
+    """Return signed URLs for photos on a completed/paid invoice the rider owns."""
     try:
-        invoice_response = (
-            supabase.table("invoices")
-            .select("id, owner_id")
-            .eq("id", invoice_id)
-            .execute()
-        )
-        rows = invoice_response.data or []
-        if not rows or rows[0].get("owner_id") != user.id:
+        invoice = _fetch_owned_invoice(invoice_id, user.id)
+        status = str(invoice.get("status") or "")
+        if status not in PRINTABLE_STATUSES:
             raise HTTPException(status_code=404, detail="Invoice not found")
 
         photos_response = (

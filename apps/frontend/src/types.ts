@@ -200,10 +200,14 @@ export interface InvoiceLineItemRecord {
 	created_at?: string;
 }
 
+export type CustomerInvoiceViewLevel = "summary" | "estimate" | "full";
+
 export interface InvoiceWithRelations extends InvoiceRecord {
 	owner?: AdminUser | null;
 	bike?: InvoiceBike | null;
 	line_items: InvoiceLineItemRecord[];
+	/** Set by the rider portal API to control detail visibility. */
+	customer_view_level?: CustomerInvoiceViewLevel;
 }
 
 export interface InvoicePhoto {

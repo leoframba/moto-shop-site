@@ -51,27 +51,41 @@ export const buildInvoicePrintHtml = (
 	const hasParts = parts.length > 0;
 	const hasNotes = mechanicNotes.length > 0;
 
-	const renderRows = (items: typeof safeLineItems) =>
-		items
-			.map(
-				(line) => `<tr>
+	const renderLineItemRow = (line: (typeof safeLineItems)[number]) =>
+		`<tr>
 		<td class="num">${Number(line.quantity).toFixed(2)}</td>
 		<td class="desc-cell"><div class="item-name">${escapeHtml(line.snapshot_name)}</div></td>
 		<td class="num">$${Number(line.unit_price).toFixed(2)}</td>
 		<td class="num strong">$${calculateLineTotal(line).toFixed(2)}</td>
-	</tr>`,
-			)
-			.join("");
+	</tr>`;
 
-	const lineItemsTable = (
+	const renderGroupSubtotal = (label: string, amount: number) =>
+		`<tr class="group-subtotal">
+		<td colspan="3" class="subtotal-label">${label}</td>
+		<td class="num strong">$${amount.toFixed(2)}</td>
+	</tr>`;
+
+	const renderLineItemGroup = (
 		title: string,
 		items: typeof safeLineItems,
 		subtotalLabel: string,
 		subtotal: number,
-	) => `
-		<section class="section">
-			<h2 class="section-title">${title}</h2>
-			<table>
+	) => `<tr class="group-head">
+		<th colspan="4">${title}</th>
+	</tr>
+	${items.map(renderLineItemRow).join("")}
+	${renderGroupSubtotal(subtotalLabel, subtotal)}`;
+
+	const lineItemsSection =
+		hasServices || hasParts
+			? `<section class="section">
+			<table class="line-items">
+				<colgroup>
+					<col class="col-qty" />
+					<col class="col-desc" />
+					<col class="col-unit" />
+					<col class="col-total" />
+				</colgroup>
 				<thead>
 					<tr>
 						<th class="num">Qty</th>
@@ -80,10 +94,13 @@ export const buildInvoicePrintHtml = (
 						<th class="num">Total</th>
 					</tr>
 				</thead>
-				<tbody>${renderRows(items)}</tbody>
+				<tbody>
+					${hasServices ? renderLineItemGroup("Labor &amp; Services", services, "Labor Total", servicesSubtotal) : ""}
+					${hasParts ? renderLineItemGroup("Parts &amp; Materials", parts, "Parts Total", partsSubtotal) : ""}
+				</tbody>
 			</table>
-			<div class="subtotal">${subtotalLabel}: $${subtotal.toFixed(2)}</div>
-		</section>`;
+		</section>`
+			: "";
 
 	const bikeSection = hasBike
 		? `<section class="kv">
@@ -95,19 +112,6 @@ export const buildInvoicePrintHtml = (
 			${invoice.odometer_in != null ? `<div class="kv-item"><span class="label">Odo In</span><span class="val">${invoice.odometer_in}</span></div>` : ""}
 			${invoice.odometer_out != null ? `<div class="kv-item"><span class="label">Odo Out</span><span class="val">${invoice.odometer_out}</span></div>` : ""}
 		</section>`
-		: "";
-
-	const servicesSection = hasServices
-		? lineItemsTable(
-				"Labor & Services",
-				services,
-				"Labor Total",
-				servicesSubtotal,
-			)
-		: "";
-
-	const partsSection = hasParts
-		? lineItemsTable("Parts & Materials", parts, "Parts Total", partsSubtotal)
 		: "";
 
 	const notesSection = hasNotes
@@ -258,10 +262,18 @@ export const buildInvoicePrintHtml = (
 		border-collapse: collapse;
 		border: 1px solid var(--line);
 	}
+	.line-items {
+		table-layout: fixed;
+	}
+	.col-qty { width: 11%; }
+	.col-desc { width: auto; }
+	.col-unit { width: 16%; }
+	.col-total { width: 16%; }
 	th, td {
 		padding: 4px 6px;
 		border-bottom: 1px solid var(--line);
 		font-size: 10px;
+		vertical-align: top;
 	}
 	th {
 		background: var(--soft);
@@ -270,18 +282,31 @@ export const buildInvoicePrintHtml = (
 		letter-spacing: 0.05em;
 		text-align: left;
 	}
+	.group-head th {
+		background: #e5e7eb;
+		color: var(--brand);
+		font-size: 9px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		padding-top: 6px;
+		padding-bottom: 6px;
+		text-align: left;
+	}
+	.group-subtotal td {
+		background: var(--soft);
+		border-bottom: 2px solid var(--line);
+	}
+	.subtotal-label {
+		font-weight: 700;
+		text-align: right;
+	}
+	.desc-cell {
+		word-break: break-word;
+		overflow-wrap: anywhere;
+	}
 	.num { text-align: right; white-space: nowrap; }
 	.strong { font-weight: 700; }
 	.item-name { font-weight: 600; }
-	.subtotal {
-		border: 1px solid var(--line);
-		border-top: none;
-		padding: 4px 6px;
-		text-align: right;
-		font-weight: 700;
-		font-size: 10px;
-		background: var(--soft);
-	}
 	.notes {
 		border: 1px solid var(--line);
 		padding: 6px 8px;
@@ -330,7 +355,7 @@ export const buildInvoicePrintHtml = (
 		body { padding: 0; }
 		.invoice { border: 0; padding: 0; }
 		@page { margin: 0.4in; }
-		th, .kv, .subtotal, .totals-row.grand {
+		th, .kv, .group-head th, .group-subtotal td, .totals-row.grand {
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
 		}
@@ -366,8 +391,7 @@ export const buildInvoicePrintHtml = (
 		</section>
 
 		${bikeSection}
-		${servicesSection}
-		${partsSection}
+		${lineItemsSection}
 		${notesSection}
 
 		<section class="totals">
