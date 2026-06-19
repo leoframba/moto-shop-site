@@ -617,6 +617,7 @@ export function InvoiceList({
 											<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 												<p className={sectionHeadingClass}>Mechanic Notes</p>
 												<VoiceRecorder
+													className={`${actionButtonClass} bg-neutral-800 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50`}
 													disabled={
 														processingVoiceNoteInvoiceId === invoice.id ||
 														savingMechanicNotesInvoiceId === invoice.id

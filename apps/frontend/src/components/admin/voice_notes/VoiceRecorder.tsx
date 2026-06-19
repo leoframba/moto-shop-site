@@ -303,9 +303,12 @@ export default function VoiceRecorder({
 				type="button"
 				onClick={() => setIsOpen(true)}
 				disabled={disabled}
-				className={`bg-neutral-800 hover:bg-neutral-700 cursor-pointer px-3 py-2 rounded text-xs uppercase tracking-widest font-bold inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+				className={
+					className ||
+					"inline-flex min-h-11 w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-md bg-neutral-800 px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+				}
 			>
-				<FaMicrophone aria-hidden />
+				<FaMicrophone className="h-4 w-4 shrink-0" aria-hidden />
 				{buttonLabel}
 			</button>
 

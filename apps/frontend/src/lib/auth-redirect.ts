@@ -27,10 +27,6 @@ export function getAuthRedirect(
 		return { pathname: "/login", search: "next=/account" };
 	}
 
-	if (isAccountRoute && user && isAdminUser(user)) {
-		return { pathname: "/admin" };
-	}
-
 	if (user && isAuthRoute) {
 		return { pathname: getPostLoginRedirect(user) };
 	}

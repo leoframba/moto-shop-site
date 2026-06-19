@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { isAdminUser } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/server";
 import AccountDashboard from "./AccountDashboard";
 
@@ -12,10 +11,6 @@ export default async function AccountPage() {
 
 	if (!user) {
 		redirect("/login?next=/account");
-	}
-
-	if (isAdminUser(user)) {
-		redirect("/admin");
 	}
 
 	return <AccountDashboard user={user} />;

@@ -37,10 +37,8 @@ describe("getAuthRedirect", () => {
 			expect(getAuthRedirect("/account", mockCustomerUser())).toBeNull();
 		});
 
-		it("redirects admins from /account to /admin", () => {
-			expect(getAuthRedirect("/account", mockAdminUser())).toEqual({
-				pathname: "/admin",
-			});
+		it("allows admins through on /account", () => {
+			expect(getAuthRedirect("/account", mockAdminUser())).toBeNull();
 		});
 	});
 
