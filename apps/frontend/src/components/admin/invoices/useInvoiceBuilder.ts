@@ -362,7 +362,7 @@ export function useInvoiceBuilder({
 		setServicePickerLineId(null);
 	};
 
-	const selectPart = (lineId: string, partId: string) => {
+	const selectPart = (lineId: string, partId: string, partOverride?: Part) => {
 		const duplicatePartAlreadySelected = partLines.some(
 			(line) => line.id !== lineId && line.part_id === partId,
 		);
@@ -371,7 +371,8 @@ export function useInvoiceBuilder({
 			return;
 		}
 
-		const selectedPart = parts.find((part) => part.id === partId);
+		const selectedPart =
+			partOverride ?? parts.find((part) => part.id === partId);
 		if (!selectedPart) {
 			updatePartLine(lineId, "part_id", "");
 			updatePartLine(lineId, "snapshot_name", "");

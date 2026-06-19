@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { compareParts } from "@/components/admin/parts/partUtils";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -23,6 +24,7 @@ export interface InvoicesData {
 	invoices: InvoiceWithRelations[];
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
 	refetch: () => Promise<void>;
+	addPart: (part: Part) => void;
 }
 
 export function useInvoicesData(): InvoicesData {
@@ -81,6 +83,10 @@ export function useInvoicesData(): InvoicesData {
 		void refetch();
 	}, [refetch]);
 
+	const addPart = useCallback((part: Part) => {
+		setParts((prev) => [...prev, part].sort(compareParts));
+	}, []);
+
 	return {
 		isLoading,
 		users,
@@ -92,5 +98,6 @@ export function useInvoicesData(): InvoicesData {
 		invoices,
 		setInvoices,
 		refetch,
+		addPart,
 	};
 }

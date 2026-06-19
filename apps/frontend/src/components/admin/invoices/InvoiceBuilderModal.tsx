@@ -31,6 +31,7 @@ interface InvoiceBuilderModalProps {
 	services: Service[];
 	parts: Part[];
 	taxRate: number;
+	onPartCreated: (part: Part) => void;
 }
 
 const inputClasses =
@@ -47,6 +48,7 @@ export function InvoiceBuilderModal({
 	services,
 	parts,
 	taxRate,
+	onPartCreated,
 }: InvoiceBuilderModalProps) {
 	const shouldGuardUnload = builder.isOpen && builder.isDirty;
 
@@ -747,12 +749,17 @@ export function InvoiceBuilderModal({
 					parts={parts}
 					partLines={builder.partLines}
 					activeLineId={builder.partPickerLineId}
-					onSelect={(partId) =>
-						builder.selectPart(builder.partPickerLineId as string, partId)
+					onSelect={(partId, partOverride) =>
+						builder.selectPart(
+							builder.partPickerLineId as string,
+							partId,
+							partOverride,
+						)
 					}
 					onConfirmCustom={(name) =>
 						builder.confirmCustomPart(builder.partPickerLineId as string, name)
 					}
+					onPartCreated={onPartCreated}
 					onClose={() => builder.setPartPickerLineId(null)}
 				/>
 			)}

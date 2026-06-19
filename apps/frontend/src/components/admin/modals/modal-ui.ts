@@ -1,5 +1,6 @@
 /** Shared modal layout tokens — keep z-index and panel sizes in one place. */
 export const MODAL_Z_INDEX = 70;
+export const MODAL_NESTED_Z_INDEX = MODAL_Z_INDEX + 10;
 
 export const modalOverlayClass =
 	"fixed inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm";

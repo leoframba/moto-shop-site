@@ -3,21 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "sonner";
+import { toCurrency } from "@/components/admin/invoices/invoiceHelpers";
 import { AdminModal } from "@/components/admin/modals";
+import {
+	getInitialPartFormData,
+	PartManagerForm,
+	toPartPayload,
+} from "@/components/admin/parts/PartManagerForm";
+import {
+	compareParts,
+	getPartDisplayLabel,
+	getPartSaveErrorMessage,
+} from "@/components/admin/parts/partUtils";
 import type { Part, PartFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
-
-const getInitialPartFormData = (): PartFormData => ({
-	part_number: "",
-	description: "",
-	base_price: 0,
-});
-
-const toPartPayload = (formData: PartFormData) => ({
-	part_number: formData.part_number.trim(),
-	description: formData.description.trim(),
-	base_price: Number(formData.base_price),
-});
 
 interface PartSearchFilters {
 	name: string;
@@ -28,97 +27,6 @@ const getInitialPartSearchFilters = (): PartSearchFilters => ({
 	name: "",
 	partNumber: "",
 });
-
-interface PartFormProps {
-	formData: PartFormData;
-	isSaving: boolean;
-	isEditing: boolean;
-	onChange: (field: keyof PartFormData, value: string | number) => void;
-	onSave: () => Promise<void>;
-	onCancel: () => void;
-}
-
-function PartManagerForm({
-	formData,
-	isSaving,
-	isEditing,
-	onChange,
-	onSave,
-	onCancel,
-}: PartFormProps) {
-	return (
-		<>
-			<div className="grid md:grid-cols-3 gap-4 mb-4">
-				<div>
-					<label
-						htmlFor="part-number"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Part Number
-					</label>
-					<input
-						id="part-number"
-						value={formData.part_number}
-						onChange={(e) => onChange("part_number", e.target.value)}
-						placeholder="e.g. BRK-1120"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div className="md:col-span-2">
-					<label
-						htmlFor="part-description"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Description
-					</label>
-					<input
-						id="part-description"
-						value={formData.description}
-						onChange={(e) => onChange("description", e.target.value)}
-						placeholder="e.g. Rear brake pads"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div>
-					<label
-						htmlFor="part-price"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Base Price
-					</label>
-					<input
-						id="part-price"
-						type="number"
-						min={0}
-						step={0.01}
-						value={formData.base_price}
-						onChange={(e) => onChange("base_price", Number(e.target.value))}
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-			</div>
-
-			<div className="flex gap-3">
-				<button
-					type="button"
-					onClick={() => void onSave()}
-					disabled={isSaving}
-					className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700 px-6 py-2 rounded font-bold text-sm transition-colors"
-				>
-					{isSaving ? "Saving..." : isEditing ? "Save Part" : "Create Part"}
-				</button>
-				<button
-					type="button"
-					onClick={onCancel}
-					disabled={isSaving}
-					className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-sm transition-colors"
-				>
-					Cancel
-				</button>
-			</div>
-		</>
-	);
-}
 
 export default function AdminPartsTab() {
 	const [parts, setParts] = useState<Part[]>([]);
@@ -171,8 +79,8 @@ export default function AdminPartsTab() {
 	};
 
 	const handleSave = async () => {
-		if (!formData.part_number.trim() || !formData.description.trim()) {
-			toast.warning("Part number and description are required.");
+		if (!formData.description.trim()) {
+			toast.warning("Description is required.");
 			return;
 		}
 
@@ -195,7 +103,7 @@ export default function AdminPartsTab() {
 			await fetchParts();
 		} catch (error) {
 			console.error(error);
-			toast.error("Failed to save part.");
+			toast.error(getPartSaveErrorMessage(error, "Failed to save part."));
 		} finally {
 			setIsSaving(false);
 		}
@@ -205,7 +113,7 @@ export default function AdminPartsTab() {
 		setIsEditing(true);
 		setEditingPartId(part.id);
 		setFormData({
-			part_number: part.part_number,
+			part_number: part.part_number ?? "",
 			description: part.description,
 			base_price: Number(part.base_price),
 		});
@@ -221,7 +129,7 @@ export default function AdminPartsTab() {
 
 	const handleDelete = async (part: Part) => {
 		const confirmed = window.confirm(
-			`Delete part ${part.part_number} (${part.description})? This cannot be undone.`,
+			`Delete ${getPartDisplayLabel(part)}? This cannot be undone.`,
 		);
 		if (!confirmed) return;
 
@@ -258,15 +166,17 @@ export default function AdminPartsTab() {
 		const partNumberQuery = searchFilters.partNumber.trim().toLowerCase();
 		const nameQuery = searchFilters.name.trim().toLowerCase();
 
-		return parts.filter((part) => {
-			const partNumber = part.part_number.toLowerCase();
-			const partName = part.description.toLowerCase();
+		return parts
+			.filter((part) => {
+				const partNumber = part.part_number?.toLowerCase() ?? "";
+				const partName = part.description.toLowerCase();
 
-			if (partNumberQuery && !partNumber.includes(partNumberQuery))
-				return false;
-			if (nameQuery && !partName.includes(nameQuery)) return false;
-			return true;
-		});
+				if (partNumberQuery && !partNumber.includes(partNumberQuery))
+					return false;
+				if (nameQuery && !partName.includes(nameQuery)) return false;
+				return true;
+			})
+			.sort(compareParts);
 	}, [parts, searchFilters]);
 
 	return (
@@ -352,41 +262,54 @@ export default function AdminPartsTab() {
 							No parts match current filters.
 						</div>
 					) : (
-						<div className="space-y-3">
-							{filteredParts.map((part) => (
-								<div
-									key={part.id}
-									className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-								>
-									<div>
-										<p className="text-white font-bold">{part.part_number}</p>
-										<p className="text-sm text-neutral-400">
-											{part.description}
-										</p>
-										<p className="text-xs text-emerald-400 mt-1">
-											${Number(part.base_price).toFixed(2)}
-										</p>
-									</div>
-									<div className="self-start md:self-auto flex items-center gap-2">
-										<button
-											type="button"
-											onClick={() => handleEdit(part)}
-											className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest"
-										>
-											Edit Part
-										</button>
-										<button
-											type="button"
-											onClick={() => void handleDelete(part)}
-											disabled={deletingPartId === part.id}
-											className="bg-red-900/60 hover:bg-red-800/70 disabled:bg-neutral-700 px-3 py-2 rounded font-bold text-xs uppercase tracking-widest inline-flex items-center gap-1"
-										>
-											<FiTrash2 className="h-3.5 w-3.5" />
-											{deletingPartId === part.id ? "Deleting..." : "Delete"}
-										</button>
-									</div>
-								</div>
-							))}
+						<div className="overflow-x-auto rounded-lg border border-neutral-800">
+							<table className="w-full min-w-[40rem] border-collapse bg-neutral-900">
+								<thead>
+									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
+										<th className="px-4 py-3">Name</th>
+										<th className="px-4 py-3">Part Number</th>
+										<th className="px-4 py-3 text-right">Price</th>
+										<th className="px-4 py-3 text-right">Actions</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-neutral-800">
+									{filteredParts.map((part) => (
+										<tr key={part.id}>
+											<td className="px-4 py-3 font-bold text-white">
+												{part.description}
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{part.part_number ?? "—"}
+											</td>
+											<td className="px-4 py-3 text-right text-sm font-semibold text-emerald-400">
+												{toCurrency(Number(part.base_price))}
+											</td>
+											<td className="px-4 py-3">
+												<div className="flex items-center justify-end gap-2">
+													<button
+														type="button"
+														onClick={() => handleEdit(part)}
+														className="rounded bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700"
+													>
+														Edit
+													</button>
+													<button
+														type="button"
+														onClick={() => void handleDelete(part)}
+														disabled={deletingPartId === part.id}
+														className="inline-flex items-center gap-1 rounded bg-red-900/60 px-3 py-2 text-xs font-bold uppercase tracking-widest hover:bg-red-800/70 disabled:bg-neutral-700"
+													>
+														<FiTrash2 className="h-3.5 w-3.5" />
+														{deletingPartId === part.id
+															? "Deleting..."
+															: "Delete"}
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
 					)}
 				</>

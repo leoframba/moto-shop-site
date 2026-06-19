@@ -406,49 +406,60 @@ export default function AdminUsersTab() {
 							No users match your search.
 						</div>
 					) : (
-						<div className="space-y-3">
-							{filteredUsers.map((user) => (
-								<div
-									key={user.id}
-									className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-								>
-									<div className="min-w-0">
-										<p className="text-white font-bold">
-											{getUserDisplayName(user)}
-										</p>
-										<p className="text-sm text-neutral-400 truncate">
-											{user.email}
-										</p>
-										<p className="text-xs text-neutral-500 mt-1">
-											{user.phone_number || "No phone on file"}
-										</p>
-									</div>
-									<div className="self-start md:self-auto flex items-center gap-2">
-										<button
-											type="button"
-											onClick={() => void handleResendInvite(user)}
-											disabled={resendingUserId === user.id}
-											className="bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest inline-flex items-center gap-2"
-										>
-											<FiRefreshCw
-												className={`h-3.5 w-3.5 ${
-													resendingUserId === user.id ? "animate-spin" : ""
-												}`}
-											/>
-											{resendingUserId === user.id
-												? "Generating..."
-												: "Resend Invite"}
-										</button>
-										<button
-											type="button"
-											onClick={() => openEditForm(user)}
-											className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest"
-										>
-											Edit User
-										</button>
-									</div>
-								</div>
-							))}
+						<div className="overflow-x-auto rounded-lg border border-neutral-800">
+							<table className="w-full min-w-[48rem] border-collapse bg-neutral-900">
+								<thead>
+									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
+										<th className="px-4 py-3">Name</th>
+										<th className="px-4 py-3">Email</th>
+										<th className="px-4 py-3">Phone</th>
+										<th className="px-4 py-3 text-right">Actions</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-neutral-800">
+									{filteredUsers.map((user) => (
+										<tr key={user.id}>
+											<td className="px-4 py-3 font-bold text-white">
+												{getUserDisplayName(user)}
+											</td>
+											<td className="max-w-[16rem] truncate px-4 py-3 text-sm text-neutral-300">
+												{user.email}
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{user.phone_number ?? "—"}
+											</td>
+											<td className="px-4 py-3">
+												<div className="flex items-center justify-end gap-2">
+													<button
+														type="button"
+														onClick={() => void handleResendInvite(user)}
+														disabled={resendingUserId === user.id}
+														className="inline-flex items-center gap-2 rounded bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 disabled:opacity-50"
+													>
+														<FiRefreshCw
+															className={`h-3.5 w-3.5 ${
+																resendingUserId === user.id
+																	? "animate-spin"
+																	: ""
+															}`}
+														/>
+														{resendingUserId === user.id
+															? "Generating..."
+															: "Resend"}
+													</button>
+													<button
+														type="button"
+														onClick={() => openEditForm(user)}
+														className="rounded bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700"
+													>
+														Edit
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
 					)}
 				</>

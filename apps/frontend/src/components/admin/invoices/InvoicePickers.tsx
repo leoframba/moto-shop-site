@@ -1,8 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AdminModal, modalOptionButtonClass } from "@/components/admin/modals";
-import type { AdminUser, InvoiceBike, Part, Service } from "@/types";
+import { toast } from "sonner";
+import {
+	AdminModal,
+	MODAL_NESTED_Z_INDEX,
+	modalOptionButtonClass,
+} from "@/components/admin/modals";
+import {
+	getInitialPartFormData,
+	PartManagerForm,
+	toPartPayload,
+} from "@/components/admin/parts/PartManagerForm";
+import {
+	getPartDisplayLabel,
+	getPartSaveErrorMessage,
+	partMatchesQuery,
+} from "@/components/admin/parts/partUtils";
+import type {
+	AdminUser,
+	InvoiceBike,
+	Part,
+	PartFormData,
+	Service,
+} from "@/types";
+import { authApiRequest } from "@/utils/api";
 import type { DraftPartLine } from "./invoiceHelpers";
 import {
 	getBikeDisplayLabel,
@@ -309,8 +331,9 @@ interface PartPickerModalProps {
 	parts: Part[];
 	partLines: DraftPartLine[];
 	activeLineId: string;
-	onSelect: (partId: string) => void;
+	onSelect: (partId: string, partOverride?: Part) => void;
 	onConfirmCustom: (name: string) => boolean;
+	onPartCreated: (part: Part) => void;
 	onClose: () => void;
 }
 
@@ -320,94 +343,207 @@ export function PartPickerModal({
 	activeLineId,
 	onSelect,
 	onConfirmCustom,
+	onPartCreated,
 	onClose,
 }: PartPickerModalProps) {
 	const [searchTerm, setSearchTerm] = useState("");
-	const [customExpanded, setCustomExpanded] = useState(false);
 	const [customName, setCustomName] = useState("");
+	const [isCreatePartOpen, setIsCreatePartOpen] = useState(false);
+	const [isCustomPartOpen, setIsCustomPartOpen] = useState(false);
+	const [createPartFormData, setCreatePartFormData] = useState<PartFormData>(
+		getInitialPartFormData,
+	);
+	const [isSaving, setIsSaving] = useState(false);
+
+	const resetCreateForm = () => {
+		setCreatePartFormData(getInitialPartFormData());
+		setIsCreatePartOpen(false);
+	};
+
+	const closeCustomModal = () => {
+		setCustomName("");
+		setIsCustomPartOpen(false);
+	};
+
+	const handleConfirmCustom = () => {
+		if (onConfirmCustom(customName)) {
+			closeCustomModal();
+		}
+	};
+
+	const handleFormChange = (
+		field: keyof PartFormData,
+		value: string | number,
+	) => {
+		setCreatePartFormData((prev) => ({ ...prev, [field]: value }));
+	};
+
+	const handleSave = async () => {
+		if (!createPartFormData.description.trim()) {
+			toast.warning("Description is required.");
+			return;
+		}
+
+		setIsSaving(true);
+		try {
+			const createdPart = await authApiRequest<Part>("/api/admin/parts", {
+				method: "POST",
+				body: JSON.stringify(toPartPayload(createPartFormData)),
+			});
+			onPartCreated(createdPart);
+			toast.success("Part created.");
+			resetCreateForm();
+			onSelect(createdPart.id, createdPart);
+		} catch (error) {
+			console.error(error);
+			toast.error(getPartSaveErrorMessage(error, "Failed to create part."));
+		} finally {
+			setIsSaving(false);
+		}
+	};
 
 	const filteredParts = useMemo(() => {
-		const query = searchTerm.trim().toLowerCase();
+		const query = searchTerm.trim();
 		if (!query) return parts;
-		return parts.filter((part) => {
-			const number = part.part_number.toLowerCase();
-			const description = part.description.toLowerCase();
-			return number.includes(query) || description.includes(query);
-		});
+		return parts.filter((part) => partMatchesQuery(part, query));
 	}, [parts, searchTerm]);
 
 	return (
-		<AdminModal open title="Select Part" onClose={onClose} size="lg">
-			<input
-				value={searchTerm}
-				onChange={(e) => setSearchTerm(e.target.value)}
-				placeholder="Search part number or description..."
-				className={modalSearchInputClass}
-			/>
-			<div className={modalScrollBodyClass}>
-				<button
-					type="button"
-					onClick={() => setCustomExpanded((prev) => !prev)}
-					className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+		<>
+			<AdminModal
+				open
+				title="Select Part"
+				onClose={onClose}
+				size="lg"
+				closeOnEscape={!isCreatePartOpen && !isCustomPartOpen}
+				closeOnBackdrop={!isCreatePartOpen && !isCustomPartOpen}
+			>
+				<input
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					placeholder="Search part number or description..."
+					className={modalSearchInputClass}
+				/>
+				<div className={modalScrollBodyClass}>
+					<button
+						type="button"
+						onClick={() => setIsCreatePartOpen(true)}
+						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+					>
+						<p className="font-semibold text-emerald-300">+ Create Part</p>
+						<p className="text-xs text-neutral-400">
+							Add a new part to the catalog — saves to the database.
+						</p>
+					</button>
+					<button
+						type="button"
+						onClick={() => setIsCustomPartOpen(true)}
+						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+					>
+						<p className="font-semibold text-emerald-300">+ Custom Part</p>
+						<p className="text-xs text-neutral-400">
+							Add a part not found in the database — doesn't save to the
+							database.
+						</p>
+					</button>
+					{filteredParts.map((part) => {
+						const alreadyAdded = partLines.some(
+							(line) => line.id !== activeLineId && line.part_id === part.id,
+						);
+						return (
+							<button
+								key={part.id}
+								type="button"
+								onClick={() => onSelect(part.id)}
+								disabled={alreadyAdded}
+								className={`w-full rounded-md border p-3 text-left transition-colors ${
+									alreadyAdded
+										? "cursor-not-allowed border-neutral-800 bg-neutral-900/50 text-neutral-500"
+										: "border-neutral-800 bg-neutral-900 hover:border-emerald-600"
+								}`}
+							>
+								<p className="font-semibold">{getPartDisplayLabel(part)}</p>
+								<p className="text-sm text-neutral-400">
+									Base price: {toCurrency(Number(part.base_price))}
+								</p>
+								{alreadyAdded && (
+									<p className="mt-1 text-xs text-amber-300">Already added</p>
+								)}
+							</button>
+						);
+					})}
+					{filteredParts.length === 0 && (
+						<p className="py-4 text-center text-sm text-neutral-500">
+							No parts match your search.
+						</p>
+					)}
+				</div>
+			</AdminModal>
+
+			{isCreatePartOpen && (
+				<AdminModal
+					open
+					title="Create Part"
+					onClose={resetCreateForm}
+					size="lg"
+					zIndex={MODAL_NESTED_Z_INDEX}
+					lockBackgroundScroll={false}
 				>
-					<p className="font-semibold text-emerald-300">
-						{customExpanded ? "- Hide Custom Part" : "+ Custom Part"}
+					<PartManagerForm
+						formData={createPartFormData}
+						isSaving={isSaving}
+						isEditing={false}
+						onChange={handleFormChange}
+						onSave={handleSave}
+						onCancel={resetCreateForm}
+					/>
+				</AdminModal>
+			)}
+
+			{isCustomPartOpen && (
+				<AdminModal
+					open
+					title="Custom Part"
+					onClose={closeCustomModal}
+					size="sm"
+					zIndex={MODAL_NESTED_Z_INDEX}
+					lockBackgroundScroll={false}
+				>
+					<p className="mb-4 text-sm text-neutral-400">
+						Add a one-off part to this invoice only. It will not be saved to the
+						parts catalog.
 					</p>
-					<p className="text-xs text-neutral-400">
-						Add a part not found in the database.
-					</p>
-				</button>
-				{customExpanded && (
-					<div className="space-y-2 rounded-md border border-emerald-700/40 bg-neutral-900 p-3">
-						<input
-							value={customName}
-							onChange={(e) => setCustomName(e.target.value)}
-							placeholder="Custom part name"
-							className="w-full rounded-md border border-neutral-700 bg-neutral-950 p-2.5 text-sm text-white outline-none focus:border-emerald-500"
-						/>
+					<label
+						htmlFor="custom-part-name"
+						className="mb-1 block text-xs text-neutral-400"
+					>
+						Part name
+					</label>
+					<input
+						id="custom-part-name"
+						value={customName}
+						onChange={(e) => setCustomName(e.target.value)}
+						placeholder="Custom part name"
+						className="mb-4 w-full rounded-md border border-neutral-700 bg-neutral-950 p-3 text-white outline-none focus:border-emerald-500"
+					/>
+					<div className="flex gap-3">
 						<button
 							type="button"
-							onClick={() => onConfirmCustom(customName)}
-							className="rounded bg-emerald-600 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-emerald-500"
+							onClick={handleConfirmCustom}
+							className="rounded bg-emerald-600 px-6 py-2 text-sm font-bold transition-colors hover:bg-emerald-500"
 						>
 							Confirm Custom Part
 						</button>
-					</div>
-				)}
-				{filteredParts.map((part) => {
-					const alreadyAdded = partLines.some(
-						(line) => line.id !== activeLineId && line.part_id === part.id,
-					);
-					return (
 						<button
-							key={part.id}
 							type="button"
-							onClick={() => onSelect(part.id)}
-							disabled={alreadyAdded}
-							className={`w-full rounded-md border p-3 text-left transition-colors ${
-								alreadyAdded
-									? "cursor-not-allowed border-neutral-800 bg-neutral-900/50 text-neutral-500"
-									: "border-neutral-800 bg-neutral-900 hover:border-emerald-600"
-							}`}
+							onClick={closeCustomModal}
+							className="rounded bg-neutral-800 px-4 py-2 text-sm font-bold transition-colors hover:bg-neutral-700"
 						>
-							<p className="font-semibold">
-								{part.part_number} - {part.description}
-							</p>
-							<p className="text-sm text-neutral-400">
-								Base price: {toCurrency(Number(part.base_price))}
-							</p>
-							{alreadyAdded && (
-								<p className="mt-1 text-xs text-amber-300">Already added</p>
-							)}
+							Cancel
 						</button>
-					);
-				})}
-				{filteredParts.length === 0 && (
-					<p className="py-4 text-center text-sm text-neutral-500">
-						No parts match your search.
-					</p>
-				)}
-			</div>
-		</AdminModal>
+					</div>
+				</AdminModal>
+			)}
+		</>
 	);
 }

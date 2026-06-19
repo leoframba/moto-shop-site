@@ -87,14 +87,19 @@ class BikeUpdate(BikeBase):
 
 
 class PartBase(BaseModel):
-    part_number: str = Field(..., min_length=1)
+    part_number: str | None = None
     description: str = Field(..., min_length=1)
     base_price: float = Field(..., ge=0)
 
-    @field_validator("part_number")
+    @field_validator("part_number", mode="before")
     @classmethod
-    def normalize_part_number(cls, v: str) -> str:
-        return v.strip().upper()
+    def normalize_part_number(cls, v) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            value = v.strip().upper()
+            return value or None
+        return v
 
     @field_validator("description")
     @classmethod

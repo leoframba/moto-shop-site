@@ -129,7 +129,7 @@ export interface InvoiceBikeFormData {
 
 export interface Part {
 	id: string;
-	part_number: string;
+	part_number: string | null;
 	description: string;
 	base_price: number;
 	created_at?: string;

@@ -25,6 +25,10 @@ export interface AdminModalProps {
 	closeOnBackdrop?: boolean;
 	/** Lock page scroll while open. Defaults to true. */
 	lockBackgroundScroll?: boolean;
+	/** Close when Escape is pressed. Defaults to true. */
+	closeOnEscape?: boolean;
+	/** Stacking order. Defaults to `MODAL_Z_INDEX`. */
+	zIndex?: number;
 }
 
 function lockPageScroll() {
@@ -62,6 +66,8 @@ export function AdminModal({
 	panelClassName = "",
 	closeOnBackdrop = true,
 	lockBackgroundScroll = true,
+	closeOnEscape = true,
+	zIndex = MODAL_Z_INDEX,
 }: AdminModalProps) {
 	const titleId = useId();
 
@@ -71,7 +77,7 @@ export function AdminModal({
 		const unlockScroll = lockBackgroundScroll ? lockPageScroll() : undefined;
 
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") onClose();
+			if (event.key === "Escape" && closeOnEscape) onClose();
 		};
 		window.addEventListener("keydown", onKeyDown);
 
@@ -79,14 +85,14 @@ export function AdminModal({
 			unlockScroll?.();
 			window.removeEventListener("keydown", onKeyDown);
 		};
-	}, [open, onClose, lockBackgroundScroll]);
+	}, [open, onClose, lockBackgroundScroll, closeOnEscape]);
 
 	if (!open) return null;
 
 	return (
 		<div
 			className={`${modalOverlayClass} overscroll-contain`}
-			style={{ zIndex: MODAL_Z_INDEX }}
+			style={{ zIndex }}
 			role="presentation"
 		>
 			<button

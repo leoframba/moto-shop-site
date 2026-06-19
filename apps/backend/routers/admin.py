@@ -942,13 +942,34 @@ async def update_bike(bike_id: str, bike: BikeUpdate):
 # ==========================================
 
 
+def _raise_part_http_error(exc: Exception) -> None:
+    message = str(exc)
+    lowered = message.lower()
+    if "duplicate" in lowered or "unique" in lowered:
+        if "description" in lowered:
+            raise HTTPException(
+                status_code=409,
+                detail="A part with this description already exists.",
+            )
+        if "part_number" in lowered:
+            raise HTTPException(
+                status_code=409,
+                detail="A part with this part number already exists.",
+            )
+        raise HTTPException(
+            status_code=409,
+            detail="A part with these values already exists.",
+        )
+    raise HTTPException(status_code=500, detail=message)
+
+
 @router.get("/parts")
 async def list_parts():
     try:
         response = (
             supabase.table("parts")
             .select("*")
-            .order("part_number", desc=False)
+            .order("description", desc=False)
             .execute()
         )
         return response.data or []
@@ -966,7 +987,7 @@ async def create_part(part: PartCreate):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_part_http_error(e)
 
 
 @router.delete("/parts/{part_id}")
@@ -997,4 +1018,4 @@ async def update_part(part_id: str, part: PartUpdate):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_part_http_error(e)

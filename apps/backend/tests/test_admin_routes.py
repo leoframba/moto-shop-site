@@ -214,6 +214,129 @@ class TestAdminRoutes:
 
         assert response.status_code == 200
         assert response.json()["part_number"] == "CHAIN-001"
+        mock_table.insert.assert_called_once_with(
+            {
+                "part_number": "CHAIN-001",
+                "description": "520 chain",
+                "base_price": 139.99,
+            }
+        )
+
+    def test_create_part_accepts_null_part_number(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        insert_result = MagicMock()
+        insert_result.data = [
+            {
+                "id": "part-2",
+                "part_number": None,
+                "description": "Shop rag",
+                "base_price": 2.5,
+            }
+        ]
+
+        mock_table = MagicMock()
+        mock_table.insert.return_value.execute.return_value = insert_result
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.return_value = mock_table
+
+            response = client.post(
+                "/api/admin/parts",
+                json={
+                    "description": "Shop rag",
+                    "base_price": 2.5,
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["part_number"] is None
+        mock_table.insert.assert_called_once_with(
+            {
+                "part_number": None,
+                "description": "Shop rag",
+                "base_price": 2.5,
+            }
+        )
+
+    def test_create_part_rejects_duplicate_description(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        mock_table = MagicMock()
+        mock_table.insert.return_value.execute.side_effect = Exception(
+            'duplicate key value violates unique constraint "parts_description_unique"'
+        )
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.return_value = mock_table
+
+            response = client.post(
+                "/api/admin/parts",
+                json={
+                    "description": "Shop rag",
+                    "base_price": 2.5,
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == (
+            "A part with this description already exists."
+        )
+
+    def test_update_part_rejects_duplicate_part_number(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        mock_table = MagicMock()
+        mock_table.update.return_value.eq.return_value.execute.side_effect = Exception(
+            'duplicate key value violates unique constraint "parts_part_number_unique"'
+        )
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.return_value = mock_table
+
+            response = client.patch(
+                "/api/admin/parts/part-1",
+                json={
+                    "part_number": "CHAIN-001",
+                    "description": "520 chain",
+                    "base_price": 139.99,
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 409
+        assert response.json()["detail"] == (
+            "A part with this part number already exists."
+        )
 
     def test_create_invoice_creates_header_and_line_items(
         self,

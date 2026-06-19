@@ -68,6 +68,14 @@ const getOwnerSearchText = (bike: InvoiceBike): string => {
 	return `${ownerName} ${bike.owner.email}`.toLowerCase();
 };
 
+const getOwnerDisplayName = (bike: InvoiceBike): string => {
+	if (!bike.owner) return "—";
+	return getUserDisplayName(bike.owner);
+};
+
+const getBikeLabel = (bike: InvoiceBike): string =>
+	`${bike.year} ${bike.make} ${bike.model}`;
+
 interface BikeManagerFormProps {
 	formData: InvoiceBikeFormData;
 	users: AdminUser[];
@@ -364,7 +372,7 @@ export default function AdminBikesTab() {
 
 	const handleDelete = async (bike: InvoiceBike) => {
 		const confirmed = window.confirm(
-			`Delete bike ${bike.year} ${bike.make} ${bike.model}? This cannot be undone.`,
+			`Delete ${getBikeLabel(bike)}? This cannot be undone.`,
 		);
 		if (!confirmed) return;
 
@@ -507,47 +515,65 @@ export default function AdminBikesTab() {
 							No bikes match current filters.
 						</div>
 					) : (
-						<div className="space-y-3">
-							{filteredBikes.map((bike) => (
-								<div
-									key={bike.id}
-									className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-								>
-									<div>
-										<p className="text-white font-bold">
-											{bike.year} {bike.make} {bike.model}
-										</p>
-										<p className="text-sm text-neutral-400">
-											Owner:{" "}
-											{bike.owner
-												? `${getUserDisplayName(bike.owner)} (${bike.owner.email})`
-												: "Unassigned"}
-										</p>
-										<p className="text-xs text-neutral-500 mt-1">
-											VIN: {bike.vin || "N/A"} | Plate:{" "}
-											{bike.license_plate || "N/A"}
-										</p>
-									</div>
-									<div className="self-start md:self-auto flex items-center gap-2">
-										<button
-											type="button"
-											onClick={() => handleEdit(bike)}
-											className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest"
-										>
-											Edit Bike
-										</button>
-										<button
-											type="button"
-											onClick={() => void handleDelete(bike)}
-											disabled={deletingBikeId === bike.id}
-											className="bg-red-900/60 hover:bg-red-800/70 disabled:bg-neutral-700 px-3 py-2 rounded font-bold text-xs uppercase tracking-widest inline-flex items-center gap-1"
-										>
-											<FiTrash2 className="h-3.5 w-3.5" />
-											{deletingBikeId === bike.id ? "Deleting..." : "Delete"}
-										</button>
-									</div>
-								</div>
-							))}
+						<div className="overflow-x-auto rounded-lg border border-neutral-800">
+							<table className="w-full min-w-[56rem] border-collapse bg-neutral-900">
+								<thead>
+									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
+										<th className="px-4 py-3">Bike</th>
+										<th className="px-4 py-3">Owner</th>
+										<th className="px-4 py-3">VIN</th>
+										<th className="px-4 py-3">Plate</th>
+										<th className="px-4 py-3 text-right">Actions</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-neutral-800">
+									{filteredBikes.map((bike) => (
+										<tr key={bike.id}>
+											<td className="px-4 py-3 font-bold text-white">
+												{getBikeLabel(bike)}
+											</td>
+											<td className="max-w-[14rem] px-4 py-3">
+												<p className="text-sm text-neutral-300">
+													{getOwnerDisplayName(bike)}
+												</p>
+												{bike.owner?.email && (
+													<p className="truncate text-xs text-neutral-500">
+														{bike.owner.email}
+													</p>
+												)}
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{bike.vin ?? "—"}
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{bike.license_plate ?? "—"}
+											</td>
+											<td className="px-4 py-3">
+												<div className="flex items-center justify-end gap-2">
+													<button
+														type="button"
+														onClick={() => handleEdit(bike)}
+														className="rounded bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700"
+													>
+														Edit
+													</button>
+													<button
+														type="button"
+														onClick={() => void handleDelete(bike)}
+														disabled={deletingBikeId === bike.id}
+														className="inline-flex items-center gap-1 rounded bg-red-900/60 px-3 py-2 text-xs font-bold uppercase tracking-widest hover:bg-red-800/70 disabled:bg-neutral-700"
+													>
+														<FiTrash2 className="h-3.5 w-3.5" />
+														{deletingBikeId === bike.id
+															? "Deleting..."
+															: "Delete"}
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
 						</div>
 					)}
 				</>
