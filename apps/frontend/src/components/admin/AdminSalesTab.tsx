@@ -5,7 +5,7 @@ import { FiPlus } from "react-icons/fi";
 import { toast } from "sonner";
 import AdminBikeForm, {
 	type UnifiedImage,
-} from "@/components/admin/AdminBikeForm";
+} from "@/components/admin/sales/AdminBikeForm";
 import BikeCard from "@/components/BikeCard";
 import BikeDetailModal from "@/components/BikeDetailModal";
 import type { BikeFormData, BikeImage, BikeListing } from "@/types";

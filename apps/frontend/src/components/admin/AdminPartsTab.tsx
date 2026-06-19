@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "sonner";
+import { AdminModal } from "@/components/admin/modals";
 import type { Part, PartFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
@@ -46,11 +47,7 @@ function PartManagerForm({
 	onCancel,
 }: PartFormProps) {
 	return (
-		<div className="bg-neutral-900 border border-neutral-800 p-6 rounded-lg mb-8">
-			<h3 className="text-lg font-bold text-white mb-5 uppercase tracking-widest">
-				{isEditing ? "Edit Part" : "Add Part"}
-			</h3>
-
+		<>
 			<div className="grid md:grid-cols-3 gap-4 mb-4">
 				<div>
 					<label
@@ -119,7 +116,7 @@ function PartManagerForm({
 					Cancel
 				</button>
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -292,7 +289,12 @@ export default function AdminPartsTab() {
 				</button>
 			</div>
 
-			{isFormVisible && (
+			<AdminModal
+				open={isFormVisible}
+				onClose={closeForm}
+				title={isEditing ? "Edit Part" : "Add Part"}
+				size="lg"
+			>
 				<PartManagerForm
 					formData={formData}
 					isSaving={isSaving}
@@ -301,7 +303,7 @@ export default function AdminPartsTab() {
 					onSave={handleSave}
 					onCancel={closeForm}
 				/>
-			)}
+			</AdminModal>
 
 			{isLoading ? (
 				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">

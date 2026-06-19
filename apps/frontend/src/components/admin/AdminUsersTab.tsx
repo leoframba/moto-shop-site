@@ -5,12 +5,22 @@ import { FiCopy, FiMail, FiRefreshCw, FiUserPlus, FiX } from "react-icons/fi";
 import { toast } from "sonner";
 import type { AdminUser } from "@/types";
 import { authApiRequest } from "@/utils/api";
+import { AdminModal } from "./modals";
 
 interface UserFormData {
 	email: string;
 	first_name: string;
 	last_name: string;
 	phone_number: string;
+}
+
+interface UserManagerFormProps {
+	isEditing: boolean;
+	formData: UserFormData;
+	updateField: (field: keyof UserFormData, value: string) => void;
+	handleSave: () => void;
+	closeForm: () => void;
+	isSaving: boolean;
 }
 
 const getInitialFormData = (): UserFormData => ({
@@ -23,6 +33,118 @@ const getInitialFormData = (): UserFormData => ({
 const getUserDisplayName = (user: AdminUser): string => {
 	const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
 	return fullName || "Unnamed rider";
+};
+
+const UserManagerForm = ({
+	isEditing,
+	formData,
+	updateField,
+	handleSave,
+	closeForm,
+	isSaving,
+}: UserManagerFormProps) => {
+	return (
+		<>
+			<div className="grid md:grid-cols-2 gap-4 mb-4">
+				<div className="md:col-span-2">
+					<label
+						htmlFor="user-email"
+						className="text-xs text-neutral-400 block mb-1"
+					>
+						Email {isEditing ? "(read-only)" : ""}
+					</label>
+					<input
+						id="user-email"
+						type="email"
+						value={formData.email}
+						readOnly={isEditing}
+						onChange={(e) => updateField("email", e.target.value)}
+						placeholder="rider@example.com"
+						className={`w-full border border-neutral-700 rounded p-3 text-white outline-none ${
+							isEditing
+								? "bg-neutral-800 cursor-not-allowed"
+								: "bg-neutral-950 focus:border-emerald-500"
+						}`}
+					/>
+				</div>
+				<div>
+					<label
+						htmlFor="user-first-name"
+						className="text-xs text-neutral-400 block mb-1"
+					>
+						First Name
+					</label>
+					<input
+						id="user-first-name"
+						value={formData.first_name}
+						onChange={(e) => updateField("first_name", e.target.value)}
+						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+					/>
+				</div>
+				<div>
+					<label
+						htmlFor="user-last-name"
+						className="text-xs text-neutral-400 block mb-1"
+					>
+						Last Name
+					</label>
+					<input
+						id="user-last-name"
+						value={formData.last_name}
+						onChange={(e) => updateField("last_name", e.target.value)}
+						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+					/>
+				</div>
+				<div className="md:col-span-2">
+					<label
+						htmlFor="user-phone"
+						className="text-xs text-neutral-400 block mb-1"
+					>
+						Phone Number
+					</label>
+					<input
+						id="user-phone"
+						value={formData.phone_number}
+						onChange={(e) => updateField("phone_number", e.target.value)}
+						placeholder="(555) 123-4567"
+						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+					/>
+				</div>
+			</div>
+
+			{!isEditing && (
+				<p className="text-xs text-neutral-500 mb-4 inline-flex items-center gap-2">
+					<FiMail className="h-3.5 w-3.5" />
+					An invite email will be sent with a link to finish account setup.
+				</p>
+			)}
+
+			<div className="flex gap-3">
+				<button
+					type="button"
+					onClick={() => void handleSave()}
+					disabled={isSaving}
+					className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700 px-6 py-2 rounded font-bold text-sm transition-colors"
+				>
+					{isSaving
+						? isEditing
+							? "Saving..."
+							: "Sending..."
+						: isEditing
+							? "Save User"
+							: "Send Invite"}
+				</button>
+				<button
+					type="button"
+					onClick={closeForm}
+					disabled={isSaving}
+					className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-sm transition-colors"
+				>
+					Cancel
+				</button>
+			</div>
+		</>
+	);
 };
 
 export default function AdminUsersTab() {
@@ -206,110 +328,21 @@ export default function AdminUsersTab() {
 			</div>
 
 			{isFormVisible && (
-				<div className="bg-neutral-900 border border-neutral-800 p-6 rounded-lg mb-8">
-					<h3 className="text-lg font-bold text-white mb-5 uppercase tracking-widest">
-						{isEditing ? "Edit User" : "Invite User"}
-					</h3>
-
-					<div className="grid md:grid-cols-2 gap-4 mb-4">
-						<div className="md:col-span-2">
-							<label
-								htmlFor="user-email"
-								className="text-xs text-neutral-400 block mb-1"
-							>
-								Email {isEditing ? "(read-only)" : ""}
-							</label>
-							<input
-								id="user-email"
-								type="email"
-								value={formData.email}
-								readOnly={isEditing}
-								onChange={(e) => updateField("email", e.target.value)}
-								placeholder="rider@example.com"
-								className={`w-full border border-neutral-700 rounded p-3 text-white outline-none ${
-									isEditing
-										? "bg-neutral-800 cursor-not-allowed"
-										: "bg-neutral-950 focus:border-emerald-500"
-								}`}
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor="user-first-name"
-								className="text-xs text-neutral-400 block mb-1"
-							>
-								First Name
-							</label>
-							<input
-								id="user-first-name"
-								value={formData.first_name}
-								onChange={(e) => updateField("first_name", e.target.value)}
-								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-							/>
-						</div>
-						<div>
-							<label
-								htmlFor="user-last-name"
-								className="text-xs text-neutral-400 block mb-1"
-							>
-								Last Name
-							</label>
-							<input
-								id="user-last-name"
-								value={formData.last_name}
-								onChange={(e) => updateField("last_name", e.target.value)}
-								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-							/>
-						</div>
-						<div className="md:col-span-2">
-							<label
-								htmlFor="user-phone"
-								className="text-xs text-neutral-400 block mb-1"
-							>
-								Phone Number
-							</label>
-							<input
-								id="user-phone"
-								value={formData.phone_number}
-								onChange={(e) => updateField("phone_number", e.target.value)}
-								placeholder="(555) 123-4567"
-								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-							/>
-						</div>
-					</div>
-
-					{!isEditing && (
-						<p className="text-xs text-neutral-500 mb-4 inline-flex items-center gap-2">
-							<FiMail className="h-3.5 w-3.5" />
-							An invite email will be sent with a link to finish account setup.
-						</p>
-					)}
-
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={() => void handleSave()}
-							disabled={isSaving}
-							className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700 px-6 py-2 rounded font-bold text-sm transition-colors"
-						>
-							{isSaving
-								? isEditing
-									? "Saving..."
-									: "Sending..."
-								: isEditing
-									? "Save User"
-									: "Send Invite"}
-						</button>
-						<button
-							type="button"
-							onClick={closeForm}
-							disabled={isSaving}
-							className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-sm transition-colors"
-						>
-							Cancel
-						</button>
-					</div>
-				</div>
+				<AdminModal
+					open={isFormVisible}
+					onClose={closeForm}
+					title={isEditing ? "Edit User" : "Invite User"}
+					size="lg"
+				>
+					<UserManagerForm
+						isEditing={isEditing}
+						formData={formData}
+						updateField={updateField}
+						handleSave={handleSave}
+						closeForm={closeForm}
+						isSaving={isSaving}
+					/>
+				</AdminModal>
 			)}
 
 			{inviteLink && (
@@ -327,11 +360,6 @@ export default function AdminUsersTab() {
 							<FiX className="h-4 w-4" />
 						</button>
 					</div>
-					<p className="text-xs text-neutral-500 mb-3">
-						Copied to your clipboard. Open it once in an incognito window —
-						don't preview it in your email client (that can consume the one-time
-						token).
-					</p>
 					<div className="flex items-center gap-2">
 						<input
 							readOnly

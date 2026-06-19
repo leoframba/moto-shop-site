@@ -1,10 +1,10 @@
 "use client";
 import { useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
-import AdminCategoryFolder from "@/components/admin/AdminCategoryFolder";
-import CategoryManager from "@/components/admin/CategoryManager";
-import ServiceForm from "@/components/admin/ServiceForm";
-import ShopRateManager from "@/components/admin/ShopRateManager";
+import AdminCategoryFolder from "@/components/admin/services/AdminCategoryFolder";
+import CategoryManager from "@/components/admin/services/CategoryManager";
+import ServiceForm from "@/components/admin/services/ServiceForm";
+import ShopRateManager from "@/components/admin/services/ShopRateManager";
 import AdminServicesSkeleton from "@/components/services/AdminServicesSkeleton";
 import { useServices } from "@/hooks/useServices";
 import { confirmDeleteToast } from "@/lib/confirm-toast";

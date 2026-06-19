@@ -4,10 +4,10 @@ import AdminBikesTab from "@/components/admin/AdminBikesTab";
 import AdminInvoicesTab from "@/components/admin/AdminInvoicesTab";
 import AdminPartsTab from "@/components/admin/AdminPartsTab";
 import AdminSalesTab from "@/components/admin/AdminSalesTab";
-import AdminServiceTab from "@/components/admin/AdminServiceTab";
 import AdminShopSettingsTab from "@/components/admin/AdminShopSettingsTab";
 import AdminSidebar, { type AdminTab } from "@/components/admin/AdminSidebar";
 import AdminUsersTab from "@/components/admin/AdminUsersTab";
+import AdminServiceTab from "@/components/admin/services/AdminServiceTab";
 
 export default function AdminDashboard() {
 	const [activeTab, setActiveTab] = useState<AdminTab>("services");
