@@ -9,9 +9,13 @@ import { compressImage } from "@/utils/image";
 
 interface InvoicePhotosManagerProps {
 	invoiceId: string;
+	embedded?: boolean;
 }
 
-export function InvoicePhotosManager({ invoiceId }: InvoicePhotosManagerProps) {
+export function InvoicePhotosManager({
+	invoiceId,
+	embedded = false,
+}: InvoicePhotosManagerProps) {
 	const [photos, setPhotos] = useState<InvoicePhoto[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [isUploading, setIsUploading] = useState(false);
@@ -77,12 +81,16 @@ export function InvoicePhotosManager({ invoiceId }: InvoicePhotosManagerProps) {
 	};
 
 	return (
-		<div className="mt-4 border-t border-neutral-800 pt-4">
-			<div className="flex items-center justify-between mb-3">
-				<p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+		<div
+			className={
+				embedded ? "space-y-3" : "mt-4 border-t border-neutral-800 pt-4"
+			}
+		>
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
 					Photos {photos.length > 0 ? `(${photos.length})` : ""}
 				</p>
-				<label className="bg-neutral-800 hover:bg-neutral-700 cursor-pointer px-3 py-2 rounded text-xs uppercase tracking-widest font-bold inline-flex items-center gap-2">
+				<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-neutral-800 px-4 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 sm:w-auto">
 					<FiUploadCloud className="h-4 w-4" />
 					{isUploading ? "Uploading..." : "Add Photos"}
 					<input

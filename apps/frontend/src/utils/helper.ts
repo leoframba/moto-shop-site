@@ -25,3 +25,12 @@ export const sortBikeImages = (images: BikeImage[]): BikeImage[] => {
 		return a.display_order - b.display_order;
 	});
 };
+
+/**
+ * Formats a number of seconds into a string in the format "MM:SS"
+ */
+export const formatTime = (seconds: number): string => {
+	const mins = Math.floor(seconds / 60);
+	const secs = seconds % 60;
+	return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
