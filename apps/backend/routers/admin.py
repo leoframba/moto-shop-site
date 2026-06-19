@@ -10,6 +10,7 @@ from schemas import (
     BikeUpdate,
     CategoryCreate,
     InvoiceCreate,
+    InvoiceMechanicNotesUpdate,
     InvoiceStatusUpdate,
     InvoiceUpdate,
     PartCreate,
@@ -22,7 +23,9 @@ from schemas import (
     UserInvite,
     UserResendInvite,
     UserUpdate,
+    VoiceNoteRequest,
 )
+from voice_note import format_voice_note_block, summarize_voice_note
 from service_pricing import serialize_service
 from storage_utils import (
     INVOICE_PHOTOS_BUCKET,
@@ -866,6 +869,54 @@ async def update_invoice_status(invoice_id: str, payload: InvoiceStatusUpdate):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/invoices/{invoice_id}/mechanic-notes")
+async def update_invoice_mechanic_notes(
+    invoice_id: str, payload: InvoiceMechanicNotesUpdate
+):
+    try:
+        response = (
+            supabase.table("invoices")
+            .update({"mechanic_notes": payload.mechanic_notes})
+            .eq("id", invoice_id)
+            .select("*")
+            .execute()
+        )
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/invoices/{invoice_id}/voice-note")
+async def summarize_invoice_voice_note(invoice_id: str, payload: VoiceNoteRequest):
+    try:
+        invoice_response = (
+            supabase.table("invoices").select("id").eq("id", invoice_id).execute()
+        )
+        if not (invoice_response.data or []):
+            raise HTTPException(status_code=404, detail="Invoice not found")
+
+        summary = summarize_voice_note(payload.audio_base64, payload.mime_type)
+
+        return {
+            "invoiceId": invoice_id,
+            "transcript": summary.transcript,
+            "summaryBullets": summary.summaryBullets,
+            "mechanicNotesBlock": format_voice_note_block(summary),
+        }
+    except HTTPException:
+        raise
+    except RuntimeError as e:
+        message = str(e)
+        status_code = 500 if "GEMINI_API_KEY is not configured" in message else 502
+        raise HTTPException(status_code=status_code, detail=message) from e
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @router.patch("/bikes/{bike_id}")

@@ -456,6 +456,98 @@ class TestAdminRoutes:
         assert response.status_code == 200
         assert response.json()["status"] == "paid"
 
+    def test_update_invoice_mechanic_notes(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        update_result = MagicMock()
+        update_result.data = [
+            {
+                "id": "inv-1",
+                "invoice_number": 1001,
+                "mechanic_notes": "Replaced chain and sprockets.",
+            }
+        ]
+
+        invoices_table = MagicMock()
+        invoices_table.update.return_value.eq.return_value.select.return_value.execute.return_value = update_result
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.return_value = invoices_table
+
+            response = client.patch(
+                "/api/admin/invoices/inv-1/mechanic-notes",
+                json={"mechanic_notes": "Replaced chain and sprockets."},
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["mechanic_notes"] == "Replaced chain and sprockets."
+
+    def test_summarize_invoice_voice_note(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        invoice_result = MagicMock()
+        invoice_result.data = [{"id": "inv-1"}]
+
+        invoices_table = MagicMock()
+        invoices_table.select.return_value.eq.return_value.execute.return_value = (
+            invoice_result
+        )
+
+        summary = MagicMock()
+        summary.transcript = "Replaced the chain."
+        summary.summaryBullets = ["New chain installed", "Adjusted tension"]
+
+        with (
+            patch("routers.admin.supabase") as mock_admin_supabase,
+            patch(
+                "routers.admin.summarize_voice_note",
+                return_value=summary,
+            ) as mock_summarize,
+            patch(
+                "routers.admin.format_voice_note_block",
+                return_value="--- Voice note ---\n- New chain installed",
+            ),
+        ):
+            mock_admin_supabase.table.return_value = invoices_table
+
+            response = client.post(
+                "/api/admin/invoices/inv-1/voice-note",
+                json={
+                    "audioBase64": "dGVzdA==",
+                    "mimeType": "audio/webm",
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["invoiceId"] == "inv-1"
+        assert body["transcript"] == "Replaced the chain."
+        assert body["summaryBullets"] == [
+            "New chain installed",
+            "Adjusted tension",
+        ]
+        mock_summarize.assert_called_once_with("dGVzdA==", "audio/webm")
+
     def test_list_invoices_returns_hydrated_relations(
         self,
         client,

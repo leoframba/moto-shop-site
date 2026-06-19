@@ -1,7 +1,7 @@
 # schemas.py
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class RateUpdate(BaseModel):
@@ -168,6 +168,25 @@ class InvoiceUpdate(InvoiceCreate):
 
 class InvoiceStatusUpdate(BaseModel):
     status: Literal["draft", "estimate", "in_progress", "completed", "paid", "void"]
+
+
+class InvoiceMechanicNotesUpdate(BaseModel):
+    mechanic_notes: str | None = None
+
+    @field_validator("mechanic_notes", mode="before")
+    @classmethod
+    def blank_to_none(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
+
+
+class VoiceNoteRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    audio_base64: str = Field(..., min_length=1, alias="audioBase64")
+    mime_type: str = Field(..., min_length=1, alias="mimeType")
 
 
 class UserUpdate(BaseModel):
