@@ -35,7 +35,26 @@ import {
 const modalSearchInputClass =
 	"mb-4 w-full rounded-md border border-neutral-700 bg-neutral-900 p-3 text-white outline-none focus:border-emerald-500";
 
-const modalScrollBodyClass = "max-h-[55vh] space-y-2 overflow-y-auto pr-1";
+const modalScrollBodyClass = "max-h-[55vh] space-y-3 overflow-y-auto pr-1";
+
+const pickerEmptyStateClass =
+	"rounded-lg border border-dashed border-neutral-800 bg-neutral-900/20 p-10 text-center text-sm uppercase tracking-widest text-neutral-500";
+
+const pickerTableWrapClass =
+	"overflow-x-auto rounded-lg border border-neutral-800";
+
+const pickerTableHeadRowClass =
+	"border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400";
+
+const pickerTableHeadCellClass = "px-4 py-3";
+
+const pickerTableBodyClass = "divide-y divide-neutral-800";
+
+const pickerSelectableRowClass =
+	"cursor-pointer transition-colors hover:bg-neutral-800/60";
+
+const pickerClearOptionClass =
+	"w-full rounded-md border border-neutral-800 bg-neutral-900 p-3 text-left text-sm font-semibold text-white transition-colors hover:border-emerald-600 hover:bg-neutral-800/60";
 
 interface OwnerPickerModalProps {
 	users: AdminUser[];
@@ -75,30 +94,46 @@ export function OwnerPickerModal({
 				<button
 					type="button"
 					onClick={() => onSelect("")}
-					className={modalOptionButtonClass}
+					className={pickerClearOptionClass}
 				>
-					<p className="font-semibold text-white">No owner linked</p>
+					No owner linked
 				</button>
-				{filteredUsers.map((user) => (
-					<button
-						key={user.id}
-						type="button"
-						onClick={() => onSelect(user.id)}
-						className={modalOptionButtonClass}
-					>
-						<p className="font-semibold text-white">
-							{getUserDisplayName(user)}
-						</p>
-						<p className="text-sm text-neutral-400">{user.email}</p>
-						<p className="text-xs text-neutral-500">
-							{user.phone_number || "No phone on file"}
-						</p>
-					</button>
-				))}
-				{filteredUsers.length === 0 && (
-					<p className="py-4 text-center text-sm text-neutral-500">
+				{filteredUsers.length === 0 ? (
+					<div className={pickerEmptyStateClass}>
 						No users match your search.
-					</p>
+					</div>
+				) : (
+					<div className={pickerTableWrapClass}>
+						<table className="w-full border-collapse bg-neutral-900">
+							<thead>
+								<tr className={pickerTableHeadRowClass}>
+									<th className={pickerTableHeadCellClass}>Name</th>
+									<th className={pickerTableHeadCellClass}>Phone</th>
+								</tr>
+							</thead>
+							<tbody className={pickerTableBodyClass}>
+								{filteredUsers.map((user) => (
+									<tr
+										key={user.id}
+										className={pickerSelectableRowClass}
+										onClick={() => onSelect(user.id)}
+									>
+										<td className="px-4 py-3">
+											<p className="font-bold text-white">
+												{getUserDisplayName(user)}
+											</p>
+											<p className="truncate text-xs text-neutral-500">
+												{user.email}
+											</p>
+										</td>
+										<td className="px-4 py-3 text-sm text-neutral-300">
+											{user.phone_number ?? "—"}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				)}
 			</div>
 		</AdminModal>
@@ -157,38 +192,62 @@ export function BikePickerModal({
 				<button
 					type="button"
 					onClick={() => onSelect("")}
-					className={modalOptionButtonClass}
+					className={pickerClearOptionClass}
 				>
-					<p className="font-semibold text-white">No bike linked</p>
+					No bike linked
 				</button>
-				{filteredBikes.map((bike) => {
-					const bikeOwner = users.find((user) => user.id === bike.owner_id);
-					return (
-						<button
-							key={bike.id}
-							type="button"
-							onClick={() => onSelect(bike.id)}
-							className={modalOptionButtonClass}
-						>
-							<p className="font-semibold text-white">
-								{getBikeDisplayLabel(bike)}
-							</p>
-							<p className="text-sm text-neutral-400">
-								VIN: {bike.vin || "N/A"} | Plate: {bike.license_plate || "N/A"}
-							</p>
-							<p className="text-xs text-neutral-500">
-								Owner:{" "}
-								{bikeOwner
-									? `${getUserDisplayName(bikeOwner)} (${bikeOwner.email})`
-									: "Unlinked"}
-							</p>
-						</button>
-					);
-				})}
-				{filteredBikes.length === 0 && (
-					<p className="py-4 text-center text-sm text-neutral-500">
+				{filteredBikes.length === 0 ? (
+					<div className={pickerEmptyStateClass}>
 						No bikes match your search.
-					</p>
+					</div>
+				) : (
+					<div className={pickerTableWrapClass}>
+						<table className="w-full border-collapse bg-neutral-900">
+							<thead>
+								<tr className={pickerTableHeadRowClass}>
+									<th className={pickerTableHeadCellClass}>Bike - Vin</th>
+									<th className={pickerTableHeadCellClass}>Owner</th>
+									<th className={pickerTableHeadCellClass}>Plate</th>
+								</tr>
+							</thead>
+							<tbody className={pickerTableBodyClass}>
+								{filteredBikes.map((bike) => {
+									const bikeOwner = users.find(
+										(user) => user.id === bike.owner_id,
+									);
+									return (
+										<tr
+											key={bike.id}
+											className={pickerSelectableRowClass}
+											onClick={() => onSelect(bike.id)}
+										>
+											<td className="px-4 py-3">
+												<p className="font-bold text-white">
+													{getBikeDisplayLabel(bike)}
+												</p>
+												<p className="truncate text-xs text-neutral-500">
+													{bike.vin ? `${bike.vin}` : "No VIN on file"}
+												</p>
+											</td>
+											<td className="px-4 py-3">
+												<p className="text-sm text-neutral-300">
+													{bikeOwner ? getUserDisplayName(bikeOwner) : "—"}
+												</p>
+												{bikeOwner?.email && (
+													<p className="truncate text-xs text-neutral-500">
+														{bikeOwner.email}
+													</p>
+												)}
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{bike.license_plate ?? "—"}
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
 				)}
 			</div>
 		</AdminModal>
