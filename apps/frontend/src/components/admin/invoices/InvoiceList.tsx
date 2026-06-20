@@ -29,21 +29,18 @@ import {
 	toCurrency,
 	toStatusLabel,
 } from "./invoiceHelpers";
+import {
+	invoiceAccordionSectionClass,
+	invoiceActionButtonClass,
+	invoiceFieldInputClass,
+	invoiceSubheadingClass,
+} from "./invoiceUi";
 
 interface VoiceNoteApiResponse {
 	transcript: string;
 	summaryBullets: string[];
 	mechanicNotesBlock: string;
 }
-
-const accordionSectionClass =
-	"rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 sm:p-5";
-const sectionHeadingClass =
-	"text-xs font-bold uppercase tracking-widest text-neutral-400";
-const actionButtonClass =
-	"w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-md text-xs font-bold uppercase tracking-widest inline-flex items-center justify-center gap-2 transition-colors";
-const fieldInputClass =
-	"w-full bg-neutral-950 border border-neutral-700 rounded-md px-3 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:border-emerald-500 outline-none";
 
 interface InvoiceListProps {
 	invoices: InvoiceWithRelations[];
@@ -322,7 +319,7 @@ export function InvoiceList({
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					placeholder="Search invoice #, owner, bike, VIN, plate"
-					className={`${fieldInputClass} md:max-w-md`}
+					className={`${invoiceFieldInputClass} md:max-w-md`}
 				/>
 				<div className="flex flex-wrap gap-2">
 					{INVOICE_STATUSES.map((status) => {
@@ -413,8 +410,8 @@ export function InvoiceList({
 
 								{statusPickerInvoiceId === invoice.id && (
 									<div className="border-t border-neutral-800 px-4 pb-4 sm:px-5 sm:pb-5">
-										<div className={`${accordionSectionClass} mt-4`}>
-											<p className={sectionHeadingClass}>Update Status</p>
+										<div className={`${invoiceAccordionSectionClass} mt-4`}>
+											<p className={invoiceSubheadingClass}>Update Status</p>
 											<div className="flex flex-wrap gap-2">
 												{INVOICE_STATUSES.map((statusOption) => (
 													<button
@@ -444,14 +441,14 @@ export function InvoiceList({
 											<button
 												type="button"
 												onClick={() => onEdit(invoice)}
-												className={`${actionButtonClass} bg-blue-800/80 hover:bg-blue-700`}
+												className={`${invoiceActionButtonClass} bg-blue-800/80 hover:bg-blue-700`}
 											>
 												<FiEdit2 className="h-4 w-4" aria-hidden /> Edit
 											</button>
 											<button
 												type="button"
 												onClick={() => openPrintPreview(invoice)}
-												className={`${actionButtonClass} bg-emerald-700 hover:bg-emerald-600`}
+												className={`${invoiceActionButtonClass} bg-emerald-700 hover:bg-emerald-600`}
 											>
 												<FiPrinter className="h-4 w-4" aria-hidden /> Print
 												Preview
@@ -460,7 +457,7 @@ export function InvoiceList({
 												type="button"
 												onClick={() => void handleDeleteInvoice(invoice)}
 												disabled={deletingInvoiceId === invoice.id}
-												className={`${actionButtonClass} bg-red-900/70 hover:bg-red-800/80 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:opacity-60`}
+												className={`${invoiceActionButtonClass} bg-red-900/70 hover:bg-red-800/80 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:opacity-60`}
 											>
 												<FiTrash2 className="h-4 w-4" aria-hidden />
 												{deletingInvoiceId === invoice.id
@@ -469,8 +466,8 @@ export function InvoiceList({
 											</button>
 										</div>
 
-										<div className={accordionSectionClass}>
-											<p className={sectionHeadingClass}>Invoice Details</p>
+										<div className={invoiceAccordionSectionClass}>
+											<p className={invoiceSubheadingClass}>Invoice Details</p>
 											<dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
 												<div className="space-y-1">
 													<dt className="text-xs uppercase tracking-wider text-neutral-500">
@@ -507,9 +504,9 @@ export function InvoiceList({
 											</dl>
 										</div>
 
-										<div className={accordionSectionClass}>
+										<div className={invoiceAccordionSectionClass}>
 											<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-												<p className={sectionHeadingClass}>Line Items</p>
+												<p className={invoiceSubheadingClass}>Line Items</p>
 												<p className="text-sm text-neutral-400">
 													Total{" "}
 													<span className="font-bold text-emerald-400">
@@ -613,11 +610,13 @@ export function InvoiceList({
 											)}
 										</div>
 
-										<div className={`${accordionSectionClass} space-y-4`}>
+										<div
+											className={`${invoiceAccordionSectionClass} space-y-4`}
+										>
 											<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-												<p className={sectionHeadingClass}>Mechanic Notes</p>
+												<p className={invoiceSubheadingClass}>Mechanic Notes</p>
 												<VoiceRecorder
-													className={`${actionButtonClass} bg-neutral-800 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50`}
+													className={`${invoiceActionButtonClass} bg-neutral-800 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50`}
 													disabled={
 														processingVoiceNoteInvoiceId === invoice.id ||
 														savingMechanicNotesInvoiceId === invoice.id
@@ -659,7 +658,7 @@ export function InvoiceList({
 													}
 													placeholder="Add internal shop notes, diagnostics, or follow-ups…"
 													rows={5}
-													className={`${fieldInputClass} min-h-28 resize-y`}
+													className={`${invoiceFieldInputClass} min-h-28 resize-y`}
 												/>
 												<button
 													type="button"
@@ -673,7 +672,7 @@ export function InvoiceList({
 														savingMechanicNotesInvoiceId === invoice.id ||
 														processingVoiceNoteInvoiceId === invoice.id
 													}
-													className={`${actionButtonClass} bg-neutral-800 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50`}
+													className={`${invoiceActionButtonClass} bg-neutral-800 hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50`}
 												>
 													{savingMechanicNotesInvoiceId === invoice.id
 														? "Saving…"
@@ -682,7 +681,7 @@ export function InvoiceList({
 											</div>
 										</div>
 
-										<div className={accordionSectionClass}>
+										<div className={invoiceAccordionSectionClass}>
 											<InvoicePhotosManager invoiceId={invoice.id} embedded />
 										</div>
 									</div>

@@ -20,3 +20,16 @@ body {
 	background: var(--background);
 	color: var(--foreground);
 }
+
+@layer components {
+	.number-stepper-field {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+
+	.number-stepper-field::-webkit-outer-spin-button,
+	.number-stepper-field::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+}

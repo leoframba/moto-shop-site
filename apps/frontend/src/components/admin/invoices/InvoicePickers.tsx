@@ -37,9 +37,15 @@ import {
 	getUserDisplayName,
 	toCurrency,
 } from "./invoiceHelpers";
-
-const modalSearchInputClass =
-	"mb-4 w-full rounded-md border border-neutral-700 bg-neutral-900 p-3 text-white outline-none focus:border-emerald-500";
+import {
+	invoiceCreateActionClass,
+	invoiceFieldInputClass,
+	invoiceFieldInputLgClass,
+	invoiceLabelClass,
+	invoiceModalSearchInputClass,
+	invoicePickerClearOptionClass,
+	invoiceSecondaryButtonClass,
+} from "./invoiceUi";
 
 const modalScrollBodyClass = "max-h-[55vh] space-y-3 overflow-y-auto pr-1";
 
@@ -50,7 +56,7 @@ const pickerTableWrapClass =
 	"overflow-x-auto rounded-lg border border-neutral-800";
 
 const pickerTableHeadRowClass =
-	"border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400";
+	"border-b border-neutral-700 bg-neutral-800/60 text-left text-xs font-bold uppercase tracking-widest text-neutral-300";
 
 const pickerTableHeadCellClass = "px-4 py-3";
 
@@ -59,8 +65,7 @@ const pickerTableBodyClass = "divide-y divide-neutral-800";
 const pickerSelectableRowClass =
 	"cursor-pointer transition-colors hover:bg-neutral-800/60";
 
-const pickerClearOptionClass =
-	"w-full rounded-md border border-neutral-800 bg-neutral-900 p-3 text-left text-sm font-semibold text-white transition-colors hover:border-emerald-600 hover:bg-neutral-800/60";
+const pickerClearOptionClass = invoicePickerClearOptionClass;
 
 interface OwnerPickerModalProps {
 	users: AdminUser[];
@@ -94,7 +99,7 @@ export function OwnerPickerModal({
 				value={searchTerm}
 				onChange={(e) => setSearchTerm(e.target.value)}
 				placeholder="Search owner name, email, phone..."
-				className={modalSearchInputClass}
+				className={invoiceModalSearchInputClass}
 			/>
 			<div className={modalScrollBodyClass}>
 				<button
@@ -252,13 +257,13 @@ export function BikePickerModal({
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					placeholder="Search bike, VIN, plate, owner..."
-					className={modalSearchInputClass}
+					className={invoiceModalSearchInputClass}
 				/>
 				<div className={modalScrollBodyClass}>
 					<button
 						type="button"
 						onClick={openCreateBike}
-						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Create Bike</p>
 						<p className="text-xs text-neutral-400">
@@ -408,13 +413,13 @@ export function ServicePickerModal({
 				value={searchTerm}
 				onChange={(e) => setSearchTerm(e.target.value)}
 				placeholder="Search service name, description, category..."
-				className={modalSearchInputClass}
+				className={invoiceModalSearchInputClass}
 			/>
 			<div className={modalScrollBodyClass}>
 				<button
 					type="button"
 					onClick={() => setCustomExpanded((prev) => !prev)}
-					className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+					className={invoiceCreateActionClass}
 				>
 					<p className="font-semibold text-emerald-300">
 						{customExpanded ? "- Hide Custom Service" : "+ Custom Service"}
@@ -424,12 +429,12 @@ export function ServicePickerModal({
 					</p>
 				</button>
 				{customExpanded && (
-					<div className="space-y-2 rounded-md border border-emerald-700/40 bg-neutral-900 p-3">
+					<div className="space-y-2 rounded-md border border-emerald-600/30 bg-neutral-800/40 p-3">
 						<input
 							value={customName}
 							onChange={(e) => setCustomName(e.target.value)}
 							placeholder="Custom service name"
-							className="w-full rounded-md border border-neutral-700 bg-neutral-950 p-2.5 text-sm text-white outline-none focus:border-emerald-500"
+							className={invoiceFieldInputClass}
 						/>
 						<button
 							type="button"
@@ -580,13 +585,13 @@ export function PartPickerModal({
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					placeholder="Search part number or description..."
-					className={modalSearchInputClass}
+					className={invoiceModalSearchInputClass}
 				/>
 				<div className={modalScrollBodyClass}>
 					<button
 						type="button"
 						onClick={() => setIsCreatePartOpen(true)}
-						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Create Part</p>
 						<p className="text-xs text-neutral-400">
@@ -596,7 +601,7 @@ export function PartPickerModal({
 					<button
 						type="button"
 						onClick={() => setIsCustomPartOpen(true)}
-						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Custom Part</p>
 						<p className="text-xs text-neutral-400">
@@ -667,14 +672,11 @@ export function PartPickerModal({
 					zIndex={MODAL_NESTED_Z_INDEX}
 					lockBackgroundScroll={false}
 				>
-					<p className="mb-4 text-sm text-neutral-400">
+					<p className="mb-4 text-sm text-neutral-300">
 						Add a one-off part to this invoice only. It will not be saved to the
 						parts catalog.
 					</p>
-					<label
-						htmlFor="custom-part-name"
-						className="mb-1 block text-xs text-neutral-400"
-					>
+					<label htmlFor="custom-part-name" className={invoiceLabelClass}>
 						Part name
 					</label>
 					<input
@@ -682,20 +684,20 @@ export function PartPickerModal({
 						value={customName}
 						onChange={(e) => setCustomName(e.target.value)}
 						placeholder="Custom part name"
-						className="mb-4 w-full rounded-md border border-neutral-700 bg-neutral-950 p-3 text-white outline-none focus:border-emerald-500"
+						className={`mb-4 ${invoiceFieldInputLgClass}`}
 					/>
 					<div className="flex gap-3">
 						<button
 							type="button"
 							onClick={handleConfirmCustom}
-							className="rounded bg-emerald-600 px-6 py-2 text-sm font-bold transition-colors hover:bg-emerald-500"
+							className="rounded-md bg-emerald-600 px-6 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
 						>
 							Confirm Custom Part
 						</button>
 						<button
 							type="button"
 							onClick={closeCustomModal}
-							className="rounded bg-neutral-800 px-4 py-2 text-sm font-bold transition-colors hover:bg-neutral-700"
+							className={invoiceSecondaryButtonClass}
 						>
 							Cancel
 						</button>

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { NumberStepperInput } from "@/components/admin/NumberStepperInput";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -23,6 +24,45 @@ import {
 	toCurrency,
 	toStatusLabel,
 } from "./invoiceHelpers";
+import {
+	invoiceAddActionClass,
+	invoiceBodyClass,
+	invoiceBodyMutedClass,
+	invoiceCardClass,
+	invoiceCheckboxClass,
+	invoiceEmptyHintClass,
+	invoiceFieldInputLgClass,
+	invoiceHeaderClass,
+	invoiceHeaderTitleClass,
+	invoiceHintClass,
+	invoiceLabelClass,
+	invoiceOverlayClass,
+	invoicePickerButtonClass,
+	invoicePrimaryButtonClass,
+	invoiceReadOnlyFieldClass,
+	invoiceSecondaryButtonClass,
+	invoiceSectionClass,
+	invoiceSectionTitleClass,
+	invoiceShellClass,
+	invoiceStackClass,
+	invoiceSubheadingClass,
+	invoiceTableBodyClass,
+	invoiceTableCellClass,
+	invoiceTableCellRightClass,
+	invoiceTableClassParts,
+	invoiceTableClassWide,
+	invoiceTableDeleteButtonClass,
+	invoiceTableHeadCellClass,
+	invoiceTableHeadRowClass,
+	invoiceTableInputClass,
+	invoiceTablePickerButtonClass,
+	invoiceTableTotalClass,
+	invoiceTableWrapClass,
+	invoiceTextareaClass,
+	invoiceTotalBoxClass,
+	invoiceTotalLabelClass,
+	invoiceTotalPanelClass,
+} from "./invoiceUi";
 import type { InvoiceBuilder } from "./useInvoiceBuilder";
 
 interface InvoiceBuilderModalProps {
@@ -35,13 +75,6 @@ interface InvoiceBuilderModalProps {
 	onPartCreated: (part: Part) => void;
 	onBikeCreated: (bike: InvoiceBike) => void;
 }
-
-const inputClasses =
-	"w-full bg-neutral-900 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none";
-const readOnlyInputClasses =
-	"w-full bg-neutral-800 border border-neutral-700 rounded p-2.5 text-white";
-const lineInputClasses =
-	"w-full bg-neutral-800 border border-neutral-700 rounded p-2.5 text-white text-sm";
 
 export function InvoiceBuilderModal({
 	builder,
@@ -75,11 +108,11 @@ export function InvoiceBuilderModal({
 
 	return (
 		<>
-			<div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm p-4">
+			<div className={invoiceOverlayClass}>
 				<div className="max-w-6xl mx-auto h-full">
-					<div className="h-full bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden flex flex-col">
-						<div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-							<h3 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+					<div className={invoiceShellClass}>
+						<div className={invoiceHeaderClass}>
+							<h3 className={invoiceHeaderTitleClass}>
 								{builder.editingInvoiceId ? "Edit Invoice" : "Create Invoice"}
 							</h3>
 							<div className="flex items-center gap-2">
@@ -92,31 +125,29 @@ export function InvoiceBuilderModal({
 										}
 										builder.resetBuilder();
 									}}
-									className="bg-neutral-800 hover:bg-neutral-700 px-3 py-2 rounded text-xs uppercase tracking-widest font-bold"
+									className={invoiceSecondaryButtonClass}
 								>
 									{builder.editingInvoiceId ? "Discard Edit" : "Reset Draft"}
 								</button>
 								<button
 									type="button"
 									onClick={builder.close}
-									className="bg-neutral-800 hover:bg-neutral-700 px-3 py-2 rounded text-xs uppercase tracking-widest font-bold"
+									className={invoiceSecondaryButtonClass}
 								>
 									Close
 								</button>
 							</div>
 						</div>
 
-						<div className="flex-1 overflow-y-auto p-5">
-							<div className="space-y-6">
-								<div className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
-									<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300 mb-4">
-										Links & Info
-									</h4>
+						<div className={invoiceBodyClass}>
+							<div className={invoiceStackClass}>
+								<div className={invoiceSectionClass}>
+									<h4 className={invoiceSectionTitleClass}>Links & Info</h4>
 									<div className="grid md:grid-cols-2 gap-4 mb-4">
 										<div>
 											<label
 												htmlFor="invoice-owner"
-												className="text-xs text-neutral-400 block mb-1"
+												className={invoiceLabelClass}
 											>
 												Owner
 											</label>
@@ -125,26 +156,26 @@ export function InvoiceBuilderModal({
 													id="invoice-owner"
 													type="button"
 													onClick={() => builder.setIsOwnerPickerOpen(true)}
-													className="flex-1 text-left bg-neutral-900 border border-neutral-700 rounded p-3 text-white hover:border-emerald-500 transition-colors"
+													className={invoicePickerButtonClass}
 												>
 													{builder.ownerLabel}
 												</button>
 												<button
 													type="button"
 													onClick={() => builder.setOwnerId("")}
-													className="bg-neutral-800 hover:bg-neutral-700 px-3 rounded text-xs font-bold uppercase tracking-widest"
+													className={invoiceSecondaryButtonClass}
 												>
 													Clear
 												</button>
 											</div>
-											<p className="text-xs text-neutral-500 mt-1">
+											<p className={invoiceHintClass}>
 												Open modal to search by name, email, or phone.
 											</p>
 										</div>
 										<div>
 											<label
 												htmlFor="invoice-bike"
-												className="text-xs text-neutral-400 block mb-1"
+												className={invoiceLabelClass}
 											>
 												Bike
 											</label>
@@ -153,7 +184,7 @@ export function InvoiceBuilderModal({
 													id="invoice-bike"
 													type="button"
 													onClick={() => builder.setIsBikePickerOpen(true)}
-													className="flex-1 text-left bg-neutral-900 border border-neutral-700 rounded p-3 text-white hover:border-emerald-500 transition-colors"
+													className={invoicePickerButtonClass}
 												>
 													{builder.bikeId && selectedBike
 														? getBikeDisplayLabel(selectedBike)
@@ -162,12 +193,12 @@ export function InvoiceBuilderModal({
 												<button
 													type="button"
 													onClick={() => builder.setBikeId("")}
-													className="bg-neutral-800 hover:bg-neutral-700 px-3 rounded text-xs font-bold uppercase tracking-widest"
+													className={invoiceSecondaryButtonClass}
 												>
 													Clear
 												</button>
 											</div>
-											<p className="text-xs text-neutral-500 mt-1">
+											<p className={invoiceHintClass}>
 												Open modal to search by bike details, VIN, plate, or
 												owner.
 											</p>
@@ -175,17 +206,15 @@ export function InvoiceBuilderModal({
 									</div>
 
 									<div className="grid md:grid-cols-2 gap-4 mb-4">
-										<div className="bg-neutral-900 border border-neutral-800 rounded p-4">
-											<p className="text-xs text-neutral-400 uppercase tracking-widest mb-1">
-												Customer Data
-											</p>
+										<div className={invoiceCardClass}>
+											<p className={invoiceSubheadingClass}>Customer Data</p>
 											{!builder.hasLinkedOwner ? (
-												<p className="text-xs text-neutral-500 mb-3">
+												<p className={invoiceBodyMutedClass}>
 													No portal account linked — enter details for the
 													printed invoice.
 												</p>
 											) : (
-												<p className="text-xs text-neutral-500 mb-3">
+												<p className={invoiceBodyMutedClass}>
 													Pulled from linked owner account.
 												</p>
 											)}
@@ -193,7 +222,7 @@ export function InvoiceBuilderModal({
 												<div>
 													<label
 														htmlFor="invoice-customer-first-name"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														First Name
 													</label>
@@ -209,15 +238,15 @@ export function InvoiceBuilderModal({
 														}
 														className={
 															builder.hasLinkedOwner
-																? readOnlyInputClasses
-																: inputClasses
+																? invoiceReadOnlyFieldClass
+																: invoiceFieldInputLgClass
 														}
 													/>
 												</div>
 												<div>
 													<label
 														htmlFor="invoice-customer-last-name"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Last Name
 													</label>
@@ -233,15 +262,15 @@ export function InvoiceBuilderModal({
 														}
 														className={
 															builder.hasLinkedOwner
-																? readOnlyInputClasses
-																: inputClasses
+																? invoiceReadOnlyFieldClass
+																: invoiceFieldInputLgClass
 														}
 													/>
 												</div>
 												<div className="col-span-2">
 													<label
 														htmlFor="invoice-customer-email"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Email
 													</label>
@@ -259,15 +288,15 @@ export function InvoiceBuilderModal({
 														placeholder="Optional"
 														className={
 															builder.hasLinkedOwner
-																? readOnlyInputClasses
-																: inputClasses
+																? invoiceReadOnlyFieldClass
+																: invoiceFieldInputLgClass
 														}
 													/>
 												</div>
 												<div className="col-span-2">
 													<label
 														htmlFor="invoice-customer-address"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Address
 													</label>
@@ -284,15 +313,15 @@ export function InvoiceBuilderModal({
 														placeholder="Optional"
 														className={
 															builder.hasLinkedOwner
-																? readOnlyInputClasses
-																: inputClasses
+																? invoiceReadOnlyFieldClass
+																: invoiceFieldInputLgClass
 														}
 													/>
 												</div>
 												<div className="col-span-2">
 													<label
 														htmlFor="invoice-customer-phone"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Phone Number
 													</label>
@@ -309,23 +338,21 @@ export function InvoiceBuilderModal({
 														placeholder="Optional"
 														className={
 															builder.hasLinkedOwner
-																? readOnlyInputClasses
-																: inputClasses
+																? invoiceReadOnlyFieldClass
+																: invoiceFieldInputLgClass
 														}
 													/>
 												</div>
 											</div>
 										</div>
 
-										<div className="bg-neutral-900 border border-neutral-800 rounded p-4">
-											<p className="text-xs text-neutral-400 uppercase tracking-widest mb-3">
-												Bike Data
-											</p>
+										<div className={invoiceCardClass}>
+											<p className={invoiceSubheadingClass}>Bike Data</p>
 											<div className="grid grid-cols-2 gap-3">
 												<div>
 													<label
 														htmlFor="invoice-bike-year"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Year
 													</label>
@@ -333,13 +360,13 @@ export function InvoiceBuilderModal({
 														id="invoice-bike-year"
 														value={builder.bikeFields.year}
 														readOnly
-														className={readOnlyInputClasses}
+														className={invoiceReadOnlyFieldClass}
 													/>
 												</div>
 												<div>
 													<label
 														htmlFor="invoice-bike-make"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Make
 													</label>
@@ -347,13 +374,13 @@ export function InvoiceBuilderModal({
 														id="invoice-bike-make"
 														value={builder.bikeFields.make}
 														readOnly
-														className={readOnlyInputClasses}
+														className={invoiceReadOnlyFieldClass}
 													/>
 												</div>
 												<div>
 													<label
 														htmlFor="invoice-bike-model"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														Model
 													</label>
@@ -361,13 +388,13 @@ export function InvoiceBuilderModal({
 														id="invoice-bike-model"
 														value={builder.bikeFields.model}
 														readOnly
-														className={readOnlyInputClasses}
+														className={invoiceReadOnlyFieldClass}
 													/>
 												</div>
 												<div>
 													<label
 														htmlFor="invoice-bike-license"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														License
 													</label>
@@ -375,13 +402,13 @@ export function InvoiceBuilderModal({
 														id="invoice-bike-license"
 														value={builder.bikeFields.license}
 														readOnly
-														className={readOnlyInputClasses}
+														className={invoiceReadOnlyFieldClass}
 													/>
 												</div>
 												<div className="col-span-2">
 													<label
 														htmlFor="invoice-bike-vin"
-														className="text-xs text-neutral-400 block mb-1"
+														className={invoiceLabelClass}
 													>
 														VIN
 													</label>
@@ -389,7 +416,7 @@ export function InvoiceBuilderModal({
 														id="invoice-bike-vin"
 														value={builder.bikeFields.vin}
 														readOnly
-														className={readOnlyInputClasses}
+														className={invoiceReadOnlyFieldClass}
 													/>
 												</div>
 											</div>
@@ -399,7 +426,7 @@ export function InvoiceBuilderModal({
 										<div>
 											<label
 												htmlFor="invoice-status"
-												className="text-xs text-neutral-400 block mb-1"
+												className={invoiceLabelClass}
 											>
 												Status
 											</label>
@@ -409,7 +436,7 @@ export function InvoiceBuilderModal({
 												onChange={(e) =>
 													builder.setStatus(e.target.value as InvoiceStatus)
 												}
-												className={`${inputClasses} capitalize`}
+												className={`${invoiceFieldInputLgClass} capitalize`}
 											>
 												{INVOICE_STATUSES.map((statusOption) => (
 													<option key={statusOption} value={statusOption}>
@@ -421,40 +448,38 @@ export function InvoiceBuilderModal({
 										<div>
 											<label
 												htmlFor="odometer-in"
-												className="text-xs text-neutral-400 block mb-1"
+												className={invoiceLabelClass}
 											>
 												Odometer In
 											</label>
-											<input
+											<NumberStepperInput
 												id="odometer-in"
-												type="number"
 												min={0}
 												value={builder.odometerIn}
 												onChange={(e) => builder.setOdometerIn(e.target.value)}
-												className={inputClasses}
+												inputClassName={invoiceFieldInputLgClass}
 											/>
 										</div>
 										<div>
 											<label
 												htmlFor="odometer-out"
-												className="text-xs text-neutral-400 block mb-1"
+												className={invoiceLabelClass}
 											>
 												Odometer Out
 											</label>
-											<input
+											<NumberStepperInput
 												id="odometer-out"
-												type="number"
 												min={0}
 												value={builder.odometerOut}
 												onChange={(e) => builder.setOdometerOut(e.target.value)}
-												className={inputClasses}
+												inputClassName={invoiceFieldInputLgClass}
 											/>
 										</div>
 									</div>
 									<div>
 										<label
 											htmlFor="mechanic-notes"
-											className="text-xs text-neutral-400 block mb-1"
+											className={invoiceLabelClass}
 										>
 											Mechanic Notes
 										</label>
@@ -462,14 +487,14 @@ export function InvoiceBuilderModal({
 											id="mechanic-notes"
 											value={builder.mechanicNotes}
 											onChange={(e) => builder.setMechanicNotes(e.target.value)}
-											className="w-full h-24 bg-neutral-900 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+											className={invoiceTextareaClass}
 										/>
 									</div>
 								</div>
 
-								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+								<section className={invoiceSectionClass}>
 									<div className="flex justify-between items-center mb-4">
-										<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+										<h4 className={`${invoiceSectionTitleClass} mb-0`}>
 											{HAZARDOUS_WASTE_LINE_NAME}
 										</h4>
 										<label className="inline-flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">
@@ -479,328 +504,377 @@ export function InvoiceBuilderModal({
 												onChange={(e) =>
 													builder.toggleHazardousWaste(e.target.checked)
 												}
-												className="h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-emerald-500 focus:ring-emerald-500"
+												className={invoiceCheckboxClass}
 											/>
 											Include on invoice
 										</label>
 									</div>
 									{builder.hazardousWasteEnabled ? (
-										<div className="grid md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end bg-neutral-900 border border-neutral-800 rounded p-3">
-											<div>
-												<p className="text-xs text-neutral-400 block mb-1">
-													Description
-												</p>
-												<p className="text-sm text-white py-2.5">
-													{HAZARDOUS_WASTE_LINE_NAME}
-												</p>
-											</div>
-											<div>
-												<label
-													htmlFor="hazardous-waste-quantity"
-													className="text-xs text-neutral-400 block mb-1"
-												>
-													Qty
-												</label>
-												<input
-													id="hazardous-waste-quantity"
-													type="number"
-													min={1}
-													step={1}
-													value={builder.hazardousWasteQuantity}
-													onChange={(e) =>
-														builder.setHazardousWasteQuantity(
-															Math.max(1, parseInt(e.target.value, 10) || 1),
-														)
-													}
-													className={lineInputClasses}
-												/>
-											</div>
-											<div>
-												<label
-													htmlFor="hazardous-waste-rate"
-													className="text-xs text-neutral-400 block mb-1"
-												>
-													Unit Price
-												</label>
-												<input
-													id="hazardous-waste-rate"
-													type="number"
-													min={0}
-													step={0.01}
-													value={builder.hazardousWasteUnitPrice}
-													onChange={(e) =>
-														builder.setHazardousWasteUnitPrice(
-															parseNumberInput(e.target.value),
-														)
-													}
-													className={lineInputClasses}
-												/>
-											</div>
-											<p className="text-sm text-emerald-400 font-semibold pb-2">
-												{toCurrency(builder.hazardousWasteSubtotal)}
-											</p>
+										<div className={invoiceTableWrapClass}>
+											<table className={invoiceTableClassParts}>
+												<thead>
+													<tr className={invoiceTableHeadRowClass}>
+														<th className={invoiceTableHeadCellClass}>
+															Description
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-24 text-right`}
+														>
+															Qty
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-32 text-right`}
+														>
+															Unit Price
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-28 text-right`}
+														>
+															Total
+														</th>
+													</tr>
+												</thead>
+												<tbody className={invoiceTableBodyClass}>
+													<tr>
+														<td
+															className={`${invoiceTableCellClass} font-medium text-neutral-100`}
+														>
+															{HAZARDOUS_WASTE_LINE_NAME}
+														</td>
+														<td className={invoiceTableCellClass}>
+															<NumberStepperInput
+																id="hazardous-waste-quantity"
+																size="compact"
+																min={1}
+																step={1}
+																value={builder.hazardousWasteQuantity}
+																onChange={(e) =>
+																	builder.setHazardousWasteQuantity(
+																		Math.max(
+																			1,
+																			parseInt(e.target.value, 10) || 1,
+																		),
+																	)
+																}
+																inputClassName={`${invoiceTableInputClass} text-right`}
+															/>
+														</td>
+														<td className={invoiceTableCellClass}>
+															<NumberStepperInput
+																id="hazardous-waste-rate"
+																size="compact"
+																min={0}
+																step={0.01}
+																value={builder.hazardousWasteUnitPrice}
+																onChange={(e) =>
+																	builder.setHazardousWasteUnitPrice(
+																		parseNumberInput(e.target.value),
+																	)
+																}
+																inputClassName={`${invoiceTableInputClass} text-right`}
+															/>
+														</td>
+														<td
+															className={`${invoiceTableCellRightClass} ${invoiceTableTotalClass}`}
+														>
+															{toCurrency(builder.hazardousWasteSubtotal)}
+														</td>
+													</tr>
+												</tbody>
+											</table>
 										</div>
 									) : (
-										<p className="text-neutral-500 text-sm">
+										<p className={invoiceEmptyHintClass}>
 											Not included on this invoice.
 										</p>
 									)}
 								</section>
 
-								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+								<section className={invoiceSectionClass}>
 									<div className="flex justify-between items-center mb-4">
-										<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+										<h4 className={`${invoiceSectionTitleClass} mb-0`}>
 											Services
 										</h4>
 										<button
 											type="button"
 											onClick={builder.addServiceLine}
-											className="text-sm font-semibold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-2"
+											className={invoiceAddActionClass}
 										>
 											<FiPlus className="h-4 w-4" /> Add Service
 										</button>
 									</div>
-									<div className="space-y-3">
-										{builder.serviceLines.length === 0 ? (
-											<p className="text-neutral-500 text-sm">
-												No services added.
-											</p>
-										) : (
-											builder.serviceLines.map((line) => (
-												<div
-													key={line.id}
-													className="grid md:grid-cols-[2fr_1fr_1fr_1fr_auto_auto] gap-3 items-end bg-neutral-900 border border-neutral-800 rounded p-3"
-												>
-													<div>
-														<label
-															htmlFor={`invoice-service-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
-														>
+									{builder.serviceLines.length === 0 ? (
+										<p className={invoiceEmptyHintClass}>No services added.</p>
+									) : (
+										<div className={invoiceTableWrapClass}>
+											<table className={invoiceTableClassWide}>
+												<thead>
+													<tr className={invoiceTableHeadRowClass}>
+														<th className={invoiceTableHeadCellClass}>
 															Service
-														</label>
-														<button
-															id={`invoice-service-${line.id}`}
-															type="button"
-															onClick={() =>
-																builder.setServicePickerLineId(line.id)
-															}
-															className="w-full text-left bg-neutral-800 border border-neutral-700 rounded p-2.5 text-white text-sm hover:border-emerald-500 transition-colors"
-														>
-															{line.snapshot_name ||
-																(line.is_custom
-																	? "Custom service"
-																	: "Select service...")}
-														</button>
-													</div>
-													<div>
-														<label
-															htmlFor={`invoice-service-pricing-type-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
-														>
+														</th>
+														<th className={`${invoiceTableHeadCellClass} w-28`}>
 															Pricing
-														</label>
-														<select
-															id={`invoice-service-pricing-type-${line.id}`}
-															value={line.pricing_type || "fixed"}
-															onChange={(e) =>
-																builder.updateServicePricingType(
-																	line.id,
-																	e.target.value as "fixed" | "hourly",
-																)
-															}
-															className={lineInputClasses}
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-32 text-right`}
 														>
-															<option value="fixed">Fixed</option>
-															<option value="hourly">Hourly</option>
-														</select>
-													</div>
-													<div>
-														<label
-															htmlFor={`invoice-service-price-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
+															Unit Price
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-24 text-right`}
 														>
-															{(line.pricing_type || "fixed") === "hourly"
-																? "Hourly Rate"
-																: "Fixed Price"}
-														</label>
-														<input
-															id={`invoice-service-price-${line.id}`}
-															type="number"
-															min={0}
-															step={0.01}
-															value={line.unit_price}
-															readOnly={
-																(line.pricing_type || "fixed") === "hourly"
-															}
-															onChange={(e) =>
-																builder.updateServiceLine(
-																	line.id,
-																	"unit_price",
-																	Math.max(0, parseNumberInput(e.target.value)),
-																)
-															}
-															className={lineInputClasses}
-														/>
-													</div>
-													{line.pricing_type === "hourly" && (
-														<div>
-															<label
-																htmlFor={`invoice-service-qty-${line.id}`}
-																className="text-xs text-neutral-400 block mb-1"
+															Hours
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-28 text-right`}
+														>
+															Total
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-12 text-right`}
+														>
+															<span className="sr-only">Actions</span>
+														</th>
+													</tr>
+												</thead>
+												<tbody className={invoiceTableBodyClass}>
+													{builder.serviceLines.map((line) => (
+														<tr key={line.id}>
+															<td className={invoiceTableCellClass}>
+																<button
+																	id={`invoice-service-${line.id}`}
+																	type="button"
+																	onClick={() =>
+																		builder.setServicePickerLineId(line.id)
+																	}
+																	className={invoiceTablePickerButtonClass}
+																>
+																	{line.snapshot_name ||
+																		(line.is_custom
+																			? "Custom service"
+																			: "Select service...")}
+																</button>
+															</td>
+															<td className={invoiceTableCellClass}>
+																<select
+																	id={`invoice-service-pricing-type-${line.id}`}
+																	value={line.pricing_type || "fixed"}
+																	onChange={(e) =>
+																		builder.updateServicePricingType(
+																			line.id,
+																			e.target.value as "fixed" | "hourly",
+																		)
+																	}
+																	className={invoiceTableInputClass}
+																>
+																	<option value="fixed">Fixed</option>
+																	<option value="hourly">Hourly</option>
+																</select>
+															</td>
+															<td className={invoiceTableCellClass}>
+																<NumberStepperInput
+																	id={`invoice-service-price-${line.id}`}
+																	size="compact"
+																	min={0}
+																	step={0.01}
+																	value={line.unit_price}
+																	readOnly={
+																		(line.pricing_type || "fixed") === "hourly"
+																	}
+																	onChange={(e) =>
+																		builder.updateServiceLine(
+																			line.id,
+																			"unit_price",
+																			Math.max(
+																				0,
+																				parseNumberInput(e.target.value),
+																			),
+																		)
+																	}
+																	inputClassName={`${invoiceTableInputClass} text-right`}
+																/>
+															</td>
+															<td className={invoiceTableCellRightClass}>
+																{line.pricing_type === "hourly" ? (
+																	<NumberStepperInput
+																		id={`invoice-service-qty-${line.id}`}
+																		size="compact"
+																		min={0.0}
+																		step={0.1}
+																		value={line.quantity}
+																		onChange={(e) =>
+																			builder.updateServiceLine(
+																				line.id,
+																				"quantity",
+																				Math.max(
+																					0.1,
+																					parseNumberInput(e.target.value, 1),
+																				),
+																			)
+																		}
+																		inputClassName={`${invoiceTableInputClass} text-right`}
+																	/>
+																) : (
+																	<span className="text-neutral-500">—</span>
+																)}
+															</td>
+															<td
+																className={`${invoiceTableCellRightClass} ${invoiceTableTotalClass}`}
 															>
-																Hrs
-															</label>
-															<input
-																id={`invoice-service-qty-${line.id}`}
-																type="number"
-																min={0.0}
-																step={0.1}
-																value={line.quantity}
-																onChange={(e) =>
-																	builder.updateServiceLine(
-																		line.id,
-																		"quantity",
-																		Math.max(
-																			0.1,
-																			parseNumberInput(e.target.value, 1),
-																		),
-																	)
-																}
-																className={lineInputClasses}
-															/>
-														</div>
-													)}
-													<p className="text-sm text-emerald-400 font-semibold pb-2">
-														{toCurrency(line.unit_price * line.quantity)}
-													</p>
-													<button
-														type="button"
-														onClick={() => builder.removeServiceLine(line.id)}
-														className="text-red-400 hover:text-red-300 pb-2"
-													>
-														<FiTrash2 className="h-4 w-4" />
-													</button>
-												</div>
-											))
-										)}
-									</div>
+																{toCurrency(line.unit_price * line.quantity)}
+															</td>
+															<td className={invoiceTableCellRightClass}>
+																<button
+																	type="button"
+																	onClick={() =>
+																		builder.removeServiceLine(line.id)
+																	}
+																	className={invoiceTableDeleteButtonClass}
+																	aria-label="Remove service line"
+																>
+																	<FiTrash2 className="h-4 w-4" />
+																</button>
+															</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										</div>
+									)}
 								</section>
 
-								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+								<section className={invoiceSectionClass}>
 									<div className="flex justify-between items-center mb-4">
-										<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+										<h4 className={`${invoiceSectionTitleClass} mb-0`}>
 											Parts
 										</h4>
 										<button
 											type="button"
 											onClick={builder.addPartLine}
-											className="text-sm font-semibold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-2"
+											className={invoiceAddActionClass}
 										>
 											<FiPlus className="h-4 w-4" /> Add Part
 										</button>
 									</div>
-									<div className="space-y-3">
-										{builder.partLines.length === 0 ? (
-											<p className="text-neutral-500 text-sm">
-												No parts added.
-											</p>
-										) : (
-											builder.partLines.map((line) => (
-												<div
-													key={line.id}
-													className="grid md:grid-cols-[2fr_1fr_1fr_auto_auto] gap-3 items-end bg-neutral-900 border border-neutral-800 rounded p-3"
-												>
-													<div>
-														<label
-															htmlFor={`invoice-part-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
+									{builder.partLines.length === 0 ? (
+										<p className={invoiceEmptyHintClass}>No parts added.</p>
+									) : (
+										<div className={invoiceTableWrapClass}>
+											<table className={invoiceTableClassParts}>
+												<thead>
+													<tr className={invoiceTableHeadRowClass}>
+														<th className={invoiceTableHeadCellClass}>Part</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-32 text-right`}
 														>
-															Part
-														</label>
-														<button
-															id={`invoice-part-${line.id}`}
-															type="button"
-															onClick={() =>
-																builder.setPartPickerLineId(line.id)
-															}
-															className="w-full text-left bg-neutral-800 border border-neutral-700 rounded p-2.5 text-white text-sm hover:border-emerald-500 transition-colors"
-														>
-															{line.snapshot_name ||
-																(line.is_custom
-																	? "Custom part"
-																	: "Select part...")}
-														</button>
-													</div>
-													<div>
-														<label
-															htmlFor={`invoice-part-price-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
-														>
-															Price
-														</label>
-														<input
-															id={`invoice-part-price-${line.id}`}
-															type="number"
-															min={0}
-															step={0.01}
-															value={line.unit_price}
-															onChange={(e) =>
-																builder.updatePartLine(
-																	line.id,
-																	"unit_price",
-																	Math.max(0, parseNumberInput(e.target.value)),
-																)
-															}
-															className={lineInputClasses}
-														/>
-													</div>
-													<div>
-														<label
-															htmlFor={`invoice-part-qty-${line.id}`}
-															className="text-xs text-neutral-400 block mb-1"
+															Unit Price
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-24 text-right`}
 														>
 															Qty
-														</label>
-														<input
-															id={`invoice-part-qty-${line.id}`}
-															type="number"
-															min={1}
-															step={1}
-															value={line.quantity}
-															onChange={(e) =>
-																builder.updatePartLine(
-																	line.id,
-																	"quantity",
-																	Math.max(
-																		1,
-																		parseNumberInput(e.target.value, 1),
-																	),
-																)
-															}
-															className={lineInputClasses}
-														/>
-													</div>
-													<p className="text-sm text-emerald-400 font-semibold pb-2">
-														{toCurrency(line.unit_price * line.quantity)}
-													</p>
-													<button
-														type="button"
-														onClick={() => builder.removePartLine(line.id)}
-														className="text-red-400 hover:text-red-300 pb-2"
-													>
-														<FiTrash2 className="h-4 w-4" />
-													</button>
-												</div>
-											))
-										)}
-									</div>
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-28 text-right`}
+														>
+															Total
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-12 text-right`}
+														>
+															<span className="sr-only">Actions</span>
+														</th>
+													</tr>
+												</thead>
+												<tbody className={invoiceTableBodyClass}>
+													{builder.partLines.map((line) => (
+														<tr key={line.id}>
+															<td className={invoiceTableCellClass}>
+																<button
+																	id={`invoice-part-${line.id}`}
+																	type="button"
+																	onClick={() =>
+																		builder.setPartPickerLineId(line.id)
+																	}
+																	className={invoiceTablePickerButtonClass}
+																>
+																	{line.snapshot_name ||
+																		(line.is_custom
+																			? "Custom part"
+																			: "Select part...")}
+																</button>
+															</td>
+															<td className={invoiceTableCellClass}>
+																<NumberStepperInput
+																	id={`invoice-part-price-${line.id}`}
+																	size="compact"
+																	min={0}
+																	step={0.01}
+																	value={line.unit_price}
+																	onChange={(e) =>
+																		builder.updatePartLine(
+																			line.id,
+																			"unit_price",
+																			Math.max(
+																				0,
+																				parseNumberInput(e.target.value),
+																			),
+																		)
+																	}
+																	inputClassName={`${invoiceTableInputClass} text-right`}
+																/>
+															</td>
+															<td className={invoiceTableCellClass}>
+																<NumberStepperInput
+																	id={`invoice-part-qty-${line.id}`}
+																	size="compact"
+																	min={1}
+																	step={1}
+																	value={line.quantity}
+																	onChange={(e) =>
+																		builder.updatePartLine(
+																			line.id,
+																			"quantity",
+																			Math.max(
+																				1,
+																				parseNumberInput(e.target.value, 1),
+																			),
+																		)
+																	}
+																	inputClassName={`${invoiceTableInputClass} text-right`}
+																/>
+															</td>
+															<td
+																className={`${invoiceTableCellRightClass} ${invoiceTableTotalClass}`}
+															>
+																{toCurrency(line.unit_price * line.quantity)}
+															</td>
+															<td className={invoiceTableCellRightClass}>
+																<button
+																	type="button"
+																	onClick={() =>
+																		builder.removePartLine(line.id)
+																	}
+																	className={invoiceTableDeleteButtonClass}
+																	aria-label="Remove part line"
+																>
+																	<FiTrash2 className="h-4 w-4" />
+																</button>
+															</td>
+														</tr>
+													))}
+												</tbody>
+											</table>
+										</div>
+									)}
 								</section>
 
-								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+								<section className={invoiceSectionClass}>
 									<div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
 										{builder.hazardousWasteEnabled ? (
-											<div className="bg-neutral-900 border border-neutral-800 rounded p-3">
-												<p className="text-neutral-400 uppercase tracking-widest text-[11px] mb-1">
+											<div className={invoiceTotalBoxClass}>
+												<p className={invoiceTotalLabelClass}>
 													Hazardous Waste Total
 												</p>
 												<p className="text-white font-bold">
@@ -808,43 +882,39 @@ export function InvoiceBuilderModal({
 												</p>
 											</div>
 										) : null}
-										<div className="bg-neutral-900 border border-neutral-800 rounded p-3">
-											<p className="text-neutral-400 uppercase tracking-widest text-[11px] mb-1">
-												Services Total
-											</p>
+										<div className={invoiceTotalBoxClass}>
+											<p className={invoiceTotalLabelClass}>Services Total</p>
 											<p className="text-white font-bold">
 												{toCurrency(builder.servicesSubtotal)}
 											</p>
 										</div>
-										<div className="bg-neutral-900 border border-neutral-800 rounded p-3">
-											<p className="text-neutral-400 uppercase tracking-widest text-[11px] mb-1">
-												Parts Total
-											</p>
+										<div className={invoiceTotalBoxClass}>
+											<p className={invoiceTotalLabelClass}>Parts Total</p>
 											<p className="text-white font-bold">
 												{toCurrency(builder.partsSubtotal)}
 											</p>
 										</div>
 									</div>
-									<div className="bg-neutral-900 border border-emerald-700/40 rounded p-4 mb-4 max-w-sm ml-auto space-y-2">
+									<div className={invoiceTotalPanelClass}>
 										<div className="flex justify-between text-sm">
-											<span className="text-neutral-400">Subtotal</span>
-											<span className="text-white font-semibold">
+											<span className="text-neutral-300">Subtotal</span>
+											<span className="font-semibold text-neutral-50">
 												{toCurrency(subtotal)}
 											</span>
 										</div>
 										<div className="flex justify-between text-sm">
-											<span className="text-neutral-400">
+											<span className="text-neutral-300">
 												Sales Tax · parts only ({taxRate.toFixed(3)}%)
 											</span>
-											<span className="text-white font-semibold">
+											<span className="font-semibold text-neutral-50">
 												{toCurrency(salesTax)}
 											</span>
 										</div>
-										<div className="flex justify-between text-base border-t border-neutral-700 pt-2">
-											<span className="text-neutral-300 uppercase tracking-widest text-xs font-bold">
+										<div className="flex justify-between border-t border-neutral-600 pt-2 text-base">
+											<span className="text-xs font-bold uppercase tracking-widest text-neutral-200">
 												Invoice Total
 											</span>
-											<span className="text-emerald-400 font-bold">
+											<span className="font-bold text-emerald-300">
 												{toCurrency(grandTotal)}
 											</span>
 										</div>
@@ -853,7 +923,7 @@ export function InvoiceBuilderModal({
 										type="button"
 										disabled={builder.isSaving}
 										onClick={() => void builder.save()}
-										className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700 px-6 py-3 rounded font-bold text-sm uppercase tracking-widest"
+										className={invoicePrimaryButtonClass}
 									>
 										{builder.isSaving
 											? builder.editingInvoiceId
