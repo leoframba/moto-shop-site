@@ -195,7 +195,7 @@ function VoiceRecorderPanel({
 				<div className="font-mono text-4xl font-bold text-emerald-400 sm:text-5xl">
 					{formatTime(recordingTime)}
 				</div>
-				<p className="mt-2 text-sm text-neutral-400">
+				<p className="mt-2 text-sm text-neutral-300">
 					{!isRecording && !audioUrl && "Ready to record"}
 					{isRecording && !isPaused && "Recording…"}
 					{isRecording && isPaused && "Paused"}
@@ -234,7 +234,7 @@ function VoiceRecorderPanel({
 
 			{audioUrl && !isRecording && (
 				<div className="mt-4 w-full border-t border-neutral-800 pt-4">
-					<p className="mb-2 text-xs font-medium text-neutral-400">
+					<p className="mb-2 text-xs font-medium text-neutral-300">
 						Review recording:
 					</p>
 					{/* biome-ignore lint/a11y/useMediaCaption: user-recorded voice note, no captions source */}
@@ -336,7 +336,7 @@ export default function VoiceRecorder({
 							<button
 								type="button"
 								onClick={closeModal}
-								className="text-sm font-bold uppercase tracking-widest text-neutral-400 transition-colors hover:text-white"
+								className="text-sm font-bold uppercase tracking-widest text-neutral-300 transition-colors hover:text-white"
 							>
 								Close
 							</button>

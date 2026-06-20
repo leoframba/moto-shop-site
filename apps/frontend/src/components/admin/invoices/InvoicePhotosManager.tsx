@@ -87,7 +87,7 @@ export function InvoicePhotosManager({
 			}
 		>
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+				<p className="text-xs font-bold uppercase tracking-widest text-neutral-300">
 					Photos {photos.length > 0 ? `(${photos.length})` : ""}
 				</p>
 				<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-neutral-800 px-4 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 sm:w-auto">
@@ -106,9 +106,9 @@ export function InvoicePhotosManager({
 			</div>
 
 			{isLoading ? (
-				<p className="text-xs text-neutral-500">Loading photos...</p>
+				<p className="text-xs text-neutral-300">Loading photos...</p>
 			) : photos.length === 0 ? (
-				<p className="text-xs text-neutral-500">
+				<p className="text-xs text-neutral-300">
 					No photos yet. Images are auto-compressed before upload.
 				</p>
 			) : (
@@ -133,7 +133,7 @@ export function InvoicePhotosManager({
 									/>
 								</a>
 							) : (
-								<div className="w-full h-28 flex items-center justify-center text-[10px] text-neutral-600">
+								<div className="w-full h-28 flex items-center justify-center text-[10px] text-neutral-300">
 									Unavailable
 								</div>
 							)}

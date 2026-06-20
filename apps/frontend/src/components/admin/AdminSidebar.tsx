@@ -35,7 +35,7 @@ function tabButtonClass(isActive: boolean) {
 	return `w-full rounded-md px-4 py-3 text-left text-sm font-bold uppercase tracking-widest transition-colors ${
 		isActive
 			? "bg-red-600 text-white shadow-lg"
-			: "text-neutral-400 hover:bg-neutral-800 hover:text-white"
+			: "text-neutral-300 hover:bg-neutral-800 hover:text-white"
 	}`;
 }
 
@@ -118,7 +118,7 @@ export default function AdminSidebar({
 					</button>
 
 					<div className="min-w-0">
-						<p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 md:text-xs">
+						<p className="text-[10px] font-bold uppercase tracking-widest text-neutral-300 md:text-xs">
 							Shop Admin
 						</p>
 						<p className="truncate text-sm font-bold text-white md:text-base">
@@ -129,7 +129,7 @@ export default function AdminSidebar({
 
 				<Link
 					href="/"
-					className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border border-neutral-800 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-neutral-400 transition-colors hover:border-neutral-600 hover:bg-neutral-900 hover:text-white md:text-xs"
+					className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-md border border-neutral-800 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-900 hover:text-white md:text-xs"
 				>
 					<FiHome className="h-3.5 w-3.5 md:h-4 md:w-4" aria-hidden />
 					<span className="hidden sm:inline">Live Site</span>
@@ -164,7 +164,7 @@ export default function AdminSidebar({
 									<h1 className="text-lg font-black uppercase italic tracking-tighter text-white md:text-xl">
 										Shop <span className="text-red-600">Admin</span>
 									</h1>
-									<p className="mt-1 text-xs text-neutral-500">
+									<p className="mt-1 text-xs text-neutral-300">
 										Select a section
 									</p>
 								</div>

@@ -94,7 +94,7 @@ export default function AdminShopSettingsTab() {
 	if (isLoading) {
 		return (
 			<div className="max-w-4xl mx-auto pb-20">
-				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
+				<div className="text-center py-20 text-neutral-300 animate-pulse uppercase tracking-widest font-bold">
 					Loading Shop Settings...
 				</div>
 			</div>
@@ -107,7 +107,7 @@ export default function AdminShopSettingsTab() {
 				<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 					Shop Settings
 				</h2>
-				<p className="text-neutral-400 text-sm">
+				<p className="text-neutral-300 text-sm">
 					Update business details used in invoices and pricing defaults.
 				</p>
 			</div>
@@ -117,7 +117,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-name"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Shop Name
 						</label>
@@ -131,7 +131,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-email"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Shop Email
 						</label>
@@ -145,7 +145,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-phone"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Shop Phone
 						</label>
@@ -159,7 +159,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-rate"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Hourly Rate
 						</label>
@@ -178,7 +178,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-tax-rate"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Sales Tax Rate (%)
 						</label>
@@ -197,7 +197,7 @@ export default function AdminShopSettingsTab() {
 					<div>
 						<label
 							htmlFor="shop-hazardous-waste-rate"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Hazardous Waste Unit Rate
 						</label>
@@ -216,7 +216,7 @@ export default function AdminShopSettingsTab() {
 					<div className="md:col-span-2">
 						<label
 							htmlFor="shop-address"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Shop Address
 						</label>

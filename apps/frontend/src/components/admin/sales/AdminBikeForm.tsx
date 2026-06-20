@@ -34,7 +34,7 @@ const FormInput = ({ label, id, ...props }: FormInputProps) => (
 	<div>
 		<label
 			htmlFor={id}
-			className="block text-xs text-neutral-500 uppercase tracking-wider mb-2"
+			className="block text-xs text-neutral-300 uppercase tracking-wider mb-2"
 		>
 			{label}
 		</label>
@@ -200,7 +200,7 @@ export default function AdminBikeForm({
 					type="button"
 					onClick={handleCancel}
 					disabled={isSubmitting}
-					className="text-neutral-500 hover:text-white transition-colors disabled:opacity-50"
+					className="text-neutral-300 hover:text-white transition-colors disabled:opacity-50"
 				>
 					<FiX
 						aria-hidden="true"
@@ -214,7 +214,7 @@ export default function AdminBikeForm({
 				<div>
 					<label
 						htmlFor="year"
-						className="block text-xs text-neutral-500 uppercase tracking-wider mb-2"
+						className="block text-xs text-neutral-300 uppercase tracking-wider mb-2"
 					>
 						Year
 					</label>
@@ -279,7 +279,7 @@ export default function AdminBikeForm({
 				<div>
 					<label
 						htmlFor="status"
-						className="block text-xs text-neutral-500 uppercase tracking-wider mb-2"
+						className="block text-xs text-neutral-300 uppercase tracking-wider mb-2"
 					>
 						Status
 					</label>
@@ -301,7 +301,7 @@ export default function AdminBikeForm({
 			<div className="mb-8">
 				<label
 					htmlFor="description"
-					className="block text-xs text-neutral-500 uppercase tracking-wider mb-2"
+					className="block text-xs text-neutral-300 uppercase tracking-wider mb-2"
 				>
 					Description
 				</label>
@@ -320,7 +320,7 @@ export default function AdminBikeForm({
 			<div className="mb-8">
 				<label
 					htmlFor="photos"
-					className="block text-xs text-neutral-500 uppercase tracking-wider mb-2"
+					className="block text-xs text-neutral-300 uppercase tracking-wider mb-2"
 				>
 					Photos
 				</label>
@@ -345,10 +345,10 @@ export default function AdminBikeForm({
 					{isDragging ? (
 						<FiUploadCloud className="w-9 h-9 text-red-500 mx-auto mb-3" />
 					) : (
-						<FiImage className="w-9 h-9 text-neutral-500 mx-auto mb-3" />
+						<FiImage className="w-9 h-9 text-neutral-300 mx-auto mb-3" />
 					)}
-					<span className="text-neutral-400 font-bold">Upload Photos</span>
-					<p className="text-xs text-neutral-600 mt-1">
+					<span className="text-neutral-300 font-bold">Upload Photos</span>
+					<p className="text-xs text-neutral-300 mt-1">
 						PNG, JPG, WEBP up to 5MB
 					</p>
 				</button>
@@ -422,14 +422,14 @@ export default function AdminBikeForm({
 					type="button"
 					onClick={handleCancel}
 					disabled={isSubmitting}
-					className="px-6 py-3 font-bold uppercase tracking-widest text-neutral-400 hover:text-white transition-colors disabled:opacity-50"
+					className="px-6 py-3 font-bold uppercase tracking-widest text-neutral-300 hover:text-white transition-colors disabled:opacity-50"
 				>
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={isSubmitting}
-					className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-800 disabled:text-neutral-500 text-white px-8 py-3 rounded font-bold uppercase tracking-widest transition-all"
+					className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-800 disabled:text-neutral-300 text-white px-8 py-3 rounded font-bold uppercase tracking-widest transition-all"
 				>
 					{isSubmitting
 						? "Saving..."

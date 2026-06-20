@@ -28,7 +28,7 @@ export default function AdminInvoicesTab() {
 	if (data.isLoading) {
 		return (
 			<div className="max-w-5xl mx-auto pb-20">
-				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
+				<div className="text-center py-20 text-neutral-300 animate-pulse uppercase tracking-widest font-bold">
 					Loading Invoice Builder...
 				</div>
 			</div>
@@ -46,7 +46,7 @@ export default function AdminInvoicesTab() {
 					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 						Invoice Builder
 					</h2>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Create invoices with linked customer, bike, services, and parts.
 					</p>
 				</div>

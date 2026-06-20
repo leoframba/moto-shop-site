@@ -89,7 +89,7 @@ export function BikeManagerForm({
 				<div className="md:col-span-3">
 					<label
 						htmlFor="bike-owner"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Owner
 					</label>
@@ -111,7 +111,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-year"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Year
 					</label>
@@ -131,7 +131,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-make"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Make
 					</label>
@@ -146,7 +146,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-model"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Model
 					</label>
@@ -161,7 +161,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-vin"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						VIN
 					</label>
@@ -176,7 +176,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-plate"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						License Plate
 					</label>
@@ -191,7 +191,7 @@ export function BikeManagerForm({
 				<div>
 					<label
 						htmlFor="bike-color"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Color
 					</label>
@@ -208,7 +208,7 @@ export function BikeManagerForm({
 			<div className="mb-4">
 				<label
 					htmlFor="bike-notes"
-					className="mb-1 block text-xs text-neutral-400"
+					className="mb-1 block text-xs text-neutral-300"
 				>
 					Admin Notes
 				</label>

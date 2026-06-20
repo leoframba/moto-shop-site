@@ -207,7 +207,7 @@ export default function AdminSalesTab() {
 					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 						Showroom Inventory
 					</h2>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Add, edit, and manage motorcycles for sale.
 					</p>
 				</div>
@@ -236,12 +236,12 @@ export default function AdminSalesTab() {
 
 			{!isAdding &&
 				(isLoading ? (
-					<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
+					<div className="text-center py-20 text-neutral-300 animate-pulse uppercase tracking-widest font-bold">
 						Loading Inventory...
 					</div>
 				) : bikes.length === 0 ? (
 					<div className="border border-dashed border-neutral-800 rounded-lg p-12 text-center bg-neutral-900/20">
-						<p className="text-neutral-500 font-mono text-sm uppercase mb-4">
+						<p className="text-neutral-300 font-mono text-sm uppercase mb-4">
 							No motorcycles in inventory.
 						</p>
 						<button

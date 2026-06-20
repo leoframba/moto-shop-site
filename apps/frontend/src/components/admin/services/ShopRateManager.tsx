@@ -43,11 +43,11 @@ export default function ShopRateManager({
 
 	return (
 		<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">
-			<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">
+			<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-300 mb-2">
 				Global Shop Rate
 			</h2>
 			<div className="flex items-center gap-4 mt-4">
-				<span className="text-xl font-mono text-neutral-500">$</span>
+				<span className="text-xl font-mono text-neutral-300">$</span>
 				<input
 					type="number"
 					value={hourlyRate}

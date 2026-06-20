@@ -22,6 +22,10 @@ import {
 	getPartSaveErrorMessage,
 	partMatchesQuery,
 } from "@/components/admin/parts/partUtils";
+import {
+	adminPickerOptionMetaClass,
+	adminPickerOptionTitleClass,
+} from "@/components/admin/adminUi";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -50,7 +54,7 @@ import {
 const modalScrollBodyClass = "max-h-[55vh] space-y-3 overflow-y-auto pr-1";
 
 const pickerEmptyStateClass =
-	"rounded-lg border border-dashed border-neutral-800 bg-neutral-900/20 p-10 text-center text-sm uppercase tracking-widest text-neutral-500";
+	"rounded-lg border border-dashed border-neutral-800 bg-neutral-900/20 p-10 text-center text-sm uppercase tracking-widest text-neutral-300";
 
 const pickerTableWrapClass =
 	"overflow-x-auto rounded-lg border border-neutral-800";
@@ -133,7 +137,7 @@ export function OwnerPickerModal({
 											<p className="font-bold text-white">
 												{getUserDisplayName(user)}
 											</p>
-											<p className="truncate text-xs text-neutral-500">
+											<p className="truncate text-xs text-neutral-300">
 												{user.email}
 											</p>
 										</td>
@@ -266,7 +270,7 @@ export function BikePickerModal({
 						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Create Bike</p>
-						<p className="text-xs text-neutral-400">
+						<p className="text-xs text-neutral-300">
 							Add a new bike to the catalog — saves to the database.
 						</p>
 					</button>
@@ -306,7 +310,7 @@ export function BikePickerModal({
 													<p className="font-bold text-white">
 														{getBikeDisplayLabel(bike)}
 													</p>
-													<p className="truncate text-xs text-neutral-500">
+													<p className="truncate text-xs text-neutral-300">
 														{bike.vin ? `${bike.vin}` : "No VIN on file"}
 													</p>
 												</td>
@@ -315,7 +319,7 @@ export function BikePickerModal({
 														{bikeOwner ? getUserDisplayName(bikeOwner) : "—"}
 													</p>
 													{bikeOwner?.email && (
-														<p className="truncate text-xs text-neutral-500">
+														<p className="truncate text-xs text-neutral-300">
 															{bikeOwner.email}
 														</p>
 													)}
@@ -425,7 +429,7 @@ export function ServicePickerModal({
 		keyPrefix: string,
 	) => (
 		<div key={`${keyPrefix}-${group.categoryName}`} className="space-y-2">
-			<p className="px-1 pt-1 text-xs font-bold uppercase tracking-widest text-neutral-500">
+			<p className="px-1 pt-1 text-xs font-bold uppercase tracking-widest text-neutral-300">
 				{group.categoryName}
 			</p>
 			{group.services.map((service) => (
@@ -436,7 +440,7 @@ export function ServicePickerModal({
 					className={modalOptionButtonClass}
 				>
 					<p className="font-semibold text-white">{service.name}</p>
-					<p className="text-sm text-neutral-400">
+					<p className="text-sm text-neutral-300">
 						{service.pricing_type === "hourly"
 							? `Hourly (${(service.estimated_hours ?? 1).toFixed(1)} hrs est.)`
 							: service.pricing_type === "fixed"
@@ -448,7 +452,7 @@ export function ServicePickerModal({
 								: "Contact pricing"}
 					</p>
 					{service.description && (
-						<p className="mt-1 line-clamp-2 text-xs text-neutral-500">
+						<p className="mt-1 line-clamp-2 text-xs text-neutral-300">
 							{service.description}
 						</p>
 					)}
@@ -474,7 +478,7 @@ export function ServicePickerModal({
 					<p className="font-semibold text-emerald-300">
 						{customExpanded ? "- Hide Custom Service" : "+ Custom Service"}
 					</p>
-					<p className="text-xs text-neutral-400">
+					<p className="text-xs text-neutral-300">
 						Add a service not found in the database.
 					</p>
 				</button>
@@ -508,7 +512,7 @@ export function ServicePickerModal({
 				{groupedServices.publicCatalog.length > 0 ? (
 					<div className="space-y-3">
 						{groupedServices.internal.length > 0 ? (
-							<p className="px-1 pt-2 text-xs font-bold uppercase tracking-widest text-neutral-400">
+							<p className="px-1 pt-2 text-xs font-bold uppercase tracking-widest text-neutral-300">
 								Public menu
 							</p>
 						) : null}
@@ -519,7 +523,7 @@ export function ServicePickerModal({
 				) : null}
 				{groupedServices.internal.length === 0 &&
 				groupedServices.publicCatalog.length === 0 ? (
-					<p className="py-4 text-center text-sm text-neutral-500">
+					<p className="py-4 text-center text-sm text-neutral-300">
 						No services match your search.
 					</p>
 				) : null}
@@ -632,7 +636,7 @@ export function PartPickerModal({
 						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Create Part</p>
-						<p className="text-xs text-neutral-400">
+						<p className="text-xs text-neutral-300">
 							Add a new part to the catalog — saves to the database.
 						</p>
 					</button>
@@ -642,7 +646,7 @@ export function PartPickerModal({
 						className={invoiceCreateActionClass}
 					>
 						<p className="font-semibold text-emerald-300">+ Custom Part</p>
-						<p className="text-xs text-neutral-400">
+						<p className="text-xs text-neutral-300">
 							Add a part not found in the database — doesn't save to the
 							database.
 						</p>
@@ -659,12 +663,14 @@ export function PartPickerModal({
 								disabled={alreadyAdded}
 								className={`w-full rounded-md border p-3 text-left transition-colors ${
 									alreadyAdded
-										? "cursor-not-allowed border-neutral-800 bg-neutral-900/50 text-neutral-500"
-										: "border-neutral-800 bg-neutral-900 hover:border-emerald-600"
+										? "cursor-not-allowed border-neutral-800 bg-neutral-900/50 text-neutral-400"
+										: "border-neutral-800 bg-neutral-900 text-neutral-100 hover:border-emerald-600"
 								}`}
 							>
-								<p className="font-semibold">{getPartDisplayLabel(part)}</p>
-								<p className="text-sm text-neutral-400">
+								<p className={adminPickerOptionTitleClass}>
+									{getPartDisplayLabel(part)}
+								</p>
+								<p className={adminPickerOptionMetaClass}>
 									Base price: {toCurrency(Number(part.base_price))}
 								</p>
 								{alreadyAdded && (
@@ -674,7 +680,7 @@ export function PartPickerModal({
 						);
 					})}
 					{filteredParts.length === 0 && (
-						<p className="py-4 text-center text-sm text-neutral-500">
+						<p className="py-4 text-center text-sm text-neutral-300">
 							No parts match your search.
 						</p>
 					)}

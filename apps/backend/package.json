@@ -4,6 +4,7 @@
 	"scripts": {
 		"lint": "venv/Scripts/ruff check .",
 		"format": "venv/Scripts/ruff format .",
-		"test": "venv/Scripts/pytest"
+		"test": "venv/Scripts/pytest",
+		"dev":  "uvicorn main:app --reload"
 	}
 }

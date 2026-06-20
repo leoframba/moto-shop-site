@@ -186,7 +186,7 @@ export default function AdminPartsTab() {
 					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 						Parts Manager
 					</h2>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Create and edit parts for invoice line items.
 					</p>
 				</div>
@@ -216,24 +216,24 @@ export default function AdminPartsTab() {
 			</AdminModal>
 
 			{isLoading ? (
-				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
+				<div className="text-center py-20 text-neutral-300 animate-pulse uppercase tracking-widest font-bold">
 					Loading Parts...
 				</div>
 			) : parts.length === 0 ? (
-				<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-500 uppercase tracking-widest text-sm">
+				<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-300 uppercase tracking-widest text-sm">
 					No parts created yet.
 				</div>
 			) : (
 				<>
 					<div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 mb-4">
 						<div className="flex items-center justify-between mb-3">
-							<p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">
+							<p className="text-xs uppercase tracking-widest text-neutral-300 font-bold">
 								Search Parts
 							</p>
 							<button
 								type="button"
 								onClick={clearSearchFilters}
-								className="text-xs text-neutral-400 hover:text-white uppercase tracking-widest font-bold"
+								className="text-xs text-neutral-300 hover:text-white uppercase tracking-widest font-bold"
 							>
 								Clear
 							</button>
@@ -258,14 +258,14 @@ export default function AdminPartsTab() {
 					</div>
 
 					{filteredParts.length === 0 ? (
-						<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-500 uppercase tracking-widest text-sm">
+						<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-300 uppercase tracking-widest text-sm">
 							No parts match current filters.
 						</div>
 					) : (
 						<div className="overflow-x-auto rounded-lg border border-neutral-800">
 							<table className="w-full min-w-[40rem] border-collapse bg-neutral-900">
 								<thead>
-									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
+									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-300">
 										<th className="px-4 py-3">Name</th>
 										<th className="px-4 py-3">Part Number</th>
 										<th className="px-4 py-3 text-right">Price</th>

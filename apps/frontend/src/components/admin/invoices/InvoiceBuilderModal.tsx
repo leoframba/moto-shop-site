@@ -18,6 +18,7 @@ import {
 } from "./InvoicePickers";
 import {
 	getBikeDisplayLabel,
+	getPartLineDisplayLabel,
 	HAZARDOUS_WASTE_LINE_NAME,
 	INVOICE_STATUSES,
 	parseNumberInput,
@@ -716,7 +717,7 @@ export function InvoiceBuilderModal({
 																		inputClassName={`${invoiceTableInputClass} text-right`}
 																	/>
 																) : (
-																	<span className="text-neutral-500">—</span>
+																	<span className="text-neutral-300">—</span>
 																)}
 															</td>
 															<td
@@ -799,10 +800,7 @@ export function InvoiceBuilderModal({
 																	}
 																	className={invoiceTablePickerButtonClass}
 																>
-																	{line.snapshot_name ||
-																		(line.is_custom
-																			? "Custom part"
-																			: "Select part...")}
+																	{getPartLineDisplayLabel(line, parts)}
 																</button>
 															</td>
 															<td className={invoiceTableCellClass}>

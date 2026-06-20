@@ -332,7 +332,7 @@ export function InvoiceList({
 								className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${
 									isActive
 										? getInvoiceStatusTagClasses(status)
-										: "bg-neutral-950 border border-neutral-800 text-neutral-500 hover:text-neutral-300"
+										: "bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-neutral-300"
 								}`}
 							>
 								{toStatusLabel(status)}
@@ -343,7 +343,7 @@ export function InvoiceList({
 			</div>
 
 			{filteredInvoices.length === 0 ? (
-				<div className="border border-dashed border-neutral-800 rounded-lg p-8 sm:p-10 text-center text-neutral-500 text-sm uppercase tracking-widest">
+				<div className="border border-dashed border-neutral-800 rounded-lg p-8 sm:p-10 text-center text-neutral-300 text-sm uppercase tracking-widest">
 					No invoices match your search.
 				</div>
 			) : (
@@ -366,7 +366,7 @@ export function InvoiceList({
 											className="flex min-w-0 flex-1 items-start gap-3 text-left"
 											aria-expanded={isExpanded}
 										>
-											<span className="mt-0.5 shrink-0 text-neutral-500">
+											<span className="mt-0.5 shrink-0 text-neutral-300">
 												{isExpanded ? (
 													<FiChevronDown className="h-5 w-5" aria-hidden />
 												) : (
@@ -385,10 +385,10 @@ export function InvoiceList({
 												<p className="truncate text-sm text-neutral-300">
 													{getInvoiceOwnerLabel(invoice)}
 												</p>
-												<p className="truncate text-xs text-neutral-500 sm:text-sm">
+												<p className="truncate text-xs text-neutral-300 sm:text-sm">
 													{getInvoiceBikeLabel(invoice)}
 												</p>
-												<p className="text-xs text-neutral-500">
+												<p className="text-xs text-neutral-300">
 													{invoiceLinesCount}{" "}
 													{invoiceLinesCount === 1 ? "item" : "items"}
 												</p>
@@ -424,7 +424,7 @@ export function InvoiceList({
 														className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${
 															invoice.status === statusOption
 																? getInvoiceStatusTagClasses(statusOption)
-																: "border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white"
+																: "border border-neutral-800 bg-neutral-950 text-neutral-300 hover:text-white"
 														}`}
 													>
 														{toStatusLabel(statusOption)}
@@ -470,7 +470,7 @@ export function InvoiceList({
 											<p className={invoiceSubheadingClass}>Invoice Details</p>
 											<dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
 												<div className="space-y-1">
-													<dt className="text-xs uppercase tracking-wider text-neutral-500">
+													<dt className="text-xs uppercase tracking-wider text-neutral-300">
 														Created
 													</dt>
 													<dd className="text-neutral-200">
@@ -478,7 +478,7 @@ export function InvoiceList({
 													</dd>
 												</div>
 												<div className="space-y-1">
-													<dt className="text-xs uppercase tracking-wider text-neutral-500">
+													<dt className="text-xs uppercase tracking-wider text-neutral-300">
 														Status
 													</dt>
 													<dd className="text-neutral-200">
@@ -486,7 +486,7 @@ export function InvoiceList({
 													</dd>
 												</div>
 												<div className="space-y-1">
-													<dt className="text-xs uppercase tracking-wider text-neutral-500">
+													<dt className="text-xs uppercase tracking-wider text-neutral-300">
 														Owner
 													</dt>
 													<dd className="break-words text-neutral-200">
@@ -494,7 +494,7 @@ export function InvoiceList({
 													</dd>
 												</div>
 												<div className="space-y-1">
-													<dt className="text-xs uppercase tracking-wider text-neutral-500">
+													<dt className="text-xs uppercase tracking-wider text-neutral-300">
 														Bike
 													</dt>
 													<dd className="break-words text-neutral-200">
@@ -507,7 +507,7 @@ export function InvoiceList({
 										<div className={invoiceAccordionSectionClass}>
 											<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 												<p className={invoiceSubheadingClass}>Line Items</p>
-												<p className="text-sm text-neutral-400">
+												<p className="text-sm text-neutral-300">
 													Total{" "}
 													<span className="font-bold text-emerald-400">
 														{toCurrency(calculateInvoiceTotal(invoice))}
@@ -516,7 +516,7 @@ export function InvoiceList({
 											</div>
 
 											{invoice.line_items.length === 0 ? (
-												<p className="text-sm text-neutral-500">
+												<p className="text-sm text-neutral-300">
 													No line items on this invoice.
 												</p>
 											) : (
@@ -531,25 +531,25 @@ export function InvoiceList({
 																	<p className="font-medium text-white">
 																		{line.snapshot_name}
 																	</p>
-																	<span className="shrink-0 rounded bg-neutral-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+																	<span className="shrink-0 rounded bg-neutral-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-300">
 																		{line.item_type}
 																	</span>
 																</div>
 																<div className="grid grid-cols-3 gap-2 text-xs">
 																	<div>
-																		<p className="text-neutral-500">Qty</p>
+																		<p className="text-neutral-300">Qty</p>
 																		<p className="text-neutral-200">
 																			{Number(line.quantity).toFixed(2)}
 																		</p>
 																	</div>
 																	<div>
-																		<p className="text-neutral-500">Unit</p>
+																		<p className="text-neutral-300">Unit</p>
 																		<p className="text-neutral-200">
 																			{toCurrency(Number(line.unit_price))}
 																		</p>
 																	</div>
 																	<div className="text-right">
-																		<p className="text-neutral-500">Total</p>
+																		<p className="text-neutral-300">Total</p>
 																		<p className="font-semibold text-emerald-400">
 																			{toCurrency(calculateLineTotal(line))}
 																		</p>
@@ -563,19 +563,19 @@ export function InvoiceList({
 														<table className="w-full min-w-[520px] text-sm">
 															<thead>
 																<tr className="border-b border-neutral-800 text-left">
-																	<th className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-500">
+																	<th className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
 																		Type
 																	</th>
-																	<th className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-500">
+																	<th className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
 																		Item
 																	</th>
-																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-500">
+																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-300">
 																		Qty
 																	</th>
-																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-500">
+																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-300">
 																		Unit
 																	</th>
-																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-500">
+																	<th className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wider text-neutral-300">
 																		Total
 																	</th>
 																</tr>
@@ -586,7 +586,7 @@ export function InvoiceList({
 																		key={line.id}
 																		className="border-b border-neutral-800/70 last:border-b-0"
 																	>
-																		<td className="px-3 py-2.5 uppercase text-neutral-400">
+																		<td className="px-3 py-2.5 uppercase text-neutral-300">
 																			{line.item_type}
 																		</td>
 																		<td className="px-3 py-2.5 text-white">

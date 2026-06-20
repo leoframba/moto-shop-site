@@ -89,7 +89,7 @@ export function NumberStepperInput({
 	const stepperButtonClass = [
 		"flex flex-1 items-center justify-center",
 		buttonWidthClass,
-		"text-neutral-400 transition-colors",
+		"text-neutral-300 transition-colors",
 		"hover:bg-neutral-700 hover:text-emerald-300",
 		"active:bg-neutral-600 active:text-emerald-200",
 		"disabled:pointer-events-none disabled:opacity-40",

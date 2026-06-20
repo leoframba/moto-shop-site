@@ -1,9 +1,11 @@
+import { getPartDisplayLabel } from "@/components/admin/parts/partUtils";
 import type {
 	AdminUser,
 	InvoiceBike,
 	InvoiceLineItemRecord,
 	InvoiceRecord,
 	InvoiceWithRelations,
+	Part,
 	Service,
 	ShopSettings,
 } from "@/types";
@@ -136,6 +138,24 @@ export const getInvoiceBikeLabel = (invoice: InvoiceWithRelations): string => {
 
 export const getBikeDisplayLabel = (bike: InvoiceBike): string =>
 	`${bike.year} ${bike.make} ${bike.model}`;
+
+export const getPartLineDisplayLabel = (
+	line: DraftPartLine,
+	parts: Part[],
+): string => {
+	if (line.is_custom) {
+		return line.snapshot_name.trim() || "Custom part";
+	}
+
+	if (line.part_id) {
+		const matchedPart = parts.find((part) => part.id === line.part_id);
+		if (matchedPart) {
+			return getPartDisplayLabel(matchedPart);
+		}
+	}
+
+	return line.snapshot_name.trim() || "Select part...";
+};
 
 export const getInvoiceStatusTagClasses = (
 	status: InvoiceRecord["status"],

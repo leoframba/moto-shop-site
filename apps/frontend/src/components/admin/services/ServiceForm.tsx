@@ -69,7 +69,7 @@ export default function ServiceForm({
 					<div>
 						<label
 							htmlFor="form-cat"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Category
 						</label>
@@ -91,7 +91,7 @@ export default function ServiceForm({
 					<div>
 						<label
 							htmlFor="form-price"
-							className="text-xs text-neutral-400 block mb-1"
+							className="text-xs text-neutral-300 block mb-1"
 						>
 							Pricing Model
 						</label>
@@ -118,7 +118,7 @@ export default function ServiceForm({
 						<div>
 							<label
 								htmlFor="form-hrs"
-								className="text-sm text-neutral-400 block mb-1"
+								className="text-sm text-neutral-300 block mb-1"
 							>
 								Est. Hours:
 							</label>
@@ -141,7 +141,7 @@ export default function ServiceForm({
 						<div>
 							<label
 								htmlFor="form-fixed"
-								className="text-sm text-neutral-400 block mb-1"
+								className="text-sm text-neutral-300 block mb-1"
 							>
 								Fixed Price ($):
 							</label>
@@ -175,7 +175,7 @@ export default function ServiceForm({
 						<span className="block text-sm font-semibold text-neutral-100">
 							Invoice only
 						</span>
-						<span className="block text-xs leading-relaxed text-neutral-400">
+						<span className="block text-xs leading-relaxed text-neutral-300">
 							Shop catalog item for invoices. Never appears on the public
 							website menu.
 						</span>

@@ -317,7 +317,7 @@ export default function AdminServiceTab() {
 					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 						Service Management
 					</h2>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Manage shop rate, categories, and services.
 					</p>
 				</div>
@@ -333,7 +333,7 @@ export default function AdminServiceTab() {
 					<h3 className="text-red-500 font-bold uppercase tracking-widest mb-2">
 						Failed to Load Services
 					</h3>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Could not reach the backend. Check your connection and try
 						refreshing.
 					</p>
@@ -348,7 +348,7 @@ export default function AdminServiceTab() {
 				<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 					Service Management
 				</h2>
-				<p className="text-neutral-400 text-sm">
+				<p className="text-neutral-300 text-sm">
 					Manage shop rate, categories, and services.
 				</p>
 			</div>
@@ -369,7 +369,7 @@ export default function AdminServiceTab() {
 			{/* SERVICE MANAGEMENT */}
 			<section>
 				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500">
+					<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-300">
 						Service Menu Previews
 					</h2>
 					<button

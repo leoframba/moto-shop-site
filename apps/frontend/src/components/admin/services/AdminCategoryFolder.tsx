@@ -52,7 +52,7 @@ export default function AdminCategoryFolder({
 						</span>
 					)}
 					{allHidden && (
-						<span className="text-xs font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-1 rounded hidden md:block">
+						<span className="text-xs font-bold text-neutral-300 uppercase bg-neutral-700/40 px-2 py-1 rounded hidden md:block">
 							Hidden from menu
 						</span>
 					)}
@@ -78,7 +78,7 @@ export default function AdminCategoryFolder({
 							<span className="text-amber-500 font-bold uppercase tracking-widest text-xs block mb-1">
 								⚠️ Empty Category
 							</span>
-							<p className="text-neutral-500 text-sm">
+							<p className="text-neutral-300 text-sm">
 								This category has no services inside it. It will be
 								automatically hidden from the public menu.
 							</p>
@@ -119,30 +119,30 @@ export default function AdminCategoryFolder({
 													</span>
 												)}
 												{!service.is_internal && service.is_hidden && (
-													<span className="text-[10px] font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-0.5 rounded tracking-widest">
+													<span className="text-[10px] font-bold text-neutral-300 uppercase bg-neutral-700/40 px-2 py-0.5 rounded tracking-widest">
 														Hidden
 													</span>
 												)}
 											</h3>
-											<p className="text-neutral-400 leading-relaxed text-sm">
+											<p className="text-neutral-300 leading-relaxed text-sm">
 												{service.description}
 											</p>
 										</div>
 										<div className="flex items-center shrink-0">
 											{service.pricing_type === "contact" ? (
-												<span className="text-lg md:text-xl font-bold text-neutral-400 uppercase tracking-widest italic">
+												<span className="text-lg md:text-xl font-bold text-neutral-300 uppercase tracking-widest italic">
 													Call for Quote
 												</span>
 											) : (
 												<div className="flex items-center gap-4 md:gap-8">
 													{service.pricing_type === "hourly" && (
 														<div className="text-right">
-															<span className="block text-[10px] md:text-xs text-neutral-500 uppercase tracking-widest mb-1">
+															<span className="block text-[10px] md:text-xs text-neutral-300 uppercase tracking-widest mb-1">
 																Est. Labor
 															</span>
 															<span className="text-lg md:text-xl font-mono text-neutral-200">
 																{service.estimated_hours}{" "}
-																<span className="text-xs md:text-sm text-neutral-500 font-sans uppercase">
+																<span className="text-xs md:text-sm text-neutral-300 font-sans uppercase">
 																	hrs
 																</span>
 															</span>
@@ -152,7 +152,7 @@ export default function AdminCategoryFolder({
 														<div className="w-px h-10 bg-neutral-800 hidden md:block"></div>
 													)}
 													<div className="text-right border-l border-neutral-800 pl-4 md:border-none md:pl-0">
-														<span className="block text-[10px] md:text-xs text-neutral-500 uppercase tracking-widest mb-1">
+														<span className="block text-[10px] md:text-xs text-neutral-300 uppercase tracking-widest mb-1">
 															{service.pricing_type === "fixed"
 																? "Fixed Rate"
 																: "Est. Total"}
@@ -173,7 +173,7 @@ export default function AdminCategoryFolder({
 																? "Move to public catalog"
 																: "Mark as invoice only"
 														}
-														className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+														className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
 													>
 														{service.is_internal ? "Public" : "Invoice"}
 													</button>
@@ -187,7 +187,7 @@ export default function AdminCategoryFolder({
 																? "Show on public menu"
 																: "Hide from public menu"
 														}
-														className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+														className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
 													>
 														{service.is_hidden ? "Show" : "Hide"}
 													</button>
@@ -195,7 +195,7 @@ export default function AdminCategoryFolder({
 												<button
 													type="button"
 													onClick={() => setEditingId(service.id)}
-													className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+													className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
 												>
 													Edit
 												</button>

@@ -6,7 +6,7 @@ export const modalOverlayClass =
 	"fixed inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm";
 
 export const modalPanelClass =
-	"w-full rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 sm:p-5";
+	"w-full rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 text-neutral-100 sm:p-5";
 
 export const modalHeaderClass = "mb-4 flex items-center justify-between gap-3";
 
@@ -14,10 +14,10 @@ export const modalTitleClass =
 	"text-lg font-bold uppercase tracking-widest text-white";
 
 export const modalCloseButtonClass =
-	"shrink-0 text-sm font-bold uppercase tracking-widest text-neutral-400 transition-colors hover:text-white";
+	"shrink-0 text-sm font-bold uppercase tracking-widest text-neutral-300 transition-colors hover:text-white";
 
 export const modalOptionButtonClass =
-	"w-full rounded-md border border-neutral-800 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-600";
+	"w-full rounded-md border border-neutral-800 bg-neutral-900 p-3 text-left text-neutral-100 transition-colors hover:border-emerald-600";
 
 export const MODAL_PANEL_SIZES = {
 	sm: "max-w-md",

@@ -32,7 +32,7 @@ export default function CategoryManager({
 
 	return (
 		<section className="p-8 border border-neutral-800 rounded-2xl bg-neutral-900 shadow-xl">
-			<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">
+			<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-300 mb-4">
 				Categories
 			</h2>
 			<div className="flex gap-2 mb-4">
@@ -56,7 +56,7 @@ export default function CategoryManager({
 						key={cat.id}
 						className="flex justify-between items-center bg-neutral-950 px-3 py-2 rounded border border-neutral-800"
 					>
-						<span className="text-sm">{cat.name}</span>
+						<span className="text-sm text-neutral-100">{cat.name}</span>
 						<button
 							type="button"
 							onClick={() => onDeleteCategory(cat.id)}
@@ -67,7 +67,7 @@ export default function CategoryManager({
 					</div>
 				))}
 				{categories.length === 0 && (
-					<p className="text-xs text-neutral-500 italic">
+					<p className="text-xs text-neutral-300 italic">
 						No categories created yet.
 					</p>
 				)}

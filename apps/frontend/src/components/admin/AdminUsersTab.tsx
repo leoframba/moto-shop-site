@@ -49,7 +49,7 @@ const UserManagerForm = ({
 				<div className="md:col-span-2">
 					<label
 						htmlFor="user-email"
-						className="text-xs text-neutral-400 block mb-1"
+						className="text-xs text-neutral-300 block mb-1"
 					>
 						Email {isEditing ? "(read-only)" : ""}
 					</label>
@@ -70,7 +70,7 @@ const UserManagerForm = ({
 				<div>
 					<label
 						htmlFor="user-first-name"
-						className="text-xs text-neutral-400 block mb-1"
+						className="text-xs text-neutral-300 block mb-1"
 					>
 						First Name
 					</label>
@@ -84,7 +84,7 @@ const UserManagerForm = ({
 				<div>
 					<label
 						htmlFor="user-last-name"
-						className="text-xs text-neutral-400 block mb-1"
+						className="text-xs text-neutral-300 block mb-1"
 					>
 						Last Name
 					</label>
@@ -98,7 +98,7 @@ const UserManagerForm = ({
 				<div className="md:col-span-2">
 					<label
 						htmlFor="user-phone"
-						className="text-xs text-neutral-400 block mb-1"
+						className="text-xs text-neutral-300 block mb-1"
 					>
 						Phone Number
 					</label>
@@ -113,7 +113,7 @@ const UserManagerForm = ({
 			</div>
 
 			{!isEditing && (
-				<p className="text-xs text-neutral-500 mb-4 inline-flex items-center gap-2">
+				<p className="text-xs text-neutral-300 mb-4 inline-flex items-center gap-2">
 					<FiMail className="h-3.5 w-3.5" />
 					An invite email will be sent with a link to finish account setup.
 				</p>
@@ -314,7 +314,7 @@ export default function AdminUsersTab() {
 					<h2 className="text-3xl font-bold tracking-tight text-white mb-1">
 						User Control
 					</h2>
-					<p className="text-neutral-400 text-sm">
+					<p className="text-neutral-300 text-sm">
 						Edit rider profiles and invite new customers to the rider portal.
 					</p>
 				</div>
@@ -354,7 +354,7 @@ export default function AdminUsersTab() {
 						<button
 							type="button"
 							onClick={() => setInviteLink(null)}
-							className="text-neutral-500 hover:text-white"
+							className="text-neutral-300 hover:text-white"
 							aria-label="Dismiss invite link"
 						>
 							<FiX className="h-4 w-4" />
@@ -383,11 +383,11 @@ export default function AdminUsersTab() {
 			)}
 
 			{isLoading ? (
-				<div className="text-center py-20 text-neutral-500 animate-pulse uppercase tracking-widest font-bold">
+				<div className="text-center py-20 text-neutral-300 animate-pulse uppercase tracking-widest font-bold">
 					Loading Users...
 				</div>
 			) : users.length === 0 ? (
-				<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-500 uppercase tracking-widest text-sm">
+				<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-300 uppercase tracking-widest text-sm">
 					No users yet. Invite your first rider.
 				</div>
 			) : (
@@ -402,14 +402,14 @@ export default function AdminUsersTab() {
 					</div>
 
 					{filteredUsers.length === 0 ? (
-						<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-500 uppercase tracking-widest text-sm">
+						<div className="border border-dashed border-neutral-800 rounded-lg p-10 text-center bg-neutral-900/20 text-neutral-300 uppercase tracking-widest text-sm">
 							No users match your search.
 						</div>
 					) : (
 						<div className="overflow-x-auto rounded-lg border border-neutral-800">
 							<table className="w-full min-w-[48rem] border-collapse bg-neutral-900">
 								<thead>
-									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
+									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-300">
 										<th className="px-4 py-3">Name</th>
 										<th className="px-4 py-3">Email</th>
 										<th className="px-4 py-3">Phone</th>

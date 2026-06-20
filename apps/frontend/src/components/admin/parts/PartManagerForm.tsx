@@ -35,9 +35,9 @@ export function PartManagerForm({
 				<div>
 					<label
 						htmlFor="part-number"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
-						Part Number <span className="text-neutral-500">(optional)</span>
+						Part Number <span className="text-neutral-300">(optional)</span>
 					</label>
 					<input
 						id="part-number"
@@ -50,7 +50,7 @@ export function PartManagerForm({
 				<div className="md:col-span-2">
 					<label
 						htmlFor="part-description"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Description
 					</label>
@@ -65,7 +65,7 @@ export function PartManagerForm({
 				<div>
 					<label
 						htmlFor="part-price"
-						className="mb-1 block text-xs text-neutral-400"
+						className="mb-1 block text-xs text-neutral-300"
 					>
 						Base Price
 					</label>

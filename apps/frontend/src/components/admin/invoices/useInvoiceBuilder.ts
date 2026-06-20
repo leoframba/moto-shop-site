@@ -1,3 +1,4 @@
+import { getPartDisplayLabel } from "@/components/admin/parts/partUtils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -497,7 +498,7 @@ export function useInvoiceBuilder({
 					? {
 							...line,
 							part_id: partId,
-							snapshot_name: selectedPart.description,
+							snapshot_name: getPartDisplayLabel(selectedPart),
 							is_custom: false,
 							unit_price: Number(selectedPart.base_price),
 						}
