@@ -6,7 +6,7 @@ import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 type NumberStepperSize = "default" | "compact";
 
 export interface NumberStepperInputProps
-	extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
+	extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
 	inputClassName?: string;
 	size?: NumberStepperSize;
 }
