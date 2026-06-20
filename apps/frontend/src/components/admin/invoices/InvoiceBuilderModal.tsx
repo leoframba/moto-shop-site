@@ -17,6 +17,7 @@ import {
 } from "./InvoicePickers";
 import {
 	getBikeDisplayLabel,
+	HAZARDOUS_WASTE_LINE_NAME,
 	INVOICE_STATUSES,
 	parseNumberInput,
 	toCurrency,
@@ -391,6 +392,86 @@ export function InvoiceBuilderModal({
 								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
 									<div className="flex justify-between items-center mb-4">
 										<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+											{HAZARDOUS_WASTE_LINE_NAME}
+										</h4>
+										<label className="inline-flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">
+											<input
+												type="checkbox"
+												checked={builder.hazardousWasteEnabled}
+												onChange={(e) =>
+													builder.toggleHazardousWaste(e.target.checked)
+												}
+												className="h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-emerald-500 focus:ring-emerald-500"
+											/>
+											Include on invoice
+										</label>
+									</div>
+									{builder.hazardousWasteEnabled ? (
+										<div className="grid md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end bg-neutral-900 border border-neutral-800 rounded p-3">
+											<div>
+												<p className="text-xs text-neutral-400 block mb-1">
+													Description
+												</p>
+												<p className="text-sm text-white py-2.5">
+													{HAZARDOUS_WASTE_LINE_NAME}
+												</p>
+											</div>
+											<div>
+												<label
+													htmlFor="hazardous-waste-quantity"
+													className="text-xs text-neutral-400 block mb-1"
+												>
+													Qty
+												</label>
+												<input
+													id="hazardous-waste-quantity"
+													type="number"
+													min={1}
+													step={1}
+													value={builder.hazardousWasteQuantity}
+													onChange={(e) =>
+														builder.setHazardousWasteQuantity(
+															Math.max(1, parseInt(e.target.value, 10) || 1),
+														)
+													}
+													className={lineInputClasses}
+												/>
+											</div>
+											<div>
+												<label
+													htmlFor="hazardous-waste-rate"
+													className="text-xs text-neutral-400 block mb-1"
+												>
+													Unit Price
+												</label>
+												<input
+													id="hazardous-waste-rate"
+													type="number"
+													min={0}
+													step={0.01}
+													value={builder.hazardousWasteUnitPrice}
+													onChange={(e) =>
+														builder.setHazardousWasteUnitPrice(
+															parseNumberInput(e.target.value),
+														)
+													}
+													className={lineInputClasses}
+												/>
+											</div>
+											<p className="text-sm text-emerald-400 font-semibold pb-2">
+												{toCurrency(builder.hazardousWasteSubtotal)}
+											</p>
+										</div>
+									) : (
+										<p className="text-neutral-500 text-sm">
+											Not included on this invoice.
+										</p>
+									)}
+								</section>
+
+								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
+									<div className="flex justify-between items-center mb-4">
+										<h4 className="text-sm font-bold uppercase tracking-widest text-neutral-300">
 											Services
 										</h4>
 										<button
@@ -638,7 +719,17 @@ export function InvoiceBuilderModal({
 								</section>
 
 								<section className="bg-neutral-950 border border-neutral-800 rounded-lg p-5">
-									<div className="grid md:grid-cols-2 gap-4 text-sm mb-4">
+									<div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
+										{builder.hazardousWasteEnabled ? (
+											<div className="bg-neutral-900 border border-neutral-800 rounded p-3">
+												<p className="text-neutral-400 uppercase tracking-widest text-[11px] mb-1">
+													Hazardous Waste Total
+												</p>
+												<p className="text-white font-bold">
+													{toCurrency(builder.hazardousWasteSubtotal)}
+												</p>
+											</div>
+										) : null}
 										<div className="bg-neutral-900 border border-neutral-800 rounded p-3">
 											<p className="text-neutral-400 uppercase tracking-widest text-[11px] mb-1">
 												Services Total

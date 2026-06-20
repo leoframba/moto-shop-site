@@ -17,6 +17,7 @@ import {
 	type DraftPartLine,
 	type DraftServiceLine,
 	getUserDisplayName,
+	HAZARDOUS_WASTE_LINE_NAME,
 } from "./invoiceHelpers";
 
 interface UseInvoiceBuilderArgs {
@@ -25,6 +26,7 @@ interface UseInvoiceBuilderArgs {
 	services: Service[];
 	parts: Part[];
 	shopHourlyRate: number;
+	shopHazardousWasteRate: number;
 	onSaved: (invoiceId: string) => void | Promise<void>;
 }
 
@@ -34,6 +36,7 @@ export function useInvoiceBuilder({
 	services,
 	parts,
 	shopHourlyRate,
+	shopHazardousWasteRate,
 	onSaved,
 }: UseInvoiceBuilderArgs) {
 	const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +54,21 @@ export function useInvoiceBuilder({
 
 	const [serviceLines, setServiceLines] = useState<DraftServiceLine[]>([]);
 	const [partLines, setPartLines] = useState<DraftPartLine[]>([]);
+	const [hazardousWasteEnabled, setHazardousWasteEnabled] = useState(false);
+	const [hazardousWasteQuantity, setHazardousWasteQuantity] = useState(1);
+	const [hazardousWasteUnitPrice, setHazardousWasteUnitPrice] = useState(
+		shopHazardousWasteRate,
+	);
+
+	const toggleHazardousWaste = (enabled: boolean) => {
+		setHazardousWasteEnabled(enabled);
+		if (enabled) {
+			setHazardousWasteUnitPrice((prev) =>
+				prev > 0 ? prev : shopHazardousWasteRate,
+			);
+			setHazardousWasteQuantity((prev) => (prev >= 1 ? prev : 1));
+		}
+	};
 
 	const [isOwnerPickerOpen, setIsOwnerPickerOpen] = useState(false);
 	const [isBikePickerOpen, setIsBikePickerOpen] = useState(false);
@@ -120,11 +138,20 @@ export function useInvoiceBuilder({
 			partLines.reduce((sum, line) => sum + line.unit_price * line.quantity, 0),
 		[partLines],
 	);
-	const invoiceTotal = servicesSubtotal + partsSubtotal;
+	const hazardousWasteSubtotal = useMemo(
+		() =>
+			hazardousWasteEnabled
+				? hazardousWasteUnitPrice * hazardousWasteQuantity
+				: 0,
+		[hazardousWasteEnabled, hazardousWasteUnitPrice, hazardousWasteQuantity],
+	);
+	const invoiceTotal =
+		servicesSubtotal + partsSubtotal + hazardousWasteSubtotal;
 
 	const isDirty =
 		serviceLines.length > 0 ||
 		partLines.length > 0 ||
+		hazardousWasteEnabled ||
 		Boolean(ownerId) ||
 		Boolean(bikeId) ||
 		Boolean(odometerIn.trim()) ||
@@ -141,6 +168,9 @@ export function useInvoiceBuilder({
 		setMechanicNotes("");
 		setServiceLines([]);
 		setPartLines([]);
+		setHazardousWasteEnabled(false);
+		setHazardousWasteQuantity(1);
+		setHazardousWasteUnitPrice(shopHazardousWasteRate);
 	};
 
 	const openForNewInvoice = () => {
@@ -223,6 +253,19 @@ export function useInvoiceBuilder({
 				unit_price: Number(line.unit_price),
 				quantity: Number(line.quantity),
 			}));
+
+		const hazardousLine = invoice.line_items.find(
+			(line) => line.item_type === "hazardous_waste",
+		);
+		if (hazardousLine) {
+			setHazardousWasteEnabled(true);
+			setHazardousWasteQuantity(Number(hazardousLine.quantity));
+			setHazardousWasteUnitPrice(Number(hazardousLine.unit_price));
+		} else {
+			setHazardousWasteEnabled(false);
+			setHazardousWasteQuantity(1);
+			setHazardousWasteUnitPrice(shopHazardousWasteRate);
+		}
 
 		setServiceLines(nextServiceLines);
 		setPartLines(nextPartLines);
@@ -447,9 +490,30 @@ export function useInvoiceBuilder({
 	};
 
 	const save = async () => {
-		if (serviceLines.length === 0 && partLines.length === 0) {
-			toast.warning("Add at least one service or part line item.");
+		if (
+			serviceLines.length === 0 &&
+			partLines.length === 0 &&
+			!hazardousWasteEnabled
+		) {
+			toast.warning("Add at least one line item.");
 			return;
+		}
+
+		if (hazardousWasteEnabled) {
+			if (hazardousWasteQuantity <= 0) {
+				toast.warning("Hazardous waste quantity must be at least 1.");
+				return;
+			}
+			if (hazardousWasteUnitPrice < 0) {
+				toast.warning("Hazardous waste rate cannot be negative.");
+				return;
+			}
+			if (hazardousWasteUnitPrice * hazardousWasteQuantity <= 0) {
+				toast.warning(
+					"Hazardous waste disposal total must be greater than $0.",
+				);
+				return;
+			}
 		}
 
 		for (const line of serviceLines) {
@@ -505,6 +569,16 @@ export function useInvoiceBuilder({
 			odometer_out: odometerOut.trim() ? parseInt(odometerOut, 10) : null,
 			mechanic_notes: mechanicNotes.trim() || null,
 			line_items: [
+				...(hazardousWasteEnabled
+					? [
+							{
+								item_type: "hazardous_waste" as const,
+								snapshot_name: HAZARDOUS_WASTE_LINE_NAME,
+								unit_price: hazardousWasteUnitPrice,
+								quantity: hazardousWasteQuantity,
+							},
+						]
+					: []),
 				...serviceLines.map((line) => ({
 					item_type: "service" as const,
 					service_id: line.service_id || null,
@@ -594,8 +668,15 @@ export function useInvoiceBuilder({
 		// line items
 		serviceLines,
 		partLines,
+		hazardousWasteEnabled,
+		hazardousWasteQuantity,
+		hazardousWasteUnitPrice,
+		toggleHazardousWaste,
+		setHazardousWasteQuantity,
+		setHazardousWasteUnitPrice,
 		servicesSubtotal,
 		partsSubtotal,
+		hazardousWasteSubtotal,
 		invoiceTotal,
 		addServiceLine,
 		addPartLine,

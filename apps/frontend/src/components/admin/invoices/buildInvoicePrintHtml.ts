@@ -14,8 +14,15 @@ export const buildInvoicePrintHtml = (
 	shopSettings: ShopSettings,
 ): string => {
 	const safeLineItems = invoice.line_items ?? [];
+	const hazardousWaste = safeLineItems.filter(
+		(line) => line.item_type === "hazardous_waste",
+	);
 	const services = safeLineItems.filter((line) => line.item_type === "service");
 	const parts = safeLineItems.filter((line) => line.item_type === "part");
+	const hazardousWasteSubtotal = hazardousWaste.reduce(
+		(sum, line) => sum + calculateLineTotal(line),
+		0,
+	);
 	const servicesSubtotal = services.reduce(
 		(sum, line) => sum + calculateLineTotal(line),
 		0,
@@ -24,7 +31,7 @@ export const buildInvoicePrintHtml = (
 		(sum, line) => sum + calculateLineTotal(line),
 		0,
 	);
-	const subtotal = servicesSubtotal + partsSubtotal;
+	const subtotal = hazardousWasteSubtotal + servicesSubtotal + partsSubtotal;
 	const normalizedTaxRate = Number(shopSettings.tax_rate ?? 0);
 	// Labor/services are not taxable — sales tax applies to parts only.
 	const salesTax = Number(
@@ -47,6 +54,7 @@ export const buildInvoicePrintHtml = (
 		.toUpperCase();
 
 	const hasBike = Boolean(bike);
+	const hasHazardousWaste = hazardousWaste.length > 0;
 	const hasServices = services.length > 0;
 	const hasParts = parts.length > 0;
 	const hasNotes = mechanicNotes.length > 0;
@@ -77,7 +85,7 @@ export const buildInvoicePrintHtml = (
 	${renderGroupSubtotal(subtotalLabel, subtotal)}`;
 
 	const lineItemsSection =
-		hasServices || hasParts
+		hasHazardousWaste || hasServices || hasParts
 			? `<section class="section">
 			<table class="line-items">
 				<colgroup>
@@ -95,6 +103,7 @@ export const buildInvoicePrintHtml = (
 					</tr>
 				</thead>
 				<tbody>
+					${hasHazardousWaste ? renderLineItemGroup("Hazardous Waste Disposal", hazardousWaste, "Hazardous Waste Total", hazardousWasteSubtotal) : ""}
 					${hasServices ? renderLineItemGroup("Labor &amp; Services", services, "Labor Total", servicesSubtotal) : ""}
 					${hasParts ? renderLineItemGroup("Parts &amp; Materials", parts, "Parts Total", partsSubtotal) : ""}
 				</tbody>
@@ -121,12 +130,6 @@ export const buildInvoicePrintHtml = (
 		</section>`
 		: "";
 
-	const laborTotalRow = hasServices
-		? `<div class="totals-row"><span>Labor subtotal</span><strong>$${servicesSubtotal.toFixed(2)}</strong></div>`
-		: "";
-	const partsTotalRow = hasParts
-		? `<div class="totals-row"><span>Parts subtotal</span><strong>$${partsSubtotal.toFixed(2)}</strong></div>`
-		: "";
 	const taxRow =
 		hasParts || salesTax > 0
 			? `<div class="totals-row"><span>Sales tax &middot; parts only (${normalizedTaxRate.toFixed(3)}%)</span><strong>$${salesTax.toFixed(2)}</strong></div>`
@@ -395,8 +398,6 @@ export const buildInvoicePrintHtml = (
 		${notesSection}
 
 		<section class="totals">
-			${laborTotalRow}
-			${partsTotalRow}
 			<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
 			${taxRow}
 			<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>

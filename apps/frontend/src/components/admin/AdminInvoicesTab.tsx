@@ -18,6 +18,7 @@ export default function AdminInvoicesTab() {
 		services: data.services,
 		parts: data.parts,
 		shopHourlyRate: data.shopHourlyRate,
+		shopHazardousWasteRate: Number(data.shopSettings.hazardous_waste_rate ?? 0),
 		onSaved: async (invoiceId) => {
 			await data.refetch();
 			setAutoExpandInvoiceId(invoiceId);

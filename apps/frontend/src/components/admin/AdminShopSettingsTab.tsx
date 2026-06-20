@@ -12,6 +12,7 @@ interface ShopSettingsFormData {
 	shop_email: string;
 	hourly_rate: number;
 	tax_rate: number;
+	hazardous_waste_rate: number;
 }
 
 const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
@@ -21,6 +22,7 @@ const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
 	shop_email: settings.shop_email ?? "",
 	hourly_rate: Number(settings.hourly_rate ?? 0),
 	tax_rate: Number(settings.tax_rate ?? 0),
+	hazardous_waste_rate: Number(settings.hazardous_waste_rate ?? 0),
 });
 
 export default function AdminShopSettingsTab() {
@@ -33,6 +35,7 @@ export default function AdminShopSettingsTab() {
 		shop_email: "",
 		hourly_rate: 0,
 		tax_rate: 0,
+		hazardous_waste_rate: 0,
 	});
 
 	const fetchSettings = useCallback(async () => {
@@ -76,6 +79,7 @@ export default function AdminShopSettingsTab() {
 					shop_email: formData.shop_email || null,
 					hourly_rate: Number(formData.hourly_rate),
 					tax_rate: Number(formData.tax_rate),
+					hazardous_waste_rate: Number(formData.hazardous_waste_rate),
 				}),
 			});
 			toast.success("Shop settings updated.");
@@ -186,6 +190,25 @@ export default function AdminShopSettingsTab() {
 							value={formData.tax_rate}
 							onChange={(e) =>
 								updateField("tax_rate", Number(e.target.value) || 0)
+							}
+							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="shop-hazardous-waste-rate"
+							className="text-xs text-neutral-400 block mb-1"
+						>
+							Hazardous Waste Unit Rate
+						</label>
+						<input
+							id="shop-hazardous-waste-rate"
+							type="number"
+							min={0}
+							step={0.01}
+							value={formData.hazardous_waste_rate}
+							onChange={(e) =>
+								updateField("hazardous_waste_rate", Number(e.target.value) || 0)
 							}
 							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
 						/>

@@ -27,6 +27,8 @@ export interface DraftPartLine {
 	quantity: number;
 }
 
+export const HAZARDOUS_WASTE_LINE_NAME = "Hazardous Waste Disposal";
+
 export const INVOICE_STATUSES: InvoiceRecord["status"][] = [
 	"draft",
 	"estimate",
@@ -44,6 +46,7 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 	shop_email: null,
 	hourly_rate: 0,
 	tax_rate: 0,
+	hazardous_waste_rate: 0,
 };
 
 export const createDraftId = (): string => {

@@ -38,6 +38,7 @@ export interface ShopSettings {
 	shop_email?: string | null;
 	hourly_rate: number;
 	tax_rate?: number | null;
+	hazardous_waste_rate?: number | null;
 }
 
 export interface SocialLinkProps {
@@ -142,7 +143,7 @@ export interface PartFormData {
 	base_price: number;
 }
 
-export type InvoiceItemType = "service" | "part";
+export type InvoiceItemType = "service" | "part" | "hazardous_waste";
 
 export type InvoiceStatus =
 	| "draft"

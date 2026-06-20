@@ -497,6 +497,19 @@ async def delete_bike(bike_id: str):
 # ==========================================
 
 
+def _invoice_line_item_row(invoice_id: str, item) -> dict:
+    return {
+        "invoice_id": invoice_id,
+        "item_type": item.item_type,
+        "service_id": item.service_id if item.item_type == "service" else None,
+        "part_id": item.part_id if item.item_type == "part" else None,
+        "snapshot_name": item.snapshot_name,
+        "pricing_type": item.pricing_type if item.item_type == "service" else None,
+        "unit_price": item.unit_price,
+        "quantity": item.quantity,
+    }
+
+
 @router.get("/invoices")
 async def list_invoices():
     try:
@@ -602,24 +615,10 @@ async def create_invoice(invoice: InvoiceCreate):
         if not created_invoice:
             raise HTTPException(status_code=400, detail="Failed to create invoice")
 
-        line_items_payload = []
-        for item in invoice.line_items:
-            line_items_payload.append(
-                {
-                    "invoice_id": created_invoice["id"],
-                    "item_type": item.item_type,
-                    "service_id": item.service_id
-                    if item.item_type == "service"
-                    else None,
-                    "part_id": item.part_id if item.item_type == "part" else None,
-                    "snapshot_name": item.snapshot_name,
-                    "pricing_type": item.pricing_type
-                    if item.item_type == "service"
-                    else None,
-                    "unit_price": item.unit_price,
-                    "quantity": item.quantity,
-                }
-            )
+        line_items_payload = [
+            _invoice_line_item_row(created_invoice["id"], item)
+            for item in invoice.line_items
+        ]
 
         line_items_response = (
             supabase.table("invoice_line_items").insert(line_items_payload).execute()
@@ -669,24 +668,9 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
             "invoice_id", invoice_id
         ).execute()
 
-        line_items_payload = []
-        for item in invoice.line_items:
-            line_items_payload.append(
-                {
-                    "invoice_id": invoice_id,
-                    "item_type": item.item_type,
-                    "service_id": item.service_id
-                    if item.item_type == "service"
-                    else None,
-                    "part_id": item.part_id if item.item_type == "part" else None,
-                    "snapshot_name": item.snapshot_name,
-                    "pricing_type": item.pricing_type
-                    if item.item_type == "service"
-                    else None,
-                    "unit_price": item.unit_price,
-                    "quantity": item.quantity,
-                }
-            )
+        line_items_payload = [
+            _invoice_line_item_row(invoice_id, item) for item in invoice.line_items
+        ]
 
         line_items_response = (
             supabase.table("invoice_line_items").insert(line_items_payload).execute()

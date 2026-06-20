@@ -116,7 +116,7 @@ class PartUpdate(PartBase):
 
 
 class InvoiceLineItemCreate(BaseModel):
-    item_type: Literal["service", "part"]
+    item_type: Literal["service", "part", "hazardous_waste"]
     service_id: str | None = None
     part_id: str | None = None
     snapshot_name: str = Field(..., min_length=1)
@@ -141,8 +141,12 @@ class InvoiceLineItemCreate(BaseModel):
     def validate_reference(self):
         if self.item_type == "service":
             self.part_id = None
-        if self.item_type == "part":
+        elif self.item_type == "part":
             self.service_id = None
+            self.pricing_type = None
+        elif self.item_type == "hazardous_waste":
+            self.service_id = None
+            self.part_id = None
             self.pricing_type = None
         return self
 
@@ -249,6 +253,7 @@ class ShopSettingsUpdate(BaseModel):
     shop_email: str | None = None
     hourly_rate: float | None = Field(default=None, ge=0)
     tax_rate: float | None = Field(default=None, ge=0, le=100)
+    hazardous_waste_rate: float | None = Field(default=None, ge=0)
 
     @field_validator(
         "shop_name", "shop_address", "shop_phone", "shop_email", mode="before"
