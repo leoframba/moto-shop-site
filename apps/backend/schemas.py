@@ -160,9 +160,24 @@ class InvoiceCreate(BaseModel):
     odometer_in: int | None = None
     odometer_out: int | None = None
     mechanic_notes: str | None = None
-    line_items: list[InvoiceLineItemCreate] = Field(default_factory=list, min_length=1)
+    customer_first_name: str | None = None
+    customer_last_name: str | None = None
+    customer_address: str | None = None
+    customer_phone: str | None = None
+    customer_email: str | None = None
+    line_items: list[InvoiceLineItemCreate] = Field(default_factory=list)
 
-    @field_validator("owner_id", "bike_id", "mechanic_notes", mode="before")
+    @field_validator(
+        "owner_id",
+        "bike_id",
+        "mechanic_notes",
+        "customer_first_name",
+        "customer_last_name",
+        "customer_address",
+        "customer_phone",
+        "customer_email",
+        mode="before",
+    )
     @classmethod
     def blank_to_none(cls, v):
         if isinstance(v, str):

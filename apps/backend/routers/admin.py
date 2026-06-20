@@ -604,6 +604,11 @@ async def create_invoice(invoice: InvoiceCreate):
             "odometer_in": invoice.odometer_in,
             "odometer_out": invoice.odometer_out,
             "mechanic_notes": invoice.mechanic_notes,
+            "customer_first_name": invoice.customer_first_name,
+            "customer_last_name": invoice.customer_last_name,
+            "customer_address": invoice.customer_address,
+            "customer_phone": invoice.customer_phone,
+            "customer_email": invoice.customer_email,
         }
 
         created_invoice_response = (
@@ -620,13 +625,18 @@ async def create_invoice(invoice: InvoiceCreate):
             for item in invoice.line_items
         ]
 
-        line_items_response = (
-            supabase.table("invoice_line_items").insert(line_items_payload).execute()
-        )
+        inserted_line_items: list[dict] = []
+        if line_items_payload:
+            line_items_response = (
+                supabase.table("invoice_line_items")
+                .insert(line_items_payload)
+                .execute()
+            )
+            inserted_line_items = line_items_response.data or []
 
         return {
             "invoice": created_invoice,
-            "line_items": line_items_response.data or [],
+            "line_items": inserted_line_items,
         }
     except HTTPException:
         raise
@@ -652,6 +662,11 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
             "odometer_in": invoice.odometer_in,
             "odometer_out": invoice.odometer_out,
             "mechanic_notes": invoice.mechanic_notes,
+            "customer_first_name": invoice.customer_first_name,
+            "customer_last_name": invoice.customer_last_name,
+            "customer_address": invoice.customer_address,
+            "customer_phone": invoice.customer_phone,
+            "customer_email": invoice.customer_email,
         }
 
         updated_invoice_response = (
@@ -672,13 +687,18 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
             _invoice_line_item_row(invoice_id, item) for item in invoice.line_items
         ]
 
-        line_items_response = (
-            supabase.table("invoice_line_items").insert(line_items_payload).execute()
-        )
+        inserted_line_items: list[dict] = []
+        if line_items_payload:
+            line_items_response = (
+                supabase.table("invoice_line_items")
+                .insert(line_items_payload)
+                .execute()
+            )
+            inserted_line_items = line_items_response.data or []
 
         return {
             "invoice": updated_invoice_rows[0],
-            "line_items": line_items_response.data or [],
+            "line_items": inserted_line_items,
         }
     except HTTPException:
         raise

@@ -74,9 +74,59 @@ export const calculateLineTotal = (line: InvoiceLineItemRecord): number =>
 export const calculateInvoiceTotal = (invoice: InvoiceWithRelations): number =>
 	invoice.line_items.reduce((sum, line) => sum + calculateLineTotal(line), 0);
 
+export const getInvoiceCustomerSnapshot = (
+	invoice: InvoiceWithRelations,
+): {
+	name: string;
+	email: string;
+	phone: string;
+	address: string;
+} => {
+	const snapshotName =
+		`${invoice.customer_first_name ?? ""} ${invoice.customer_last_name ?? ""}`.trim();
+	const hasSnapshot = Boolean(
+		snapshotName ||
+			invoice.customer_email?.trim() ||
+			invoice.customer_phone?.trim() ||
+			invoice.customer_address?.trim(),
+	);
+
+	if (hasSnapshot) {
+		return {
+			name: snapshotName || "Walk-in Customer",
+			email: invoice.customer_email?.trim() ?? "",
+			phone: invoice.customer_phone?.trim() ?? "",
+			address: invoice.customer_address?.trim() ?? "",
+		};
+	}
+
+	if (invoice.owner) {
+		return {
+			name: getUserDisplayName(invoice.owner),
+			email: invoice.owner.email ?? "",
+			phone: invoice.owner.phone_number ?? "",
+			address: invoice.owner.address?.trim() ?? "",
+		};
+	}
+
+	return {
+		name: "Walk-in Customer",
+		email: "",
+		phone: "",
+		address: "",
+	};
+};
+
 export const getInvoiceOwnerLabel = (invoice: InvoiceWithRelations): string => {
-	if (!invoice.owner) return "Unlinked";
-	return `${getUserDisplayName(invoice.owner)} (${invoice.owner.email})`;
+	if (invoice.owner) {
+		return `${getUserDisplayName(invoice.owner)} (${invoice.owner.email})`;
+	}
+
+	const customer = getInvoiceCustomerSnapshot(invoice);
+	if (customer.name === "Walk-in Customer") return "Unlinked";
+
+	const contact = customer.email || customer.phone;
+	return contact ? `${customer.name} (${contact})` : customer.name;
 };
 
 export const getInvoiceBikeLabel = (invoice: InvoiceWithRelations): string => {

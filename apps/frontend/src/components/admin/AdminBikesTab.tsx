@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { toast } from "sonner";
+import {
+	BikeManagerForm,
+	getInitialBikeFormData,
+	toBikePayload,
+} from "@/components/admin/bikes/BikeManagerForm";
 import { AdminModal } from "@/components/admin/modals";
 import type { AdminUser, InvoiceBike, InvoiceBikeFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
@@ -10,20 +15,6 @@ import { authApiRequest } from "@/utils/api";
 const getUserDisplayName = (user: AdminUser): string => {
 	const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
 	return fullName || user.email;
-};
-
-const getInitialBikeFormData = (): InvoiceBikeFormData => {
-	const defaultYear = new Date().getFullYear();
-	return {
-		owner_id: "",
-		year: defaultYear,
-		make: "",
-		model: "",
-		vin: "",
-		license_plate: "",
-		color: "",
-		admin_notes: "",
-	};
 };
 
 const toBikeFormData = (bike: InvoiceBike): InvoiceBikeFormData => ({
@@ -35,17 +26,6 @@ const toBikeFormData = (bike: InvoiceBike): InvoiceBikeFormData => ({
 	license_plate: bike.license_plate ?? "",
 	color: bike.color ?? "",
 	admin_notes: bike.admin_notes ?? "",
-});
-
-const toBikePayload = (formData: InvoiceBikeFormData) => ({
-	owner_id: formData.owner_id || null,
-	year: formData.year,
-	make: formData.make.trim(),
-	model: formData.model.trim(),
-	vin: formData.vin.trim() || null,
-	license_plate: formData.license_plate.trim() || null,
-	color: formData.color.trim() || null,
-	admin_notes: formData.admin_notes.trim() || null,
 });
 
 interface BikeSearchFilters {
@@ -76,195 +56,6 @@ const getOwnerDisplayName = (bike: InvoiceBike): string => {
 
 const getBikeLabel = (bike: InvoiceBike): string =>
 	`${bike.year} ${bike.make} ${bike.model}`;
-
-interface BikeManagerFormProps {
-	formData: InvoiceBikeFormData;
-	users: AdminUser[];
-	isSaving: boolean;
-	onChange: (field: keyof InvoiceBikeFormData, value: string | number) => void;
-	onSave: () => Promise<void>;
-	onCancel: () => void;
-	isEditing: boolean;
-}
-
-function BikeManagerForm({
-	formData,
-	users,
-	isSaving,
-	onChange,
-	onSave,
-	onCancel,
-	isEditing,
-}: BikeManagerFormProps) {
-	const currentYear = new Date().getFullYear();
-	const years = useMemo(
-		() =>
-			Array.from(
-				{ length: currentYear - 1970 + 2 },
-				(_, i) => currentYear + 1 - i,
-			),
-		[currentYear],
-	);
-
-	return (
-		<>
-			<div className="grid md:grid-cols-3 gap-4 mb-4">
-				<div className="md:col-span-3">
-					<label
-						htmlFor="bike-owner"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Owner
-					</label>
-					<select
-						id="bike-owner"
-						value={formData.owner_id}
-						onChange={(e) => onChange("owner_id", e.target.value)}
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					>
-						<option value="">No owner linked</option>
-						{users.map((user) => (
-							<option key={user.id} value={user.id}>
-								{getUserDisplayName(user)} ({user.email})
-							</option>
-						))}
-					</select>
-				</div>
-
-				<div>
-					<label
-						htmlFor="bike-year"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Year
-					</label>
-					<select
-						id="bike-year"
-						value={formData.year}
-						onChange={(e) => onChange("year", Number(e.target.value))}
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					>
-						{years.map((year) => (
-							<option key={year} value={year}>
-								{year}
-							</option>
-						))}
-					</select>
-				</div>
-				<div>
-					<label
-						htmlFor="bike-make"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Make
-					</label>
-					<input
-						id="bike-make"
-						value={formData.make}
-						onChange={(e) => onChange("make", e.target.value)}
-						placeholder="e.g. Yamaha"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div>
-					<label
-						htmlFor="bike-model"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Model
-					</label>
-					<input
-						id="bike-model"
-						value={formData.model}
-						onChange={(e) => onChange("model", e.target.value)}
-						placeholder="e.g. MT-09"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div>
-					<label
-						htmlFor="bike-vin"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						VIN
-					</label>
-					<input
-						id="bike-vin"
-						value={formData.vin}
-						onChange={(e) => onChange("vin", e.target.value)}
-						placeholder="Optional"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div>
-					<label
-						htmlFor="bike-plate"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						License Plate
-					</label>
-					<input
-						id="bike-plate"
-						value={formData.license_plate}
-						onChange={(e) => onChange("license_plate", e.target.value)}
-						placeholder="Optional"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-				<div>
-					<label
-						htmlFor="bike-color"
-						className="text-xs text-neutral-400 block mb-1"
-					>
-						Color
-					</label>
-					<input
-						id="bike-color"
-						value={formData.color}
-						onChange={(e) => onChange("color", e.target.value)}
-						placeholder="Optional"
-						className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-					/>
-				</div>
-			</div>
-
-			<div className="mb-4">
-				<label
-					htmlFor="bike-notes"
-					className="text-xs text-neutral-400 block mb-1"
-				>
-					Admin Notes
-				</label>
-				<textarea
-					id="bike-notes"
-					value={formData.admin_notes}
-					onChange={(e) => onChange("admin_notes", e.target.value)}
-					placeholder="Internal notes for invoice prep..."
-					className="w-full h-24 bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
-				/>
-			</div>
-
-			<div className="flex gap-3">
-				<button
-					type="button"
-					onClick={() => void onSave()}
-					disabled={isSaving}
-					className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700 px-6 py-2 rounded font-bold text-sm transition-colors"
-				>
-					{isSaving ? "Saving..." : isEditing ? "Save Bike" : "Create Bike"}
-				</button>
-				<button
-					type="button"
-					onClick={onCancel}
-					disabled={isSaving}
-					className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded font-bold text-sm transition-colors"
-				>
-					Cancel
-				</button>
-			</div>
-		</>
-	);
-}
 
 export default function AdminBikesTab() {
 	const [bikes, setBikes] = useState<InvoiceBike[]>([]);

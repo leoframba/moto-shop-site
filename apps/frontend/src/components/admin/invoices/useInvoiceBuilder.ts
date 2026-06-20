@@ -51,6 +51,11 @@ export function useInvoiceBuilder({
 	const [odometerIn, setOdometerIn] = useState("");
 	const [odometerOut, setOdometerOut] = useState("");
 	const [mechanicNotes, setMechanicNotes] = useState("");
+	const [customerFirstName, setCustomerFirstName] = useState("");
+	const [customerLastName, setCustomerLastName] = useState("");
+	const [customerAddress, setCustomerAddress] = useState("");
+	const [customerPhone, setCustomerPhone] = useState("");
+	const [customerEmail, setCustomerEmail] = useState("");
 
 	const [serviceLines, setServiceLines] = useState<DraftServiceLine[]>([]);
 	const [partLines, setPartLines] = useState<DraftPartLine[]>([]);
@@ -104,15 +109,54 @@ export function useInvoiceBuilder({
 		[users, ownerId],
 	);
 
+	useEffect(() => {
+		if (!selectedOwner) return;
+		setCustomerFirstName(selectedOwner.first_name ?? "");
+		setCustomerLastName(selectedOwner.last_name ?? "");
+		setCustomerAddress(selectedOwner.address ?? "");
+		setCustomerPhone(selectedOwner.phone_number ?? "");
+		setCustomerEmail(selectedOwner.email ?? "");
+	}, [selectedOwner]);
+
 	const customerFields = useMemo(
 		() => ({
-			firstName: selectedOwner?.first_name ?? "",
-			lastName: selectedOwner?.last_name ?? "",
-			address: selectedOwner?.address ?? "",
-			phone: selectedOwner?.phone_number ?? "",
+			firstName: customerFirstName,
+			lastName: customerLastName,
+			address: customerAddress,
+			phone: customerPhone,
+			email: customerEmail,
 		}),
-		[selectedOwner],
+		[
+			customerFirstName,
+			customerLastName,
+			customerAddress,
+			customerPhone,
+			customerEmail,
+		],
 	);
+
+	const updateCustomerField = (
+		field: keyof typeof customerFields,
+		value: string,
+	) => {
+		switch (field) {
+			case "firstName":
+				setCustomerFirstName(value);
+				break;
+			case "lastName":
+				setCustomerLastName(value);
+				break;
+			case "address":
+				setCustomerAddress(value);
+				break;
+			case "phone":
+				setCustomerPhone(value);
+				break;
+			case "email":
+				setCustomerEmail(value);
+				break;
+		}
+	};
 
 	const bikeFields = useMemo(
 		() => ({
@@ -156,7 +200,12 @@ export function useInvoiceBuilder({
 		Boolean(bikeId) ||
 		Boolean(odometerIn.trim()) ||
 		Boolean(odometerOut.trim()) ||
-		Boolean(mechanicNotes.trim());
+		Boolean(mechanicNotes.trim()) ||
+		Boolean(customerFirstName.trim()) ||
+		Boolean(customerLastName.trim()) ||
+		Boolean(customerAddress.trim()) ||
+		Boolean(customerPhone.trim()) ||
+		Boolean(customerEmail.trim());
 
 	const resetBuilder = () => {
 		setEditingInvoiceId(null);
@@ -166,6 +215,11 @@ export function useInvoiceBuilder({
 		setOdometerIn("");
 		setOdometerOut("");
 		setMechanicNotes("");
+		setCustomerFirstName("");
+		setCustomerLastName("");
+		setCustomerAddress("");
+		setCustomerPhone("");
+		setCustomerEmail("");
 		setServiceLines([]);
 		setPartLines([]);
 		setHazardousWasteEnabled(false);
@@ -219,6 +273,19 @@ export function useInvoiceBuilder({
 				: "",
 		);
 		setMechanicNotes(invoice.mechanic_notes ?? "");
+		setCustomerFirstName(
+			invoice.customer_first_name ?? invoice.owner?.first_name ?? "",
+		);
+		setCustomerLastName(
+			invoice.customer_last_name ?? invoice.owner?.last_name ?? "",
+		);
+		setCustomerAddress(
+			invoice.customer_address ?? invoice.owner?.address ?? "",
+		);
+		setCustomerPhone(
+			invoice.customer_phone ?? invoice.owner?.phone_number ?? "",
+		);
+		setCustomerEmail(invoice.customer_email ?? invoice.owner?.email ?? "");
 
 		const nextServiceLines: DraftServiceLine[] = invoice.line_items
 			.filter((line) => line.item_type === "service")
@@ -490,15 +557,6 @@ export function useInvoiceBuilder({
 	};
 
 	const save = async () => {
-		if (
-			serviceLines.length === 0 &&
-			partLines.length === 0 &&
-			!hazardousWasteEnabled
-		) {
-			toast.warning("Add at least one line item.");
-			return;
-		}
-
 		if (hazardousWasteEnabled) {
 			if (hazardousWasteQuantity <= 0) {
 				toast.warning("Hazardous waste quantity must be at least 1.");
@@ -568,6 +626,11 @@ export function useInvoiceBuilder({
 			odometer_in: odometerIn.trim() ? parseInt(odometerIn, 10) : null,
 			odometer_out: odometerOut.trim() ? parseInt(odometerOut, 10) : null,
 			mechanic_notes: mechanicNotes.trim() || null,
+			customer_first_name: customerFirstName.trim() || null,
+			customer_last_name: customerLastName.trim() || null,
+			customer_address: customerAddress.trim() || null,
+			customer_phone: customerPhone.trim() || null,
+			customer_email: customerEmail.trim() || null,
 			line_items: [
 				...(hazardousWasteEnabled
 					? [
@@ -664,6 +727,8 @@ export function useInvoiceBuilder({
 		setOdometerOut,
 		setMechanicNotes,
 		customerFields,
+		updateCustomerField,
+		hasLinkedOwner: Boolean(ownerId),
 		bikeFields,
 		// line items
 		serviceLines,

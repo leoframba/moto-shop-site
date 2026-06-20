@@ -25,6 +25,7 @@ export interface InvoicesData {
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
 	refetch: () => Promise<void>;
 	addPart: (part: Part) => void;
+	addBike: (bike: InvoiceBike) => void;
 }
 
 export function useInvoicesData(): InvoicesData {
@@ -87,6 +88,18 @@ export function useInvoicesData(): InvoicesData {
 		setParts((prev) => [...prev, part].sort(compareParts));
 	}, []);
 
+	const addBike = useCallback(
+		(bike: InvoiceBike) => {
+			setBikes((prev) => {
+				const owner =
+					users.find((user) => user.id === bike.owner_id) ?? bike.owner ?? null;
+				const nextBike: InvoiceBike = owner ? { ...bike, owner } : bike;
+				return [nextBike, ...prev];
+			});
+		},
+		[users],
+	);
+
 	return {
 		isLoading,
 		users,
@@ -99,5 +112,6 @@ export function useInvoicesData(): InvoicesData {
 		setInvoices,
 		refetch,
 		addPart,
+		addBike,
 	};
 }

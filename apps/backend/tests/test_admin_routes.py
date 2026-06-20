@@ -412,6 +412,57 @@ class TestAdminRoutes:
         assert response.json()["invoice"]["id"] == "inv-1"
         assert len(response.json()["line_items"]) == 1
 
+    def test_create_invoice_allows_empty_line_items(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        invoice_result = MagicMock()
+        invoice_result.data = [
+            {
+                "id": "inv-draft",
+                "invoice_number": 1002,
+                "status": "draft",
+            }
+        ]
+
+        invoice_table = MagicMock()
+        invoice_table.insert.return_value.execute.return_value = invoice_result
+        line_items_table = MagicMock()
+
+        def table_side_effect(name):
+            if name == "invoices":
+                return invoice_table
+            if name == "invoice_line_items":
+                return line_items_table
+            return MagicMock()
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.post(
+                "/api/admin/invoices",
+                json={
+                    "owner_id": "owner-1",
+                    "status": "draft",
+                    "mechanic_notes": "Voice memo pending",
+                    "line_items": [],
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["invoice"]["id"] == "inv-draft"
+        assert response.json()["line_items"] == []
+        line_items_table.insert.assert_not_called()
+
     def test_update_invoice_replaces_header_and_line_items(
         self,
         client,

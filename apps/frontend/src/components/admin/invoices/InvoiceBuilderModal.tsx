@@ -33,6 +33,7 @@ interface InvoiceBuilderModalProps {
 	parts: Part[];
 	taxRate: number;
 	onPartCreated: (part: Part) => void;
+	onBikeCreated: (bike: InvoiceBike) => void;
 }
 
 const inputClasses =
@@ -50,6 +51,7 @@ export function InvoiceBuilderModal({
 	parts,
 	taxRate,
 	onPartCreated,
+	onBikeCreated,
 }: InvoiceBuilderModalProps) {
 	const shouldGuardUnload = builder.isOpen && builder.isDirty;
 
@@ -174,9 +176,19 @@ export function InvoiceBuilderModal({
 
 									<div className="grid md:grid-cols-2 gap-4 mb-4">
 										<div className="bg-neutral-900 border border-neutral-800 rounded p-4">
-											<p className="text-xs text-neutral-400 uppercase tracking-widest mb-3">
+											<p className="text-xs text-neutral-400 uppercase tracking-widest mb-1">
 												Customer Data
 											</p>
+											{!builder.hasLinkedOwner ? (
+												<p className="text-xs text-neutral-500 mb-3">
+													No portal account linked — enter details for the
+													printed invoice.
+												</p>
+											) : (
+												<p className="text-xs text-neutral-500 mb-3">
+													Pulled from linked owner account.
+												</p>
+											)}
 											<div className="grid grid-cols-2 gap-3">
 												<div>
 													<label
@@ -188,8 +200,18 @@ export function InvoiceBuilderModal({
 													<input
 														id="invoice-customer-first-name"
 														value={builder.customerFields.firstName}
-														readOnly
-														className={readOnlyInputClasses}
+														readOnly={builder.hasLinkedOwner}
+														onChange={(e) =>
+															builder.updateCustomerField(
+																"firstName",
+																e.target.value,
+															)
+														}
+														className={
+															builder.hasLinkedOwner
+																? readOnlyInputClasses
+																: inputClasses
+														}
 													/>
 												</div>
 												<div>
@@ -202,8 +224,44 @@ export function InvoiceBuilderModal({
 													<input
 														id="invoice-customer-last-name"
 														value={builder.customerFields.lastName}
-														readOnly
-														className={readOnlyInputClasses}
+														readOnly={builder.hasLinkedOwner}
+														onChange={(e) =>
+															builder.updateCustomerField(
+																"lastName",
+																e.target.value,
+															)
+														}
+														className={
+															builder.hasLinkedOwner
+																? readOnlyInputClasses
+																: inputClasses
+														}
+													/>
+												</div>
+												<div className="col-span-2">
+													<label
+														htmlFor="invoice-customer-email"
+														className="text-xs text-neutral-400 block mb-1"
+													>
+														Email
+													</label>
+													<input
+														id="invoice-customer-email"
+														type="email"
+														value={builder.customerFields.email}
+														readOnly={builder.hasLinkedOwner}
+														onChange={(e) =>
+															builder.updateCustomerField(
+																"email",
+																e.target.value,
+															)
+														}
+														placeholder="Optional"
+														className={
+															builder.hasLinkedOwner
+																? readOnlyInputClasses
+																: inputClasses
+														}
 													/>
 												</div>
 												<div className="col-span-2">
@@ -216,9 +274,19 @@ export function InvoiceBuilderModal({
 													<input
 														id="invoice-customer-address"
 														value={builder.customerFields.address}
-														readOnly
-														placeholder="No address on file"
-														className={readOnlyInputClasses}
+														readOnly={builder.hasLinkedOwner}
+														onChange={(e) =>
+															builder.updateCustomerField(
+																"address",
+																e.target.value,
+															)
+														}
+														placeholder="Optional"
+														className={
+															builder.hasLinkedOwner
+																? readOnlyInputClasses
+																: inputClasses
+														}
 													/>
 												</div>
 												<div className="col-span-2">
@@ -231,9 +299,19 @@ export function InvoiceBuilderModal({
 													<input
 														id="invoice-customer-phone"
 														value={builder.customerFields.phone}
-														readOnly
-														placeholder="No phone on file"
-														className={readOnlyInputClasses}
+														readOnly={builder.hasLinkedOwner}
+														onChange={(e) =>
+															builder.updateCustomerField(
+																"phone",
+																e.target.value,
+															)
+														}
+														placeholder="Optional"
+														className={
+															builder.hasLinkedOwner
+																? readOnlyInputClasses
+																: inputClasses
+														}
 													/>
 												</div>
 											</div>
@@ -808,6 +886,8 @@ export function InvoiceBuilderModal({
 					bikes={bikes}
 					users={users}
 					ownerId={builder.ownerId}
+					mechanicNotes={builder.mechanicNotes}
+					onBikeCreated={onBikeCreated}
 					onSelect={(bikeId) => {
 						builder.setBikeId(bikeId);
 						builder.setIsBikePickerOpen(false);

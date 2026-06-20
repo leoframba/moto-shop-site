@@ -172,6 +172,11 @@ export interface InvoiceCreatePayload {
 	odometer_in?: number | null;
 	odometer_out?: number | null;
 	mechanic_notes?: string | null;
+	customer_first_name?: string | null;
+	customer_last_name?: string | null;
+	customer_address?: string | null;
+	customer_phone?: string | null;
+	customer_email?: string | null;
 	line_items: InvoiceLineItemPayload[];
 }
 
@@ -184,6 +189,11 @@ export interface InvoiceRecord {
 	odometer_in?: number | null;
 	odometer_out?: number | null;
 	mechanic_notes?: string | null;
+	customer_first_name?: string | null;
+	customer_last_name?: string | null;
+	customer_address?: string | null;
+	customer_phone?: string | null;
+	customer_email?: string | null;
 	created_at?: string;
 }
 

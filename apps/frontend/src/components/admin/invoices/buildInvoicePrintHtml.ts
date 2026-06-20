@@ -1,5 +1,8 @@
 import type { InvoiceWithRelations, ShopSettings } from "@/types";
-import { calculateLineTotal, getUserDisplayName } from "./invoiceHelpers";
+import {
+	calculateLineTotal,
+	getInvoiceCustomerSnapshot,
+} from "./invoiceHelpers";
 
 const escapeHtml = (value: unknown): string =>
 	String(value ?? "")
@@ -43,8 +46,8 @@ export const buildInvoicePrintHtml = (
 	const safeShopPhone = escapeHtml(shopSettings.shop_phone ?? "");
 	const safeShopEmail = escapeHtml(shopSettings.shop_email ?? "");
 
-	const owner = invoice.owner;
 	const bike = invoice.bike;
+	const customer = getInvoiceCustomerSnapshot(invoice);
 	const mechanicNotes = escapeHtml(invoice.mechanic_notes ?? "").trim();
 	const createdDate = invoice.created_at
 		? new Date(invoice.created_at).toLocaleDateString()
@@ -382,9 +385,10 @@ export const buildInvoicePrintHtml = (
 		<section class="grid-2">
 			<div class="card">
 				<p class="card-title">Customer</p>
-				<div><strong>${owner ? escapeHtml(getUserDisplayName(owner)) : "Walk-in Customer"}</strong></div>
-				${owner?.email ? `<div>${escapeHtml(owner.email)}</div>` : ""}
-				${owner?.phone_number ? `<div>${escapeHtml(owner.phone_number)}</div>` : ""}
+				<div><strong>${escapeHtml(customer.name)}</strong></div>
+				${customer.email ? `<div>${escapeHtml(customer.email)}</div>` : ""}
+				${customer.phone ? `<div>${escapeHtml(customer.phone)}</div>` : ""}
+				${customer.address ? `<div>${escapeHtml(customer.address)}</div>` : ""}
 			</div>
 			<div class="card">
 				<p class="card-title">Service Provider</p>

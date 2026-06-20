@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+	BikeManagerForm,
+	getInitialBikeFormData,
+	toBikePayload,
+} from "@/components/admin/bikes/BikeManagerForm";
+import {
 	AdminModal,
 	MODAL_NESTED_Z_INDEX,
 	modalOptionButtonClass,
@@ -20,6 +25,7 @@ import {
 import type {
 	AdminUser,
 	InvoiceBike,
+	InvoiceBikeFormData,
 	Part,
 	PartFormData,
 	Service,
@@ -144,7 +150,9 @@ interface BikePickerModalProps {
 	bikes: InvoiceBike[];
 	users: AdminUser[];
 	ownerId: string;
+	mechanicNotes: string;
 	onSelect: (bikeId: string) => void;
+	onBikeCreated: (bike: InvoiceBike) => void;
 	onClose: () => void;
 }
 
@@ -152,10 +160,60 @@ export function BikePickerModal({
 	bikes,
 	users,
 	ownerId,
+	mechanicNotes,
 	onSelect,
+	onBikeCreated,
 	onClose,
 }: BikePickerModalProps) {
 	const [searchTerm, setSearchTerm] = useState("");
+	const [isCreateBikeOpen, setIsCreateBikeOpen] = useState(false);
+	const [createBikeFormData, setCreateBikeFormData] =
+		useState<InvoiceBikeFormData>(getInitialBikeFormData);
+	const [isSaving, setIsSaving] = useState(false);
+
+	const openCreateBike = () => {
+		setCreateBikeFormData(getInitialBikeFormData(ownerId));
+		setIsCreateBikeOpen(true);
+	};
+
+	const resetCreateForm = () => {
+		setCreateBikeFormData(getInitialBikeFormData(ownerId));
+		setIsCreateBikeOpen(false);
+	};
+
+	const handleCreateFormChange = (
+		field: keyof InvoiceBikeFormData,
+		value: string | number,
+	) => {
+		setCreateBikeFormData((prev) => ({ ...prev, [field]: value }));
+	};
+
+	const handleCreateSave = async () => {
+		if (!createBikeFormData.make.trim() || !createBikeFormData.model.trim()) {
+			toast.warning("Make and model are required.");
+			return;
+		}
+
+		setIsSaving(true);
+		try {
+			const createdBike = await authApiRequest<InvoiceBike>(
+				"/api/admin/bikes",
+				{
+					method: "POST",
+					body: JSON.stringify(toBikePayload(createBikeFormData)),
+				},
+			);
+			onBikeCreated(createdBike);
+			toast.success("Bike created.");
+			resetCreateForm();
+			onSelect(createdBike.id);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to create bike.");
+		} finally {
+			setIsSaving(false);
+		}
+	};
 
 	const filteredBikes = useMemo(() => {
 		const availableBikes = ownerId
@@ -181,76 +239,117 @@ export function BikePickerModal({
 	}, [bikes, ownerId, searchTerm, users]);
 
 	return (
-		<AdminModal open title="Select Bike" onClose={onClose} size="lg">
-			<input
-				value={searchTerm}
-				onChange={(e) => setSearchTerm(e.target.value)}
-				placeholder="Search bike, VIN, plate, owner..."
-				className={modalSearchInputClass}
-			/>
-			<div className={modalScrollBodyClass}>
-				<button
-					type="button"
-					onClick={() => onSelect("")}
-					className={pickerClearOptionClass}
-				>
-					No bike linked
-				</button>
-				{filteredBikes.length === 0 ? (
-					<div className={pickerEmptyStateClass}>
-						No bikes match your search.
-					</div>
-				) : (
-					<div className={pickerTableWrapClass}>
-						<table className="w-full border-collapse bg-neutral-900">
-							<thead>
-								<tr className={pickerTableHeadRowClass}>
-									<th className={pickerTableHeadCellClass}>Bike - Vin</th>
-									<th className={pickerTableHeadCellClass}>Owner</th>
-									<th className={pickerTableHeadCellClass}>Plate</th>
-								</tr>
-							</thead>
-							<tbody className={pickerTableBodyClass}>
-								{filteredBikes.map((bike) => {
-									const bikeOwner = users.find(
-										(user) => user.id === bike.owner_id,
-									);
-									return (
-										<tr
-											key={bike.id}
-											className={pickerSelectableRowClass}
-											onClick={() => onSelect(bike.id)}
-										>
-											<td className="px-4 py-3">
-												<p className="font-bold text-white">
-													{getBikeDisplayLabel(bike)}
-												</p>
-												<p className="truncate text-xs text-neutral-500">
-													{bike.vin ? `${bike.vin}` : "No VIN on file"}
-												</p>
-											</td>
-											<td className="px-4 py-3">
-												<p className="text-sm text-neutral-300">
-													{bikeOwner ? getUserDisplayName(bikeOwner) : "—"}
-												</p>
-												{bikeOwner?.email && (
-													<p className="truncate text-xs text-neutral-500">
-														{bikeOwner.email}
+		<>
+			<AdminModal
+				open
+				title="Select Bike"
+				onClose={onClose}
+				size="lg"
+				closeOnEscape={!isCreateBikeOpen}
+				closeOnBackdrop={!isCreateBikeOpen}
+			>
+				<input
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					placeholder="Search bike, VIN, plate, owner..."
+					className={modalSearchInputClass}
+				/>
+				<div className={modalScrollBodyClass}>
+					<button
+						type="button"
+						onClick={openCreateBike}
+						className="w-full rounded-md border border-emerald-700/60 bg-neutral-900 p-3 text-left transition-colors hover:border-emerald-500"
+					>
+						<p className="font-semibold text-emerald-300">+ Create Bike</p>
+						<p className="text-xs text-neutral-400">
+							Add a new bike to the catalog — saves to the database.
+						</p>
+					</button>
+					<button
+						type="button"
+						onClick={() => onSelect("")}
+						className={pickerClearOptionClass}
+					>
+						No bike linked
+					</button>
+					{filteredBikes.length === 0 ? (
+						<div className={pickerEmptyStateClass}>
+							No bikes match your search.
+						</div>
+					) : (
+						<div className={pickerTableWrapClass}>
+							<table className="w-full border-collapse bg-neutral-900">
+								<thead>
+									<tr className={pickerTableHeadRowClass}>
+										<th className={pickerTableHeadCellClass}>Bike - Vin</th>
+										<th className={pickerTableHeadCellClass}>Owner</th>
+										<th className={pickerTableHeadCellClass}>Plate</th>
+									</tr>
+								</thead>
+								<tbody className={pickerTableBodyClass}>
+									{filteredBikes.map((bike) => {
+										const bikeOwner = users.find(
+											(user) => user.id === bike.owner_id,
+										);
+										return (
+											<tr
+												key={bike.id}
+												className={pickerSelectableRowClass}
+												onClick={() => onSelect(bike.id)}
+											>
+												<td className="px-4 py-3">
+													<p className="font-bold text-white">
+														{getBikeDisplayLabel(bike)}
 													</p>
-												)}
-											</td>
-											<td className="px-4 py-3 text-sm text-neutral-300">
-												{bike.license_plate ?? "—"}
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</div>
-		</AdminModal>
+													<p className="truncate text-xs text-neutral-500">
+														{bike.vin ? `${bike.vin}` : "No VIN on file"}
+													</p>
+												</td>
+												<td className="px-4 py-3">
+													<p className="text-sm text-neutral-300">
+														{bikeOwner ? getUserDisplayName(bikeOwner) : "—"}
+													</p>
+													{bikeOwner?.email && (
+														<p className="truncate text-xs text-neutral-500">
+															{bikeOwner.email}
+														</p>
+													)}
+												</td>
+												<td className="px-4 py-3 text-sm text-neutral-300">
+													{bike.license_plate ?? "—"}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</div>
+			</AdminModal>
+
+			{isCreateBikeOpen && (
+				<AdminModal
+					open
+					title="Create Bike"
+					onClose={resetCreateForm}
+					size="lg"
+					zIndex={MODAL_NESTED_Z_INDEX}
+					lockBackgroundScroll={false}
+				>
+					<BikeManagerForm
+						formData={createBikeFormData}
+						users={users}
+						isSaving={isSaving}
+						isEditing={false}
+						mechanicNotesReference={mechanicNotes}
+						onChange={handleCreateFormChange}
+						onSave={handleCreateSave}
+						onCancel={resetCreateForm}
+					/>
+				</AdminModal>
+			)}
+		</>
 	);
 }
 

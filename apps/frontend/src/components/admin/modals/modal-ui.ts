@@ -6,7 +6,7 @@ export const modalOverlayClass =
 	"fixed inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm";
 
 export const modalPanelClass =
-	"w-full rounded-lg border border-neutral-800 bg-neutral-900 p-4 sm:p-5";
+	"w-full rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 sm:p-5";
 
 export const modalHeaderClass = "mb-4 flex items-center justify-between gap-3";
 
