@@ -16,6 +16,7 @@ export interface Service {
 	calculated_price?: number | null;
 	fixed_price?: number | null;
 	is_hidden?: boolean;
+	is_internal?: boolean;
 }
 
 export interface AdminInitialData {
@@ -54,6 +55,7 @@ export interface ServiceFormData {
 	pricing_type: "hourly" | "fixed" | "contact";
 	estimated_hours: number;
 	fixed_price: number;
+	is_internal: boolean;
 }
 
 export type PricingType = "hourly" | "fixed" | "contact";

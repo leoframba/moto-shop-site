@@ -15,6 +15,7 @@ class ServiceUpdate(BaseModel):
     pricing_type: str
     estimated_hours: float | None = None
     fixed_price: float | None = None
+    is_internal: bool | None = None
 
 
 class ServiceCreate(BaseModel):
@@ -25,6 +26,7 @@ class ServiceCreate(BaseModel):
     pricing_type: str = Field("hourly", pattern="^(hourly|fixed|contact)$")
     estimated_hours: float | None = None
     fixed_price: float | None = None
+    is_internal: bool = False
 
     @field_validator("name")
     @classmethod
@@ -43,6 +45,10 @@ class ServiceCreate(BaseModel):
 
 class ServiceVisibilityUpdate(BaseModel):
     is_hidden: bool
+
+
+class ServiceInternalUpdate(BaseModel):
+    is_internal: bool
 
 
 class CategoryCreate(BaseModel):

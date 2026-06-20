@@ -390,22 +390,72 @@ export function ServicePickerModal({
 				})
 			: services;
 
-		const groups: Record<string, Service[]> = {};
-		for (const service of filtered) {
-			const categoryName = service.categories?.name?.trim() || "Uncategorized";
-			if (!groups[categoryName]) groups[categoryName] = [];
-			groups[categoryName].push(service);
-		}
+		const buildGroups = (items: Service[]) => {
+			const groups: Record<string, Service[]> = {};
+			for (const service of items) {
+				const categoryName =
+					service.categories?.name?.trim() || "Uncategorized";
+				if (!groups[categoryName]) groups[categoryName] = [];
+				groups[categoryName].push(service);
+			}
 
-		return Object.keys(groups)
-			.sort((a, b) => a.localeCompare(b))
-			.map((categoryName) => ({
-				categoryName,
-				services: groups[categoryName].sort((a, b) =>
-					a.name.localeCompare(b.name),
-				),
-			}));
+			return Object.keys(groups)
+				.sort((a, b) => a.localeCompare(b))
+				.map((categoryName) => ({
+					categoryName,
+					services: groups[categoryName].sort((a, b) =>
+						a.name.localeCompare(b.name),
+					),
+				}));
+		};
+
+		const internalServices = filtered.filter((service) => service.is_internal);
+		const publicCatalogServices = filtered.filter(
+			(service) => !service.is_internal,
+		);
+
+		return {
+			internal: buildGroups(internalServices),
+			publicCatalog: buildGroups(publicCatalogServices),
+		};
 	}, [services, searchTerm]);
+
+	const renderServiceGroup = (
+		group: { categoryName: string; services: Service[] },
+		keyPrefix: string,
+	) => (
+		<div key={`${keyPrefix}-${group.categoryName}`} className="space-y-2">
+			<p className="px-1 pt-1 text-xs font-bold uppercase tracking-widest text-neutral-500">
+				{group.categoryName}
+			</p>
+			{group.services.map((service) => (
+				<button
+					key={service.id}
+					type="button"
+					onClick={() => onSelect(service.id)}
+					className={modalOptionButtonClass}
+				>
+					<p className="font-semibold text-white">{service.name}</p>
+					<p className="text-sm text-neutral-400">
+						{service.pricing_type === "hourly"
+							? `Hourly (${(service.estimated_hours ?? 1).toFixed(1)} hrs est.)`
+							: service.pricing_type === "fixed"
+								? `Fixed ${toCurrency(
+										Number(
+											service.fixed_price ?? service.calculated_price ?? 0,
+										),
+									)}`
+								: "Contact pricing"}
+					</p>
+					{service.description && (
+						<p className="mt-1 line-clamp-2 text-xs text-neutral-500">
+							{service.description}
+						</p>
+					)}
+				</button>
+			))}
+		</div>
+	);
 
 	return (
 		<AdminModal open title="Select Service" onClose={onClose} size="lg">
@@ -445,46 +495,34 @@ export function ServicePickerModal({
 						</button>
 					</div>
 				)}
-				{groupedServices.map((group) => (
-					<div key={group.categoryName} className="space-y-2">
-						<p className="px-1 pt-1 text-xs font-bold uppercase tracking-widest text-neutral-500">
-							{group.categoryName}
+				{groupedServices.internal.length > 0 ? (
+					<div className="space-y-3">
+						<p className="px-1 text-xs font-bold uppercase tracking-widest text-emerald-400">
+							Invoice only
 						</p>
-						{group.services.map((service) => (
-							<button
-								key={service.id}
-								type="button"
-								onClick={() => onSelect(service.id)}
-								className={modalOptionButtonClass}
-							>
-								<p className="font-semibold text-white">{service.name}</p>
-								<p className="text-sm text-neutral-400">
-									{service.pricing_type === "hourly"
-										? `Hourly (${(service.estimated_hours ?? 1).toFixed(1)} hrs est.)`
-										: service.pricing_type === "fixed"
-											? `Fixed ${toCurrency(
-													Number(
-														service.fixed_price ??
-															service.calculated_price ??
-															0,
-													),
-												)}`
-											: "Contact pricing"}
-								</p>
-								{service.description && (
-									<p className="mt-1 line-clamp-2 text-xs text-neutral-500">
-										{service.description}
-									</p>
-								)}
-							</button>
-						))}
+						{groupedServices.internal.map((group) =>
+							renderServiceGroup(group, "internal"),
+						)}
 					</div>
-				))}
-				{groupedServices.length === 0 && (
+				) : null}
+				{groupedServices.publicCatalog.length > 0 ? (
+					<div className="space-y-3">
+						{groupedServices.internal.length > 0 ? (
+							<p className="px-1 pt-2 text-xs font-bold uppercase tracking-widest text-neutral-400">
+								Public menu
+							</p>
+						) : null}
+						{groupedServices.publicCatalog.map((group) =>
+							renderServiceGroup(group, "public"),
+						)}
+					</div>
+				) : null}
+				{groupedServices.internal.length === 0 &&
+				groupedServices.publicCatalog.length === 0 ? (
 					<p className="py-4 text-center text-sm text-neutral-500">
 						No services match your search.
 					</p>
-				)}
+				) : null}
 			</div>
 		</AdminModal>
 	);

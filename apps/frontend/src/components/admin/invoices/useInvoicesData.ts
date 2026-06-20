@@ -10,7 +10,7 @@ import type {
 	ServiceResponse,
 	ShopSettings,
 } from "@/types";
-import { apiRequest, authApiRequest } from "@/utils/api";
+import { authApiRequest } from "@/utils/api";
 import { DEFAULT_SHOP_SETTINGS } from "./invoiceHelpers";
 
 export interface InvoicesData {
@@ -56,7 +56,9 @@ export function useInvoicesData(): InvoicesData {
 					cache: "no-store",
 				}),
 				authApiRequest<Part[]>("/api/admin/parts", { cache: "no-store" }),
-				apiRequest<ServiceResponse>("/api/services", { cache: "no-store" }),
+				authApiRequest<ServiceResponse>("/api/admin/services", {
+					cache: "no-store",
+				}),
 				authApiRequest<InvoiceWithRelations[]>("/api/admin/invoices", {
 					cache: "no-store",
 				}),

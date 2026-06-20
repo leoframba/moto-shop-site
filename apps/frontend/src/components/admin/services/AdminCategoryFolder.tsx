@@ -12,6 +12,7 @@ interface AdminCategoryFolderProps {
 	onSaveEdit: (id: string, updatedData: ServiceFormData) => Promise<void>;
 	onDelete: (service: Service) => Promise<void>;
 	onToggleHidden?: (service: Service) => void | Promise<void>;
+	onToggleInternal?: (service: Service) => void | Promise<void>;
 }
 
 export default function AdminCategoryFolder({
@@ -23,10 +24,14 @@ export default function AdminCategoryFolder({
 	onSaveEdit,
 	onDelete,
 	onToggleHidden,
+	onToggleInternal,
 }: AdminCategoryFolderProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const allHidden =
-		services.length > 0 && services.every((service) => service.is_hidden);
+		services.length > 0 &&
+		services.every((service) => !service.is_internal && service.is_hidden);
+	const allInternal =
+		services.length > 0 && services.every((service) => service.is_internal);
 
 	return (
 		<div className="border border-red-900/30 rounded-lg overflow-hidden bg-neutral-950/50 mb-6 shadow-lg">
@@ -41,6 +46,11 @@ export default function AdminCategoryFolder({
 					<span className="text-red-600">{"///"}</span> {category}
 				</h2>
 				<div className="flex items-center gap-4">
+					{allInternal && (
+						<span className="hidden rounded bg-emerald-500/10 px-2 py-1 text-xs font-bold uppercase text-emerald-300 md:block">
+							Invoice only
+						</span>
+					)}
 					{allHidden && (
 						<span className="text-xs font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-1 rounded hidden md:block">
 							Hidden from menu
@@ -93,15 +103,22 @@ export default function AdminCategoryFolder({
 									/* PREVIEW MODE */
 									<div
 										className={`group bg-neutral-900/30 hover:bg-neutral-900/80 p-5 rounded border transition-colors flex flex-col md:flex-row justify-between md:items-center gap-6 ${
-											service.is_hidden
-												? "border-neutral-700/60 border-dashed opacity-60"
-												: "border-neutral-800/50"
+											service.is_internal
+												? "border-emerald-700/40 border-dashed"
+												: service.is_hidden
+													? "border-neutral-700/60 border-dashed opacity-60"
+													: "border-neutral-800/50"
 										}`}
 									>
 										<div className="max-w-xl">
 											<h3 className="text-lg md:text-xl font-bold text-neutral-200 mb-1 tracking-wide uppercase flex items-center gap-2 flex-wrap">
 												{service.name}
-												{service.is_hidden && (
+												{service.is_internal && (
+													<span className="text-[10px] font-bold text-emerald-300 uppercase bg-emerald-500/10 px-2 py-0.5 rounded tracking-widest">
+														Invoice only
+													</span>
+												)}
+												{!service.is_internal && service.is_hidden && (
 													<span className="text-[10px] font-bold text-neutral-400 uppercase bg-neutral-700/40 px-2 py-0.5 rounded tracking-widest">
 														Hidden
 													</span>
@@ -147,7 +164,21 @@ export default function AdminCategoryFolder({
 												</div>
 											)}
 											<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8 flex items-center gap-2">
-												{onToggleHidden && (
+												{onToggleInternal && (
+													<button
+														type="button"
+														onClick={() => void onToggleInternal(service)}
+														title={
+															service.is_internal
+																? "Move to public catalog"
+																: "Mark as invoice only"
+														}
+														className="text-neutral-400 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
+													>
+														{service.is_internal ? "Public" : "Invoice"}
+													</button>
+												)}
+												{onToggleHidden && !service.is_internal && (
 													<button
 														type="button"
 														onClick={() => void onToggleHidden(service)}

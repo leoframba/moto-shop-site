@@ -1,7 +1,7 @@
 # routers/public.py
 from dependencies import supabase
 from fastapi import APIRouter, HTTPException
-from service_pricing import serialize_service
+from service_pricing import is_public_service, serialize_public_service
 
 # Router
 router = APIRouter(
@@ -23,28 +23,35 @@ async def get_services():
 
         hourly_rate = float(settings_response.data[0]["hourly_rate"])
 
-        # Fetch Categories
-        categories_response = supabase.table("categories").select("*").execute()
-
         # Fetch Services joined with Categories
         services_response = (
             supabase.table("services").select("*, categories(id, name)").execute()
         )
-        services = services_response.data
+        services = services_response.data or []
 
-        # Calculate prices and drop services flagged as hidden so they never
-        # appear on the public menu. Categories with no visible services simply
-        # won't render, since the menu groups by the services present.
-        calculated_services = [
-            serialize_service(service, hourly_rate)
+        public_services = [
+            serialize_public_service(service, hourly_rate)
             for service in services
-            if not service.get("is_hidden")
+            if is_public_service(service)
+        ]
+
+        visible_category_ids = {
+            service.get("category_id")
+            for service in public_services
+            if service.get("category_id")
+        }
+
+        categories_response = supabase.table("categories").select("*").execute()
+        public_categories = [
+            category
+            for category in (categories_response.data or [])
+            if category.get("id") in visible_category_ids
         ]
 
         return {
             "hourly_rate": hourly_rate,
-            "categories": categories_response.data,  # NEW: Include global categories list
-            "services": calculated_services,
+            "categories": public_categories,
+            "services": public_services,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -144,6 +144,7 @@ export default function AdminServiceTab() {
 				...updatedService,
 				calculated_price: calcPrice,
 				categories: selectedCat,
+				is_internal: editData.is_internal,
 			};
 
 			setServices((prev) =>
@@ -220,6 +221,8 @@ export default function AdminServiceTab() {
 	};
 
 	const toggleServiceVisibility = async (serviceToToggle: Service) => {
+		if (serviceToToggle.is_internal) return;
+
 		const nextHidden = !serviceToToggle.is_hidden;
 		const prevServices = [...services];
 		setServices((prev) =>
@@ -247,6 +250,41 @@ export default function AdminServiceTab() {
 			console.error(error);
 			setServices(prevServices);
 			toast.error("Failed to update visibility.");
+		}
+	};
+
+	const toggleServiceInternal = async (serviceToToggle: Service) => {
+		const nextInternal = !serviceToToggle.is_internal;
+		const prevServices = [...services];
+		setServices((prev) =>
+			prev.map((service) =>
+				service.id === serviceToToggle.id
+					? {
+							...service,
+							is_internal: nextInternal,
+							is_hidden: nextInternal ? false : service.is_hidden,
+						}
+					: service,
+			),
+		);
+
+		try {
+			await authApiRequest(
+				`/api/admin/services/${serviceToToggle.id}/internal`,
+				{
+					method: "PATCH",
+					body: JSON.stringify({ is_internal: nextInternal }),
+				},
+			);
+			toast.success(
+				nextInternal
+					? `"${serviceToToggle.name}" is now invoice only.`
+					: `"${serviceToToggle.name}" is back in the public catalog.`,
+			);
+		} catch (error) {
+			console.error(error);
+			setServices(prevServices);
+			toast.error("Failed to update service scope.");
 		}
 	};
 
@@ -366,6 +404,7 @@ export default function AdminServiceTab() {
 								onSaveEdit={saveEdit}
 								onDelete={deleteService}
 								onToggleHidden={toggleServiceVisibility}
+								onToggleInternal={toggleServiceInternal}
 							/>
 						),
 					)}

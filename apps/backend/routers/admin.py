@@ -17,6 +17,7 @@ from schemas import (
     PartUpdate,
     RateUpdate,
     ServiceCreate,
+    ServiceInternalUpdate,
     ServiceUpdate,
     ServiceVisibilityUpdate,
     ShopSettingsUpdate,
@@ -26,7 +27,7 @@ from schemas import (
     VoiceNoteRequest,
 )
 from voice_note import format_voice_note_block, summarize_voice_note
-from service_pricing import serialize_service
+from service_pricing import serialize_admin_service
 from storage_utils import (
     INVOICE_PHOTOS_BUCKET,
     attach_signed_urls,
@@ -131,7 +132,7 @@ async def list_admin_services():
         )
 
         services = [
-            serialize_service(service, hourly_rate)
+            serialize_admin_service(service, hourly_rate)
             for service in (services_response.data or [])
         ]
 
@@ -149,11 +150,37 @@ async def list_admin_services():
 # Toggles a service's visibility on the public menu.
 @router.patch("/services/{service_id}/visibility")
 async def update_service_visibility(service_id: str, payload: ServiceVisibilityUpdate):
+    existing = (
+        supabase.table("services").select("is_internal").eq("id", service_id).execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Service not found")
+    if existing.data[0].get("is_internal"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invoice-only services are never on the public menu.",
+        )
+
     response = (
         supabase.table("services")
         .update({"is_hidden": payload.is_hidden})
         .eq("id", service_id)
         .execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Service not found")
+    return response.data[0]
+
+
+# Toggles whether a service is invoice-only (never on the public menu).
+@router.patch("/services/{service_id}/internal")
+async def update_service_internal(service_id: str, payload: ServiceInternalUpdate):
+    update_payload: dict = {"is_internal": payload.is_internal}
+    if payload.is_internal:
+        update_payload["is_hidden"] = False
+
+    response = (
+        supabase.table("services").update(update_payload).eq("id", service_id).execute()
     )
     if not response.data:
         raise HTTPException(status_code=404, detail="Service not found")

@@ -25,6 +25,7 @@ export default function ServiceForm({
 		pricing_type: (initialData?.pricing_type as PricingType) || "hourly",
 		estimated_hours: initialData?.estimated_hours || 1,
 		fixed_price: initialData?.fixed_price || 0,
+		is_internal: initialData?.is_internal ?? false,
 	});
 
 	const [isSaving, setIsSaving] = useState(false);
@@ -80,7 +81,6 @@ export default function ServiceForm({
 								setFormData({ ...formData, category_id: e.target.value })
 							}
 						>
-							~
 							{categories.map((cat) => (
 								<option key={cat.id} value={cat.id}>
 									{cat.name}
@@ -161,6 +161,26 @@ export default function ServiceForm({
 						</div>
 					)}
 				</div>
+
+				<label className="mt-2 inline-flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-950/60 p-3">
+					<input
+						type="checkbox"
+						checked={formData.is_internal}
+						onChange={(e) =>
+							setFormData({ ...formData, is_internal: e.target.checked })
+						}
+						className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-900 text-emerald-500 focus:ring-emerald-500"
+					/>
+					<span>
+						<span className="block text-sm font-semibold text-neutral-100">
+							Invoice only
+						</span>
+						<span className="block text-xs leading-relaxed text-neutral-400">
+							Shop catalog item for invoices. Never appears on the public
+							website menu.
+						</span>
+					</span>
+				</label>
 			</div>
 			{/* BUTTON LAYOUT */}
 			<div className="flex justify-between items-center pt-2 border-t border-neutral-800 mt-6">
