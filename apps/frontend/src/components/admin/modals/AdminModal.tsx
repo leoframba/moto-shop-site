@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useId } from "react";
+import { FiX } from "react-icons/fi";
 import {
 	MODAL_PANEL_SIZES,
 	MODAL_Z_INDEX,
@@ -117,7 +118,7 @@ export function AdminModal({
 						onClick={onClose}
 						className={modalCloseButtonClass}
 					>
-						Close
+						<FiX className="h-6 w-6" />
 					</button>
 				</div>
 				{children}
