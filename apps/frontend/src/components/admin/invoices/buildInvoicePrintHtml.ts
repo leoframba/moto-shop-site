@@ -391,7 +391,6 @@ export const buildInvoicePrintHtml = (
 				${customer.address ? `<div>${escapeHtml(customer.address)}</div>` : ""}
 			</div>
 			<div class="card">
-				<p class="card-title">Service Provider</p>
 				<div><strong>${safeShopName}</strong></div>
 				${providerLines}
 			</div>

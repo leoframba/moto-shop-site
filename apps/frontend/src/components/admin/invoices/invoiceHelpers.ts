@@ -139,6 +139,64 @@ export const getInvoiceBikeLabel = (invoice: InvoiceWithRelations): string => {
 export const getBikeDisplayLabel = (bike: InvoiceBike): string =>
 	`${bike.year} ${bike.make} ${bike.model}`;
 
+export interface InvoiceEntityFilters {
+	userId: string;
+	bikeId: string;
+}
+
+/** Current bike owner plus anyone who has an invoice linked to this bike. */
+export const getViableOwnerIdsForBike = (
+	bikeId: string,
+	invoices: InvoiceWithRelations[],
+	bikes: InvoiceBike[],
+): string[] => {
+	const ownerIds = new Set<string>();
+	const bike = bikes.find((entry) => entry.id === bikeId);
+	if (bike?.owner_id) {
+		ownerIds.add(bike.owner_id);
+	}
+	for (const invoice of invoices) {
+		if (invoice.bike_id === bikeId && invoice.owner_id) {
+			ownerIds.add(invoice.owner_id);
+		}
+	}
+	return [...ownerIds];
+};
+
+export const getBikesOwnedByUser = (
+	userId: string,
+	bikes: InvoiceBike[],
+): InvoiceBike[] => bikes.filter((bike) => bike.owner_id === userId);
+
+export const invoiceMatchesEntityFilters = (
+	invoice: InvoiceWithRelations,
+	filters: InvoiceEntityFilters,
+): boolean => {
+	if (filters.userId && invoice.owner_id !== filters.userId) {
+		return false;
+	}
+	if (filters.bikeId && invoice.bike_id !== filters.bikeId) {
+		return false;
+	}
+	return true;
+};
+
+export const compareUsersByDisplayName = (
+	a: AdminUser,
+	b: AdminUser,
+): number =>
+	getUserDisplayName(a).localeCompare(getUserDisplayName(b), undefined, {
+		sensitivity: "base",
+	});
+
+export const compareBikesByDisplayLabel = (
+	a: InvoiceBike,
+	b: InvoiceBike,
+): number =>
+	getBikeDisplayLabel(a).localeCompare(getBikeDisplayLabel(b), undefined, {
+		sensitivity: "base",
+	});
+
 export const getPartLineDisplayLabel = (
 	line: DraftPartLine,
 	parts: Part[],

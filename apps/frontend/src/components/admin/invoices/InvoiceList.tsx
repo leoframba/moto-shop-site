@@ -10,6 +10,8 @@ import {
 } from "react-icons/fi";
 import { toast } from "sonner";
 import type {
+	AdminUser,
+	InvoiceBike,
 	InvoiceRecord,
 	InvoiceWithRelations,
 	ShopSettings,
@@ -21,10 +23,15 @@ import { InvoicePhotosManager } from "./InvoicePhotosManager";
 import {
 	calculateInvoiceTotal,
 	calculateLineTotal,
+	compareBikesByDisplayLabel,
+	compareUsersByDisplayName,
 	formatDateTime,
+	getBikesOwnedByUser,
 	getInvoiceBikeLabel,
 	getInvoiceOwnerLabel,
 	getInvoiceStatusTagClasses,
+	getViableOwnerIdsForBike,
+	invoiceMatchesEntityFilters,
 	INVOICE_STATUSES,
 	toCurrency,
 	toStatusLabel,
@@ -33,8 +40,18 @@ import {
 	invoiceAccordionSectionClass,
 	invoiceActionButtonClass,
 	invoiceFieldInputClass,
+	invoiceHintClass,
+	invoiceLabelClass,
+	invoicePickerButtonClass,
+	invoiceSecondaryButtonClass,
 	invoiceSubheadingClass,
 } from "./invoiceUi";
+import {
+	getBikeFilterButtonLabel,
+	getOwnerFilterButtonLabel,
+	InvoiceBikeFilterModal,
+	InvoiceOwnerFilterModal,
+} from "./InvoiceFilterPickers";
 
 interface VoiceNoteApiResponse {
 	transcript: string;
@@ -44,6 +61,8 @@ interface VoiceNoteApiResponse {
 
 interface InvoiceListProps {
 	invoices: InvoiceWithRelations[];
+	users: AdminUser[];
+	bikes: InvoiceBike[];
 	shopSettings: ShopSettings;
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
 	refetch: () => Promise<void>;
@@ -54,6 +73,8 @@ interface InvoiceListProps {
 
 export function InvoiceList({
 	invoices,
+	users,
+	bikes,
 	shopSettings,
 	setInvoices,
 	refetch,
@@ -63,6 +84,10 @@ export function InvoiceList({
 }: InvoiceListProps) {
 	const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [selectedUserId, setSelectedUserId] = useState("");
+	const [selectedBikeId, setSelectedBikeId] = useState("");
+	const [ownerFilterModalOpen, setOwnerFilterModalOpen] = useState(false);
+	const [bikeFilterModalOpen, setBikeFilterModalOpen] = useState(false);
 	const [activeStatusFilters, setActiveStatusFilters] =
 		useState<InvoiceRecord["status"][]>(INVOICE_STATUSES);
 	const [statusPickerInvoiceId, setStatusPickerInvoiceId] = useState<
@@ -288,9 +313,63 @@ export function InvoiceList({
 		}
 	};
 
+	const availableUserOptions = useMemo(() => {
+		if (selectedBikeId) {
+			const viableOwnerIds = new Set(
+				getViableOwnerIdsForBike(selectedBikeId, invoices, bikes),
+			);
+			return users
+				.filter((user) => viableOwnerIds.has(user.id))
+				.sort(compareUsersByDisplayName);
+		}
+		return [...users].sort(compareUsersByDisplayName);
+	}, [bikes, invoices, selectedBikeId, users]);
+
+	const availableBikeOptions = useMemo(() => {
+		const bikePool = selectedUserId
+			? getBikesOwnedByUser(selectedUserId, bikes)
+			: bikes;
+		return [...bikePool].sort(compareBikesByDisplayLabel);
+	}, [bikes, selectedUserId]);
+
+	const hasEntityFilters = Boolean(selectedUserId || selectedBikeId);
+
+	const handleUserFilterChange = (userId: string) => {
+		setSelectedUserId(userId);
+		if (userId && selectedBikeId) {
+			const ownedBikeIds = new Set(
+				getBikesOwnedByUser(userId, bikes).map((bike) => bike.id),
+			);
+			if (!ownedBikeIds.has(selectedBikeId)) {
+				setSelectedBikeId("");
+			}
+		}
+	};
+
+	const handleBikeFilterChange = (bikeId: string) => {
+		setSelectedBikeId(bikeId);
+		if (bikeId && selectedUserId) {
+			const viableOwnerIds = getViableOwnerIdsForBike(bikeId, invoices, bikes);
+			if (!viableOwnerIds.includes(selectedUserId)) {
+				setSelectedUserId("");
+			}
+		}
+	};
+
+	const clearEntityFilters = () => {
+		setSelectedUserId("");
+		setSelectedBikeId("");
+	};
+
 	const filteredInvoices = useMemo(() => {
 		const query = searchTerm.trim().toLowerCase();
-		const statusFiltered = invoices.filter((invoice) =>
+		const entityFiltered = invoices.filter((invoice) =>
+			invoiceMatchesEntityFilters(invoice, {
+				userId: selectedUserId,
+				bikeId: selectedBikeId,
+			}),
+		);
+		const statusFiltered = entityFiltered.filter((invoice) =>
 			activeStatusFilters.includes(invoice.status),
 		);
 		if (!query) return statusFiltered;
@@ -310,17 +389,84 @@ export function InvoiceList({
 				plateText.includes(query)
 			);
 		});
-	}, [activeStatusFilters, invoices, searchTerm]);
+	}, [
+		activeStatusFilters,
+		invoices,
+		searchTerm,
+		selectedBikeId,
+		selectedUserId,
+	]);
 
 	return (
 		<section className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 sm:p-5 mt-6">
 			<div className="flex flex-col gap-4 mb-5">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+					<p className={invoiceSubheadingClass}>Filter Invoices</p>
+					{hasEntityFilters && (
+						<button
+							type="button"
+							onClick={clearEntityFilters}
+							className={invoiceSecondaryButtonClass}
+						>
+							Clear owner / bike filters
+						</button>
+					)}
+				</div>
+				<div className="grid gap-4 md:grid-cols-2">
+					<div>
+						<label htmlFor="invoice-filter-user" className={invoiceLabelClass}>
+							Owner
+						</label>
+						<button
+							id="invoice-filter-user"
+							type="button"
+							onClick={() => setOwnerFilterModalOpen(true)}
+							className={`${invoicePickerButtonClass} w-full`}
+						>
+							{getOwnerFilterButtonLabel(selectedUserId, users)}
+						</button>
+						{selectedBikeId && availableUserOptions.length === 0 && (
+							<p className={invoiceHintClass}>
+								No linked owners found for this bike.
+							</p>
+						)}
+					</div>
+					<div>
+						<label htmlFor="invoice-filter-bike" className={invoiceLabelClass}>
+							Bike
+						</label>
+						<button
+							id="invoice-filter-bike"
+							type="button"
+							onClick={() => setBikeFilterModalOpen(true)}
+							className={`${invoicePickerButtonClass} w-full`}
+						>
+							{getBikeFilterButtonLabel(selectedBikeId, bikes)}
+						</button>
+						{selectedUserId && availableBikeOptions.length === 0 && (
+							<p className={invoiceHintClass}>
+								This user does not currently own any bikes.
+							</p>
+						)}
+						{selectedBikeId && !selectedUserId && (
+							<p className={invoiceHintClass}>
+								Showing every invoice for this bike, including prior owners.
+							</p>
+						)}
+					</div>
+				</div>
 				<input
 					value={searchTerm}
 					onChange={(e) => setSearchTerm(e.target.value)}
 					placeholder="Search invoice #, owner, bike, VIN, plate"
 					className={`${invoiceFieldInputClass} md:max-w-md`}
 				/>
+				<div className="flex flex-wrap items-center gap-2">
+					<span className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+						{filteredInvoices.length}{" "}
+						{filteredInvoices.length === 1 ? "invoice" : "invoices"}
+					</span>
+				</div>
 				<div className="flex flex-wrap gap-2">
 					{INVOICE_STATUSES.map((status) => {
 						const isActive = activeStatusFilters.includes(status);
@@ -344,7 +490,9 @@ export function InvoiceList({
 
 			{filteredInvoices.length === 0 ? (
 				<div className="border border-dashed border-neutral-800 rounded-lg p-8 sm:p-10 text-center text-neutral-300 text-sm uppercase tracking-widest">
-					No invoices match your search.
+					{hasEntityFilters || searchTerm.trim()
+						? "No invoices match your filters."
+						: "No invoices yet."}
 				</div>
 			) : (
 				<div className="space-y-3 sm:space-y-4">
@@ -690,6 +838,26 @@ export function InvoiceList({
 						);
 					})}
 				</div>
+			)}
+			{ownerFilterModalOpen && (
+				<InvoiceOwnerFilterModal
+					users={availableUserOptions}
+					clearOptionLabel={
+						selectedBikeId ? "All owners for this bike" : "All owners"
+					}
+					onSelect={handleUserFilterChange}
+					onClose={() => setOwnerFilterModalOpen(false)}
+				/>
+			)}
+			{bikeFilterModalOpen && (
+				<InvoiceBikeFilterModal
+					bikes={availableBikeOptions}
+					clearOptionLabel={
+						selectedUserId ? "All bikes owned by this user" : "All bikes"
+					}
+					onSelect={handleBikeFilterChange}
+					onClose={() => setBikeFilterModalOpen(false)}
+				/>
 			)}
 		</section>
 	);

@@ -11,7 +11,7 @@ import { adminShellClass } from "@/components/admin/adminUi";
 import AdminServiceTab from "@/components/admin/services/AdminServiceTab";
 
 export default function AdminDashboard() {
-	const [activeTab, setActiveTab] = useState<AdminTab>("services");
+	const [activeTab, setActiveTab] = useState<AdminTab>("invoices");
 
 	return (
 		<div className={`flex min-h-screen flex-col font-sans ${adminShellClass}`}>

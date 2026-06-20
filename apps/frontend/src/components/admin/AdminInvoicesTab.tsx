@@ -80,6 +80,8 @@ export default function AdminInvoicesTab() {
 
 			<InvoiceList
 				invoices={data.invoices}
+				users={data.users}
+				bikes={data.bikes}
 				shopSettings={data.shopSettings}
 				setInvoices={data.setInvoices}
 				refetch={data.refetch}
