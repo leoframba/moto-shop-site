@@ -1,4 +1,5 @@
 # schemas.py
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -171,6 +172,8 @@ class InvoiceCreate(BaseModel):
     customer_address: str | None = None
     customer_phone: str | None = None
     customer_email: str | None = None
+    invoice_number: int | None = Field(default=None, gt=0)
+    created_at: datetime | None = None
     line_items: list[InvoiceLineItemCreate] = Field(default_factory=list)
 
     @field_validator(

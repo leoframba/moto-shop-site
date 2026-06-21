@@ -524,6 +524,55 @@ async def delete_bike(bike_id: str):
 # ==========================================
 
 
+def _invoice_header_metadata(invoice) -> dict:
+    payload = {}
+    if invoice.invoice_number is not None:
+        payload["invoice_number"] = invoice.invoice_number
+    if invoice.created_at is not None:
+        payload["created_at"] = invoice.created_at.isoformat()
+    return payload
+
+
+def _assert_invoice_number_available(
+    invoice_number: int, exclude_invoice_id: str | None = None
+) -> None:
+    query = (
+        supabase.table("invoices")
+        .select("id")
+        .eq("invoice_number", invoice_number)
+        .limit(1)
+    )
+    response = query.execute()
+    rows = response.data or []
+    if not rows:
+        return
+
+    existing_id = rows[0].get("id")
+    if exclude_invoice_id and existing_id == exclude_invoice_id:
+        return
+
+    raise HTTPException(
+        status_code=409,
+        detail="An invoice with this number already exists.",
+    )
+
+
+def _raise_invoice_http_error(exc: Exception) -> None:
+    message = str(exc)
+    lowered = message.lower()
+    if "duplicate" in lowered or "unique" in lowered:
+        if "invoice_number" in lowered:
+            raise HTTPException(
+                status_code=409,
+                detail="An invoice with this number already exists.",
+            )
+        raise HTTPException(
+            status_code=409,
+            detail="An invoice with these values already exists.",
+        )
+    raise HTTPException(status_code=500, detail=message)
+
+
 def _invoice_line_item_row(invoice_id: str, item) -> dict:
     return {
         "invoice_id": invoice_id,
@@ -624,6 +673,9 @@ async def create_invoice(invoice: InvoiceCreate):
     created_invoice = None
 
     try:
+        if invoice.invoice_number is not None:
+            _assert_invoice_number_available(invoice.invoice_number)
+
         invoice_payload = {
             "owner_id": invoice.owner_id,
             "bike_id": invoice.bike_id,
@@ -636,6 +688,7 @@ async def create_invoice(invoice: InvoiceCreate):
             "customer_address": invoice.customer_address,
             "customer_phone": invoice.customer_phone,
             "customer_email": invoice.customer_email,
+            **_invoice_header_metadata(invoice),
         }
 
         created_invoice_response = (
@@ -676,12 +729,17 @@ async def create_invoice(invoice: InvoiceCreate):
                 ).execute()
             except Exception:
                 pass
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_invoice_http_error(e)
 
 
 @router.patch("/invoices/{invoice_id}")
 async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
     try:
+        if invoice.invoice_number is not None:
+            _assert_invoice_number_available(
+                invoice.invoice_number, exclude_invoice_id=invoice_id
+            )
+
         invoice_payload = {
             "owner_id": invoice.owner_id,
             "bike_id": invoice.bike_id,
@@ -694,6 +752,7 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
             "customer_address": invoice.customer_address,
             "customer_phone": invoice.customer_phone,
             "customer_email": invoice.customer_email,
+            **_invoice_header_metadata(invoice),
         }
 
         updated_invoice_response = (
@@ -730,7 +789,7 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        _raise_invoice_http_error(e)
 
 
 @router.delete("/invoices/{invoice_id}")

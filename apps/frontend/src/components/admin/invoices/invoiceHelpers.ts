@@ -241,3 +241,44 @@ export const formatDateTime = (value?: string): string => {
 	if (!value) return "N/A";
 	return new Date(value).toLocaleString();
 };
+
+/** Value for `<input type="datetime-local" />` in local time. */
+export const toDatetimeLocalInputValue = (iso?: string | null): string => {
+	const date = iso ? new Date(iso) : new Date();
+	if (Number.isNaN(date.getTime())) return "";
+
+	const pad = (part: number) => String(part).padStart(2, "0");
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+export const datetimeLocalValueToIso = (value: string): string | null => {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+
+	const date = new Date(trimmed);
+	if (Number.isNaN(date.getTime())) return null;
+
+	return date.toISOString();
+};
+
+export const openDatetimePicker = (
+	input: HTMLInputElement | null | undefined,
+): void => {
+	if (!input || typeof input.showPicker !== "function") return;
+	try {
+		input.showPicker();
+	} catch {
+		// Some browsers block showPicker outside a direct user gesture.
+	}
+};
+
+export const isInvoiceNumberTaken = (
+	invoiceNumber: number,
+	invoices: Pick<InvoiceWithRelations, "id" | "invoice_number">[],
+	excludeInvoiceId?: string | null,
+): boolean =>
+	invoices.some(
+		(invoice) =>
+			invoice.invoice_number === invoiceNumber &&
+			invoice.id !== excludeInvoiceId,
+	);

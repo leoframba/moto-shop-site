@@ -15,10 +15,14 @@ import type {
 import { authApiRequest } from "@/utils/api";
 import {
 	createDraftId,
+	datetimeLocalValueToIso,
 	type DraftPartLine,
 	type DraftServiceLine,
 	getUserDisplayName,
 	HAZARDOUS_WASTE_LINE_NAME,
+	isInvoiceNumberTaken,
+	openDatetimePicker,
+	toDatetimeLocalInputValue,
 } from "./invoiceHelpers";
 
 interface UseInvoiceBuilderArgs {
@@ -26,6 +30,7 @@ interface UseInvoiceBuilderArgs {
 	bikes: InvoiceBike[];
 	services: Service[];
 	parts: Part[];
+	existingInvoices: InvoiceWithRelations[];
 	shopHourlyRate: number;
 	shopHazardousWasteRate: number;
 	onSaved: (invoiceId: string) => void | Promise<void>;
@@ -36,6 +41,7 @@ export function useInvoiceBuilder({
 	bikes,
 	services,
 	parts,
+	existingInvoices,
 	shopHourlyRate,
 	shopHazardousWasteRate,
 	onSaved,
@@ -57,6 +63,8 @@ export function useInvoiceBuilder({
 	const [customerAddress, setCustomerAddress] = useState("");
 	const [customerPhone, setCustomerPhone] = useState("");
 	const [customerEmail, setCustomerEmail] = useState("");
+	const [invoiceNumber, setInvoiceNumber] = useState("");
+	const [invoiceDate, setInvoiceDate] = useState(() => toDatetimeLocalInputValue());
 
 	const [serviceLines, setServiceLines] = useState<DraftServiceLine[]>([]);
 	const [partLines, setPartLines] = useState<DraftPartLine[]>([]);
@@ -221,6 +229,8 @@ export function useInvoiceBuilder({
 		setCustomerAddress("");
 		setCustomerPhone("");
 		setCustomerEmail("");
+		setInvoiceNumber("");
+		setInvoiceDate(toDatetimeLocalInputValue());
 		setServiceLines([]);
 		setPartLines([]);
 		setHazardousWasteEnabled(false);
@@ -287,6 +297,8 @@ export function useInvoiceBuilder({
 			invoice.customer_phone ?? invoice.owner?.phone_number ?? "",
 		);
 		setCustomerEmail(invoice.customer_email ?? invoice.owner?.email ?? "");
+		setInvoiceNumber(String(invoice.invoice_number));
+		setInvoiceDate(toDatetimeLocalInputValue(invoice.created_at));
 
 		const nextServiceLines: DraftServiceLine[] = invoice.line_items
 			.filter((line) => line.item_type === "service")
@@ -620,6 +632,40 @@ export function useInvoiceBuilder({
 			return;
 		}
 
+		const parsedCreatedAt = datetimeLocalValueToIso(invoiceDate);
+		if (!parsedCreatedAt) {
+			toast.warning("Enter a valid invoice date and time.");
+			return;
+		}
+
+		let parsedInvoiceNumber: number | undefined;
+		if (invoiceNumber.trim()) {
+			parsedInvoiceNumber = parseInt(invoiceNumber, 10);
+			if (
+				!Number.isFinite(parsedInvoiceNumber) ||
+				parsedInvoiceNumber <= 0 ||
+				!Number.isInteger(parsedInvoiceNumber)
+			) {
+				toast.warning("Invoice # must be a positive whole number.");
+				return;
+			}
+		} else if (editingInvoiceId) {
+			toast.warning("Invoice # is required when editing.");
+			return;
+		}
+
+		if (
+			parsedInvoiceNumber !== undefined &&
+			isInvoiceNumberTaken(
+				parsedInvoiceNumber,
+				existingInvoices,
+				editingInvoiceId,
+			)
+		) {
+			toast.warning(`Invoice #${parsedInvoiceNumber} is already in use.`);
+			return;
+		}
+
 		const payload: InvoiceCreatePayload = {
 			owner_id: ownerId || null,
 			bike_id: bikeId || null,
@@ -632,6 +678,10 @@ export function useInvoiceBuilder({
 			customer_address: customerAddress.trim() || null,
 			customer_phone: customerPhone.trim() || null,
 			customer_email: customerEmail.trim() || null,
+			created_at: parsedCreatedAt,
+			...(parsedInvoiceNumber !== undefined
+				? { invoice_number: parsedInvoiceNumber }
+				: {}),
 			line_items: [
 				...(hazardousWasteEnabled
 					? [
@@ -688,9 +738,11 @@ export function useInvoiceBuilder({
 		} catch (error) {
 			console.error(error);
 			toast.error(
-				editingInvoiceId
-					? "Failed to update invoice."
-					: "Failed to create invoice.",
+				error instanceof Error
+					? error.message
+					: editingInvoiceId
+						? "Failed to update invoice."
+						: "Failed to create invoice.",
 			);
 		} finally {
 			setIsSaving(false);
@@ -720,6 +772,8 @@ export function useInvoiceBuilder({
 		odometerIn,
 		odometerOut,
 		mechanicNotes,
+		invoiceNumber,
+		invoiceDate,
 		isDirty,
 		setOwnerId,
 		setBikeId,
@@ -727,6 +781,8 @@ export function useInvoiceBuilder({
 		setOdometerIn,
 		setOdometerOut,
 		setMechanicNotes,
+		setInvoiceNumber,
+		setInvoiceDate,
 		customerFields,
 		updateCustomerField,
 		hasLinkedOwner: Boolean(ownerId),

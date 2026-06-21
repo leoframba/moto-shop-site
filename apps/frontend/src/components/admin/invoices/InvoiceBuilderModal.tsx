@@ -21,6 +21,7 @@ import {
 	getPartLineDisplayLabel,
 	HAZARDOUS_WASTE_LINE_NAME,
 	INVOICE_STATUSES,
+	openDatetimePicker,
 	parseNumberInput,
 	toCurrency,
 	toStatusLabel,
@@ -33,13 +34,14 @@ import {
 	invoiceCheckboxClass,
 	invoiceEmptyHintClass,
 	invoiceFieldInputLgClass,
+	invoiceDatetimeFieldClass,
 	invoiceHeaderClass,
 	invoiceHeaderTitleClass,
 	invoiceHintClass,
 	invoiceLabelClass,
 	invoiceOverlayClass,
 	invoicePickerButtonClass,
-	invoicePrimaryButtonClass,
+	invoiceHeaderSaveButtonClass,
 	invoiceReadOnlyFieldClass,
 	invoiceSecondaryButtonClass,
 	invoiceSectionClass,
@@ -114,9 +116,27 @@ export function InvoiceBuilderModal({
 					<div className={invoiceShellClass}>
 						<div className={invoiceHeaderClass}>
 							<h3 className={invoiceHeaderTitleClass}>
-								{builder.editingInvoiceId ? "Edit Invoice" : "Create Invoice"}
+								{builder.editingInvoiceId
+									? builder.invoiceNumber.trim()
+										? `Edit Invoice #${builder.invoiceNumber.trim()}`
+										: "Edit Invoice"
+									: "Create Invoice"}
 							</h3>
 							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									disabled={builder.isSaving}
+									onClick={() => void builder.save()}
+									className={invoiceHeaderSaveButtonClass}
+								>
+									{builder.isSaving
+										? builder.editingInvoiceId
+											? "Saving..."
+											: "Creating..."
+										: builder.editingInvoiceId
+											? "Save Invoice"
+											: "Create Invoice"}
+								</button>
 								<button
 									type="button"
 									onClick={() => {
@@ -144,6 +164,59 @@ export function InvoiceBuilderModal({
 							<div className={invoiceStackClass}>
 								<div className={invoiceSectionClass}>
 									<h4 className={invoiceSectionTitleClass}>Links & Info</h4>
+									<div className="grid md:grid-cols-2 gap-4 mb-4">
+										<div>
+											<label
+												htmlFor="invoice-number"
+												className={invoiceLabelClass}
+											>
+												Invoice #
+											</label>
+											<input
+												id="invoice-number"
+												type="number"
+												min={1}
+												step={1}
+												value={builder.invoiceNumber}
+												onChange={(e) =>
+													builder.setInvoiceNumber(e.target.value)
+												}
+												placeholder={
+													builder.editingInvoiceId
+														? undefined
+														: "Auto-assigned on save"
+												}
+												className={invoiceFieldInputLgClass}
+											/>
+											<p className={invoiceHintClass}>
+												{builder.editingInvoiceId
+													? "Customer-facing invoice number. Must be unique."
+													: "Leave blank to use the next auto-assigned number."}
+											</p>
+										</div>
+										<div>
+											<label
+												htmlFor="invoice-date"
+												className={invoiceLabelClass}
+											>
+												Invoice date
+											</label>
+											<input
+												id="invoice-date"
+												type="datetime-local"
+												value={builder.invoiceDate}
+												onChange={(e) =>
+													builder.setInvoiceDate(e.target.value)
+												}
+												onClick={(e) => openDatetimePicker(e.currentTarget)}
+												className={invoiceDatetimeFieldClass}
+											/>
+											<p className={invoiceHintClass}>
+												Used on printed invoices and in the invoice list.
+												Defaults to now when creating.
+											</p>
+										</div>
+									</div>
 									<div className="grid md:grid-cols-2 gap-4 mb-4">
 										<div>
 											<label
@@ -917,20 +990,6 @@ export function InvoiceBuilderModal({
 											</span>
 										</div>
 									</div>
-									<button
-										type="button"
-										disabled={builder.isSaving}
-										onClick={() => void builder.save()}
-										className={invoicePrimaryButtonClass}
-									>
-										{builder.isSaving
-											? builder.editingInvoiceId
-												? "Saving..."
-												: "Creating..."
-											: builder.editingInvoiceId
-												? "Save Invoice"
-												: "Create Invoice"}
-									</button>
 								</section>
 							</div>
 						</div>

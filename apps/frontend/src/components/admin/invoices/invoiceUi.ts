@@ -53,6 +53,8 @@ export const invoiceFieldInputClass = `w-full ${invoiceFieldSurface} px-3 py-2.5
 
 export const invoiceFieldInputLgClass = `w-full ${invoiceFieldSurface} p-3 text-sm placeholder:text-neutral-300`;
 
+export const invoiceDatetimeFieldClass = `${invoiceFieldInputLgClass} invoice-datetime-field cursor-pointer`;
+
 export const invoiceReadOnlyFieldClass =
 	"w-full rounded-md border border-neutral-700 bg-neutral-900/90 px-3 py-2.5 text-sm text-neutral-200";
 
@@ -64,6 +66,9 @@ export const invoiceLinePickerButtonClass = `w-full ${invoiceFieldSurface} p-2.5
 
 export const invoiceSecondaryButtonClass =
 	"rounded-md border border-neutral-600 bg-neutral-800 px-3 py-2 text-xs font-bold uppercase tracking-widest text-neutral-200 transition-colors hover:border-neutral-500 hover:bg-neutral-700";
+
+export const invoiceHeaderSaveButtonClass =
+	"rounded-md border border-emerald-600 bg-emerald-600 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:border-emerald-500 hover:bg-emerald-500 disabled:border-neutral-600 disabled:bg-neutral-800 disabled:text-neutral-400";
 
 export const invoiceActionButtonClass =
 	"inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors sm:w-auto";

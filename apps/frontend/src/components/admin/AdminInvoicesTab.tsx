@@ -17,6 +17,7 @@ export default function AdminInvoicesTab() {
 		bikes: data.bikes,
 		services: data.services,
 		parts: data.parts,
+		existingInvoices: data.invoices,
 		shopHourlyRate: data.shopHourlyRate,
 		shopHazardousWasteRate: Number(data.shopSettings.hazardous_waste_rate ?? 0),
 		onSaved: async (invoiceId) => {

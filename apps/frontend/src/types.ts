@@ -179,6 +179,8 @@ export interface InvoiceCreatePayload {
 	customer_address?: string | null;
 	customer_phone?: string | null;
 	customer_email?: string | null;
+	invoice_number?: number | null;
+	created_at?: string | null;
 	line_items: InvoiceLineItemPayload[];
 }
 
