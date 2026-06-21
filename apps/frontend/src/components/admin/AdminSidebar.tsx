@@ -13,6 +13,7 @@ export type AdminTab =
 	| "bikes"
 	| "parts"
 	| "invoices"
+	| "stats"
 	| "users"
 	| "settings";
 
@@ -27,6 +28,7 @@ const ADMIN_TABS: { id: AdminTab; label: string }[] = [
 	{ id: "bikes", label: "Bikes" },
 	{ id: "parts", label: "Parts" },
 	{ id: "invoices", label: "Invoices" },
+	{ id: "stats", label: "Stats Board" },
 	{ id: "users", label: "Users" },
 	{ id: "settings", label: "Settings" },
 ];

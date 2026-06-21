@@ -127,6 +127,7 @@ class InvoiceLineItemCreate(BaseModel):
     service_id: str | None = None
     part_id: str | None = None
     snapshot_name: str = Field(..., min_length=1)
+    snapshot_part_number: str | None = None
     pricing_type: Literal["hourly", "fixed"] | None = None
     unit_price: float = Field(..., ge=0)
     quantity: float = Field(..., gt=0)
@@ -135,6 +136,16 @@ class InvoiceLineItemCreate(BaseModel):
     @classmethod
     def normalize_snapshot_name(cls, v: str) -> str:
         return v.strip()
+
+    @field_validator("snapshot_part_number", mode="before")
+    @classmethod
+    def normalize_snapshot_part_number(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
 
     @field_validator("service_id", "part_id", mode="before")
     @classmethod
@@ -155,6 +166,9 @@ class InvoiceLineItemCreate(BaseModel):
             self.service_id = None
             self.part_id = None
             self.pricing_type = None
+            self.snapshot_part_number = None
+        if self.item_type != "part":
+            self.snapshot_part_number = None
         return self
 
 
@@ -275,12 +289,13 @@ class ShopSettingsUpdate(BaseModel):
     shop_address: str | None = None
     shop_phone: str | None = None
     shop_email: str | None = None
+    bar_number: str | None = None
     hourly_rate: float | None = Field(default=None, ge=0)
     tax_rate: float | None = Field(default=None, ge=0, le=100)
     hazardous_waste_rate: float | None = Field(default=None, ge=0)
 
     @field_validator(
-        "shop_name", "shop_address", "shop_phone", "shop_email", mode="before"
+        "shop_name", "shop_address", "shop_phone", "shop_email", "bar_number", mode="before"
     )
     @classmethod
     def normalize_text(cls, v):

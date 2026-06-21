@@ -19,6 +19,7 @@ import {
 import {
 	getBikeDisplayLabel,
 	getPartLineDisplayLabel,
+	getPartLinePartNumber,
 	HAZARDOUS_WASTE_LINE_NAME,
 	INVOICE_STATUSES,
 	openDatetimePicker,
@@ -838,7 +839,16 @@ export function InvoiceBuilderModal({
 											<table className={invoiceTableClassParts}>
 												<thead>
 													<tr className={invoiceTableHeadRowClass}>
-														<th className={invoiceTableHeadCellClass}>Part</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-40`}
+														>
+															Part #
+														</th>
+														<th
+															className={`${invoiceTableHeadCellClass} w-44 max-w-[11rem]`}
+														>
+															Part name
+														</th>
 														<th
 															className={`${invoiceTableHeadCellClass} w-32 text-right`}
 														>
@@ -865,13 +875,34 @@ export function InvoiceBuilderModal({
 													{builder.partLines.map((line) => (
 														<tr key={line.id}>
 															<td className={invoiceTableCellClass}>
+																{line.is_custom ? (
+																	<input
+																		id={`invoice-part-number-${line.id}`}
+																		value={line.snapshot_part_number}
+																		onChange={(e) =>
+																			builder.updatePartLine(
+																				line.id,
+																				"snapshot_part_number",
+																				e.target.value,
+																			)
+																		}
+																		placeholder="Part #"
+																		className={invoiceTableInputClass}
+																	/>
+																) : (
+																	<span className="block px-2 py-2 text-sm text-neutral-300">
+																		{getPartLinePartNumber(line, parts) || "—"}
+																	</span>
+																)}
+															</td>
+															<td className={`${invoiceTableCellClass} max-w-[11rem]`}>
 																<button
 																	id={`invoice-part-${line.id}`}
 																	type="button"
 																	onClick={() =>
 																		builder.setPartPickerLineId(line.id)
 																	}
-																	className={invoiceTablePickerButtonClass}
+																	className={`${invoiceTablePickerButtonClass} max-w-full truncate`}
 																>
 																	{getPartLineDisplayLabel(line, parts)}
 																</button>
@@ -1054,8 +1085,12 @@ export function InvoiceBuilderModal({
 							partOverride,
 						)
 					}
-					onConfirmCustom={(name) =>
-						builder.confirmCustomPart(builder.partPickerLineId as string, name)
+					onConfirmCustom={(name, partNumber) =>
+						builder.confirmCustomPart(
+							builder.partPickerLineId as string,
+							name,
+							partNumber,
+						)
 					}
 					onPartCreated={onPartCreated}
 					onClose={() => builder.setPartPickerLineId(null)}

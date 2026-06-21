@@ -55,6 +55,8 @@ export const invoiceFieldInputLgClass = `w-full ${invoiceFieldSurface} p-3 text-
 
 export const invoiceDatetimeFieldClass = `${invoiceFieldInputLgClass} invoice-datetime-field cursor-pointer`;
 
+export const invoiceDateFieldClass = `${invoiceFieldInputClass} invoice-datetime-field cursor-pointer`;
+
 export const invoiceReadOnlyFieldClass =
 	"w-full rounded-md border border-neutral-700 bg-neutral-900/90 px-3 py-2.5 text-sm text-neutral-200";
 
@@ -111,7 +113,7 @@ export const invoiceTableClass =
 
 export const invoiceTableClassWide = `${invoiceTableClass} min-w-[52rem]`;
 
-export const invoiceTableClassParts = `${invoiceTableClass} min-w-[40rem]`;
+export const invoiceTableClassParts = `${invoiceTableClass} min-w-[44rem]`;
 
 export const invoiceTableHeadRowClass =
 	"border-b border-neutral-700 bg-neutral-800/60 text-left text-xs font-bold uppercase tracking-widest text-neutral-300";

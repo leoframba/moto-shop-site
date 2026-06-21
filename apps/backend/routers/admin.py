@@ -574,7 +574,7 @@ def _raise_invoice_http_error(exc: Exception) -> None:
 
 
 def _invoice_line_item_row(invoice_id: str, item) -> dict:
-    return {
+    row = {
         "invoice_id": invoice_id,
         "item_type": item.item_type,
         "service_id": item.service_id if item.item_type == "service" else None,
@@ -584,6 +584,9 @@ def _invoice_line_item_row(invoice_id: str, item) -> dict:
         "unit_price": item.unit_price,
         "quantity": item.quantity,
     }
+    if item.item_type == "part":
+        row["snapshot_part_number"] = item.snapshot_part_number
+    return row
 
 
 @router.get("/invoices")

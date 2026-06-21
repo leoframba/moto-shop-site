@@ -10,6 +10,7 @@ interface ShopSettingsFormData {
 	shop_address: string;
 	shop_phone: string;
 	shop_email: string;
+	bar_number: string;
 	hourly_rate: number;
 	tax_rate: number;
 	hazardous_waste_rate: number;
@@ -20,6 +21,7 @@ const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
 	shop_address: settings.shop_address ?? "",
 	shop_phone: settings.shop_phone ?? "",
 	shop_email: settings.shop_email ?? "",
+	bar_number: settings.bar_number ?? "",
 	hourly_rate: Number(settings.hourly_rate ?? 0),
 	tax_rate: Number(settings.tax_rate ?? 0),
 	hazardous_waste_rate: Number(settings.hazardous_waste_rate ?? 0),
@@ -33,6 +35,7 @@ export default function AdminShopSettingsTab() {
 		shop_address: "",
 		shop_phone: "",
 		shop_email: "",
+		bar_number: "",
 		hourly_rate: 0,
 		tax_rate: 0,
 		hazardous_waste_rate: 0,
@@ -77,6 +80,7 @@ export default function AdminShopSettingsTab() {
 					shop_address: formData.shop_address || null,
 					shop_phone: formData.shop_phone || null,
 					shop_email: formData.shop_email || null,
+					bar_number: formData.bar_number || null,
 					hourly_rate: Number(formData.hourly_rate),
 					tax_rate: Number(formData.tax_rate),
 					hazardous_waste_rate: Number(formData.hazardous_waste_rate),
@@ -210,6 +214,21 @@ export default function AdminShopSettingsTab() {
 							onChange={(e) =>
 								updateField("hazardous_waste_rate", Number(e.target.value) || 0)
 							}
+							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+						/>
+					</div>
+					<div>
+						<label
+							htmlFor="shop-bar-number"
+							className="text-xs text-neutral-300 block mb-1"
+						>
+							BAR#
+						</label>
+						<input
+							id="shop-bar-number"
+							value={formData.bar_number}
+							onChange={(e) => updateField("bar_number", e.target.value)}
+							placeholder="Bureau of Automotive Repair number"
 							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
 						/>
 					</div>

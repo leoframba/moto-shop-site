@@ -33,7 +33,7 @@ body {
 		margin: 0;
 	}
 
-	/* Click anywhere on datetime-local inputs to open the picker (not just the icon). */
+	/* Click anywhere on date/datetime inputs to open the picker (not just the icon). */
 	.invoice-datetime-field {
 		position: relative;
 	}

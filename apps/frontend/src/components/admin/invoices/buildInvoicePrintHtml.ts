@@ -1,7 +1,8 @@
-import type { InvoiceWithRelations, ShopSettings } from "@/types";
+import type { InvoiceLineItemRecord, InvoiceWithRelations, ShopSettings } from "@/types";
 import {
 	calculateLineTotal,
 	getInvoiceCustomerSnapshot,
+	parseLegacyPartSnapshot,
 } from "./invoiceHelpers";
 
 const escapeHtml = (value: unknown): string =>
@@ -45,6 +46,7 @@ export const buildInvoicePrintHtml = (
 	const safeShopAddress = escapeHtml(shopSettings.shop_address ?? "");
 	const safeShopPhone = escapeHtml(shopSettings.shop_phone ?? "");
 	const safeShopEmail = escapeHtml(shopSettings.shop_email ?? "");
+	const safeBarNumber = escapeHtml(shopSettings.bar_number ?? "");
 
 	const bike = invoice.bike;
 	const customer = getInvoiceCustomerSnapshot(invoice);
@@ -65,14 +67,42 @@ export const buildInvoicePrintHtml = (
 	const renderLineItemRow = (line: (typeof safeLineItems)[number]) =>
 		`<tr>
 		<td class="num">${Number(line.quantity).toFixed(2)}</td>
+		<td class="part-num"></td>
 		<td class="desc-cell"><div class="item-name">${escapeHtml(line.snapshot_name)}</div></td>
 		<td class="num">$${Number(line.unit_price).toFixed(2)}</td>
 		<td class="num strong">$${calculateLineTotal(line).toFixed(2)}</td>
 	</tr>`;
 
+	const getPartLinePartNumberForPrint = (line: InvoiceLineItemRecord): string => {
+		const stored = line.snapshot_part_number?.trim();
+		if (stored) return stored;
+		if (!line.snapshot_name.includes(" — ")) return "";
+		return parseLegacyPartSnapshot(line.snapshot_name).partNumber;
+	};
+
+	const getPartLineDescriptionForPrint = (line: InvoiceLineItemRecord): string => {
+		const stored = line.snapshot_part_number?.trim();
+		if (stored || !line.snapshot_name.includes(" — ")) {
+			return line.snapshot_name;
+		}
+		return parseLegacyPartSnapshot(line.snapshot_name).description;
+	};
+
+	const renderPartLineItemRow = (line: InvoiceLineItemRecord) => {
+		const partNumber = getPartLinePartNumberForPrint(line);
+		const description = getPartLineDescriptionForPrint(line);
+		return `<tr>
+		<td class="num">${Number(line.quantity).toFixed(2)}</td>
+		<td class="part-num">${partNumber ? escapeHtml(partNumber) : "—"}</td>
+		<td class="desc-cell"><div class="item-name">${escapeHtml(description)}</div></td>
+		<td class="num">$${Number(line.unit_price).toFixed(2)}</td>
+		<td class="num strong">$${calculateLineTotal(line).toFixed(2)}</td>
+	</tr>`;
+	};
+
 	const renderGroupSubtotal = (label: string, amount: number) =>
 		`<tr class="group-subtotal">
-		<td colspan="3" class="subtotal-label">${label}</td>
+		<td colspan="4" class="subtotal-label">${label}</td>
 		<td class="num strong">$${amount.toFixed(2)}</td>
 	</tr>`;
 
@@ -81,10 +111,11 @@ export const buildInvoicePrintHtml = (
 		items: typeof safeLineItems,
 		subtotalLabel: string,
 		subtotal: number,
+		itemRenderer: (line: InvoiceLineItemRecord) => string = renderLineItemRow,
 	) => `<tr class="group-head">
-		<th colspan="4">${title}</th>
+		<th colspan="5">${title}</th>
 	</tr>
-	${items.map(renderLineItemRow).join("")}
+	${items.map(itemRenderer).join("")}
 	${renderGroupSubtotal(subtotalLabel, subtotal)}`;
 
 	const lineItemsSection =
@@ -93,6 +124,7 @@ export const buildInvoicePrintHtml = (
 			<table class="line-items">
 				<colgroup>
 					<col class="col-qty" />
+					<col class="col-part-num" />
 					<col class="col-desc" />
 					<col class="col-unit" />
 					<col class="col-total" />
@@ -100,7 +132,8 @@ export const buildInvoicePrintHtml = (
 				<thead>
 					<tr>
 						<th class="num">Qty</th>
-						<th>Description</th>
+						<th>Part #</th>
+						<th>Part name</th>
 						<th class="num">Unit</th>
 						<th class="num">Total</th>
 					</tr>
@@ -108,7 +141,7 @@ export const buildInvoicePrintHtml = (
 				<tbody>
 					${hasHazardousWaste ? renderLineItemGroup("Hazardous Waste Disposal", hazardousWaste, "Hazardous Waste Total", hazardousWasteSubtotal) : ""}
 					${hasServices ? renderLineItemGroup("Labor &amp; Services", services, "Labor Total", servicesSubtotal) : ""}
-					${hasParts ? renderLineItemGroup("Parts &amp; Materials", parts, "Parts Total", partsSubtotal) : ""}
+					${hasParts ? renderLineItemGroup("Parts &amp; Materials", parts, "Parts Total", partsSubtotal, renderPartLineItemRow) : ""}
 				</tbody>
 			</table>
 		</section>`
@@ -140,6 +173,7 @@ export const buildInvoicePrintHtml = (
 
 	const providerLines = [
 		safeShopAddress ? `<div>${safeShopAddress}</div>` : "",
+		safeBarNumber ? `<div>BAR# ${safeBarNumber}</div>` : "",
 		safeShopPhone ? `<div>${safeShopPhone}</div>` : "",
 		safeShopEmail ? `<div>${safeShopEmail}</div>` : "",
 	]
@@ -271,10 +305,11 @@ export const buildInvoicePrintHtml = (
 	.line-items {
 		table-layout: fixed;
 	}
-	.col-qty { width: 11%; }
-	.col-desc { width: auto; }
-	.col-unit { width: 16%; }
-	.col-total { width: 16%; }
+	.col-qty { width: 10%; }
+	.col-part-num { width: 18%; }
+	.col-desc { width: 28%; }
+	.col-unit { width: 14%; }
+	.col-total { width: 14%; }
 	th, td {
 		padding: 4px 6px;
 		border-bottom: 1px solid var(--line);
@@ -313,6 +348,10 @@ export const buildInvoicePrintHtml = (
 	.num { text-align: right; white-space: nowrap; }
 	.strong { font-weight: 700; }
 	.item-name { font-weight: 600; }
+	.part-num {
+		font-weight: 600;
+		word-break: break-word;
+	}
 	.notes {
 		border: 1px solid var(--line);
 		padding: 6px 8px;
@@ -384,7 +423,6 @@ export const buildInvoicePrintHtml = (
 
 		<section class="grid-2">
 			<div class="card">
-				<p class="card-title">Customer</p>
 				<div><strong>${escapeHtml(customer.name)}</strong></div>
 				${customer.email ? `<div>${escapeHtml(customer.email)}</div>` : ""}
 				${customer.phone ? `<div>${escapeHtml(customer.phone)}</div>` : ""}

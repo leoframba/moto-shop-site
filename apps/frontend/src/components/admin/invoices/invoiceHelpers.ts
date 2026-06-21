@@ -1,4 +1,3 @@
-import { getPartDisplayLabel } from "@/components/admin/parts/partUtils";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -24,6 +23,7 @@ export interface DraftPartLine {
 	id: string;
 	part_id: string;
 	snapshot_name: string;
+	snapshot_part_number: string;
 	is_custom: boolean;
 	unit_price: number;
 	quantity: number;
@@ -46,6 +46,7 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 	shop_address: null,
 	shop_phone: null,
 	shop_email: null,
+	bar_number: null,
 	hourly_rate: 0,
 	tax_rate: 0,
 	hazardous_waste_rate: 0,
@@ -201,18 +202,92 @@ export const getPartLineDisplayLabel = (
 	line: DraftPartLine,
 	parts: Part[],
 ): string => {
-	if (line.is_custom) {
-		return line.snapshot_name.trim() || "Custom part";
+	if (line.snapshot_name.trim()) {
+		return line.snapshot_name.trim();
 	}
 
 	if (line.part_id) {
 		const matchedPart = parts.find((part) => part.id === line.part_id);
 		if (matchedPart) {
-			return getPartDisplayLabel(matchedPart);
+			return matchedPart.description;
 		}
 	}
 
-	return line.snapshot_name.trim() || "Select part...";
+	return line.is_custom ? "Custom part" : "Select part...";
+};
+
+export const getPartLinePartNumber = (
+	line: Pick<DraftPartLine, "part_id" | "snapshot_part_number">,
+	parts: Part[],
+): string => {
+	if (line.snapshot_part_number.trim()) {
+		return line.snapshot_part_number.trim();
+	}
+
+	if (line.part_id) {
+		const matchedPart = parts.find((part) => part.id === line.part_id);
+		if (matchedPart?.part_number?.trim()) {
+			return matchedPart.part_number.trim();
+		}
+	}
+
+	return "";
+};
+
+const LEGACY_PART_SNAPSHOT_SEPARATOR = " — ";
+
+export const parseLegacyPartSnapshot = (
+	snapshotName: string,
+): { description: string; partNumber: string } => {
+	const trimmed = snapshotName.trim();
+	const separatorIndex = trimmed.indexOf(LEGACY_PART_SNAPSHOT_SEPARATOR);
+	if (separatorIndex > 0) {
+		return {
+			partNumber: trimmed.slice(0, separatorIndex).trim(),
+			description: trimmed.slice(separatorIndex + LEGACY_PART_SNAPSHOT_SEPARATOR.length).trim(),
+		};
+	}
+	return { description: trimmed, partNumber: "" };
+};
+
+export const resolvePartLineFromRecord = (
+	line: InvoiceLineItemRecord,
+	parts: Part[],
+): Pick<
+	DraftPartLine,
+	"part_id" | "snapshot_name" | "snapshot_part_number" | "is_custom"
+> => {
+	const partId = line.part_id ?? "";
+	const isCustom = !partId;
+	const storedPartNumber = line.snapshot_part_number?.trim() ?? "";
+
+	if (storedPartNumber || !line.snapshot_name.includes(LEGACY_PART_SNAPSHOT_SEPARATOR)) {
+		if (partId) {
+			const matchedPart = parts.find((part) => part.id === partId);
+			return {
+				part_id: partId,
+				snapshot_name: line.snapshot_name.trim() || matchedPart?.description || "",
+				snapshot_part_number:
+					storedPartNumber || matchedPart?.part_number?.trim() || "",
+				is_custom: false,
+			};
+		}
+
+		return {
+			part_id: "",
+			snapshot_name: line.snapshot_name.trim(),
+			snapshot_part_number: storedPartNumber,
+			is_custom: true,
+		};
+	}
+
+	const legacy = parseLegacyPartSnapshot(line.snapshot_name);
+	return {
+		part_id: partId,
+		snapshot_name: legacy.description,
+		snapshot_part_number: legacy.partNumber,
+		is_custom: isCustom,
+	};
 };
 
 export const getInvoiceStatusTagClasses = (

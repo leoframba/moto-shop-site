@@ -1,4 +1,3 @@
-import { getPartDisplayLabel } from "@/components/admin/parts/partUtils";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -22,6 +21,7 @@ import {
 	HAZARDOUS_WASTE_LINE_NAME,
 	isInvoiceNumberTaken,
 	openDatetimePicker,
+	resolvePartLineFromRecord,
 	toDatetimeLocalInputValue,
 } from "./invoiceHelpers";
 
@@ -325,14 +325,18 @@ export function useInvoiceBuilder({
 
 		const nextPartLines: DraftPartLine[] = invoice.line_items
 			.filter((line) => line.item_type === "part")
-			.map((line) => ({
-				id: createDraftId(),
-				part_id: line.part_id ?? "",
-				snapshot_name: line.snapshot_name,
-				is_custom: !line.part_id,
-				unit_price: Number(line.unit_price),
-				quantity: Number(line.quantity),
-			}));
+			.map((line) => {
+				const resolved = resolvePartLineFromRecord(line, parts);
+				return {
+					id: createDraftId(),
+					part_id: resolved.part_id,
+					snapshot_name: resolved.snapshot_name,
+					snapshot_part_number: resolved.snapshot_part_number,
+					is_custom: resolved.is_custom,
+					unit_price: Number(line.unit_price),
+					quantity: Number(line.quantity),
+				};
+			});
 
 		const hazardousLine = invoice.line_items.find(
 			(line) => line.item_type === "hazardous_waste",
@@ -381,6 +385,7 @@ export function useInvoiceBuilder({
 				id: createDraftId(),
 				part_id: "",
 				snapshot_name: "",
+				snapshot_part_number: "",
 				is_custom: false,
 				unit_price: 0,
 				quantity: 1,
@@ -499,6 +504,7 @@ export function useInvoiceBuilder({
 		if (!selectedPart) {
 			updatePartLine(lineId, "part_id", "");
 			updatePartLine(lineId, "snapshot_name", "");
+			updatePartLine(lineId, "snapshot_part_number", "");
 			updatePartLine(lineId, "is_custom", false);
 			updatePartLine(lineId, "unit_price", 0);
 			return;
@@ -510,7 +516,8 @@ export function useInvoiceBuilder({
 					? {
 							...line,
 							part_id: partId,
-							snapshot_name: getPartDisplayLabel(selectedPart),
+							snapshot_name: selectedPart.description,
+							snapshot_part_number: selectedPart.part_number?.trim() ?? "",
 							is_custom: false,
 							unit_price: Number(selectedPart.base_price),
 						}
@@ -545,7 +552,11 @@ export function useInvoiceBuilder({
 		return true;
 	};
 
-	const confirmCustomPart = (lineId: string, customName: string) => {
+	const confirmCustomPart = (
+		lineId: string,
+		customName: string,
+		partNumber: string,
+	) => {
 		const trimmed = customName.trim();
 		if (!trimmed) {
 			toast.warning("Enter a custom part name first.");
@@ -558,6 +569,7 @@ export function useInvoiceBuilder({
 							...line,
 							part_id: "",
 							snapshot_name: trimmed,
+							snapshot_part_number: partNumber.trim(),
 							is_custom: true,
 							unit_price: 0,
 							quantity: 1,
@@ -707,6 +719,7 @@ export function useInvoiceBuilder({
 					item_type: "part" as const,
 					part_id: line.part_id || null,
 					snapshot_name: line.snapshot_name.trim(),
+					snapshot_part_number: line.snapshot_part_number.trim() || null,
 					unit_price: line.unit_price,
 					quantity: line.quantity,
 				})),

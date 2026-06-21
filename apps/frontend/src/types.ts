@@ -37,6 +37,7 @@ export interface ShopSettings {
 	shop_address?: string | null;
 	shop_phone?: string | null;
 	shop_email?: string | null;
+	bar_number?: string | null;
 	hourly_rate: number;
 	tax_rate?: number | null;
 	hazardous_waste_rate?: number | null;
@@ -162,6 +163,7 @@ export interface InvoiceLineItemPayload {
 	service_id?: string | null;
 	part_id?: string | null;
 	snapshot_name: string;
+	snapshot_part_number?: string | null;
 	pricing_type?: LinePricingType | null;
 	unit_price: number;
 	quantity: number;
@@ -208,6 +210,7 @@ export interface InvoiceLineItemRecord {
 	service_id?: string | null;
 	part_id?: string | null;
 	snapshot_name: string;
+	snapshot_part_number?: string | null;
 	pricing_type?: LinePricingType | null;
 	unit_price: number;
 	quantity: number;

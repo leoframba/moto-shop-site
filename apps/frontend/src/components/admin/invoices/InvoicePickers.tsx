@@ -18,7 +18,6 @@ import {
 	toPartPayload,
 } from "@/components/admin/parts/PartManagerForm";
 import {
-	getPartDisplayLabel,
 	getPartSaveErrorMessage,
 	partMatchesQuery,
 } from "@/components/admin/parts/partUtils";
@@ -537,7 +536,7 @@ interface PartPickerModalProps {
 	partLines: DraftPartLine[];
 	activeLineId: string;
 	onSelect: (partId: string, partOverride?: Part) => void;
-	onConfirmCustom: (name: string) => boolean;
+	onConfirmCustom: (name: string, partNumber: string) => boolean;
 	onPartCreated: (part: Part) => void;
 	onClose: () => void;
 }
@@ -553,6 +552,7 @@ export function PartPickerModal({
 }: PartPickerModalProps) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [customName, setCustomName] = useState("");
+	const [customPartNumber, setCustomPartNumber] = useState("");
 	const [isCreatePartOpen, setIsCreatePartOpen] = useState(false);
 	const [isCustomPartOpen, setIsCustomPartOpen] = useState(false);
 	const [createPartFormData, setCreatePartFormData] = useState<PartFormData>(
@@ -567,11 +567,12 @@ export function PartPickerModal({
 
 	const closeCustomModal = () => {
 		setCustomName("");
+		setCustomPartNumber("");
 		setIsCustomPartOpen(false);
 	};
 
 	const handleConfirmCustom = () => {
-		if (onConfirmCustom(customName)) {
+		if (onConfirmCustom(customName, customPartNumber)) {
 			closeCustomModal();
 		}
 	};
@@ -651,38 +652,74 @@ export function PartPickerModal({
 							database.
 						</p>
 					</button>
-					{filteredParts.map((part) => {
-						const alreadyAdded = partLines.some(
-							(line) => line.id !== activeLineId && line.part_id === part.id,
-						);
-						return (
-							<button
-								key={part.id}
-								type="button"
-								onClick={() => onSelect(part.id)}
-								disabled={alreadyAdded}
-								className={`w-full rounded-md border p-3 text-left transition-colors ${
-									alreadyAdded
-										? "cursor-not-allowed border-neutral-800 bg-neutral-900/50 text-neutral-400"
-										: "border-neutral-800 bg-neutral-900 text-neutral-100 hover:border-emerald-600"
-								}`}
-							>
-								<p className={adminPickerOptionTitleClass}>
-									{getPartDisplayLabel(part)}
-								</p>
-								<p className={adminPickerOptionMetaClass}>
-									Base price: {toCurrency(Number(part.base_price))}
-								</p>
-								{alreadyAdded && (
-									<p className="mt-1 text-xs text-amber-300">Already added</p>
-								)}
-							</button>
-						);
-					})}
-					{filteredParts.length === 0 && (
+					{filteredParts.length === 0 ? (
 						<p className="py-4 text-center text-sm text-neutral-300">
 							No parts match your search.
 						</p>
+					) : (
+						<div className={pickerTableWrapClass}>
+							<table className="min-w-full text-left text-sm">
+								<thead>
+									<tr className={pickerTableHeadRowClass}>
+										<th className={`${pickerTableHeadCellClass} w-36`}>
+											Part #
+										</th>
+										<th className={`${pickerTableHeadCellClass} w-48 max-w-[12rem]`}>
+											Part name
+										</th>
+										<th className={`${pickerTableHeadCellClass} text-right`}>
+											Base Price
+										</th>
+									</tr>
+								</thead>
+								<tbody className={pickerTableBodyClass}>
+									{filteredParts.map((part) => {
+										const alreadyAdded = partLines.some(
+											(line) =>
+												line.id !== activeLineId && line.part_id === part.id,
+										);
+										return (
+											<tr
+												key={part.id}
+												tabIndex={alreadyAdded ? -1 : 0}
+												onClick={() => {
+													if (!alreadyAdded) onSelect(part.id);
+												}}
+												onKeyDown={(event) => {
+													if (alreadyAdded) return;
+													if (event.key === "Enter" || event.key === " ") {
+														event.preventDefault();
+														onSelect(part.id);
+													}
+												}}
+												className={`${pickerSelectableRowClass} ${
+													alreadyAdded
+														? "cursor-not-allowed text-neutral-500"
+														: "text-neutral-100"
+												}`}
+											>
+												<td className="px-4 py-3 font-medium text-neutral-200">
+													{part.part_number?.trim() || "—"}
+												</td>
+												<td className="px-4 py-3">
+													<p className={adminPickerOptionTitleClass}>
+														{part.description}
+													</p>
+													{alreadyAdded ? (
+														<p className="mt-1 text-xs text-amber-300">
+															Already added
+														</p>
+													) : null}
+												</td>
+												<td className="px-4 py-3 text-right text-neutral-300">
+													{toCurrency(Number(part.base_price))}
+												</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
 					)}
 				</div>
 			</AdminModal>
@@ -720,6 +757,16 @@ export function PartPickerModal({
 						Add a one-off part to this invoice only. It will not be saved to the
 						parts catalog.
 					</p>
+					<label htmlFor="custom-part-number" className={invoiceLabelClass}>
+						Part number
+					</label>
+					<input
+						id="custom-part-number"
+						value={customPartNumber}
+						onChange={(e) => setCustomPartNumber(e.target.value)}
+						placeholder="Optional part number"
+						className={`mb-4 ${invoiceFieldInputLgClass}`}
+					/>
 					<label htmlFor="custom-part-name" className={invoiceLabelClass}>
 						Part name
 					</label>

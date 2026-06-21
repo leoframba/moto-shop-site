@@ -28,8 +28,30 @@ export interface InvoicesData {
 	addBike: (bike: InvoiceBike) => void;
 }
 
-export function useInvoicesData(): InvoicesData {
-	const [isLoading, setIsLoading] = useState(true);
+export interface InvoicesData {
+	isLoading: boolean;
+	users: AdminUser[];
+	bikes: InvoiceBike[];
+	services: Service[];
+	parts: Part[];
+	shopHourlyRate: number;
+	shopSettings: ShopSettings;
+	invoices: InvoiceWithRelations[];
+	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
+	refetch: () => Promise<void>;
+	addPart: (part: Part) => void;
+	addBike: (bike: InvoiceBike) => void;
+}
+
+interface UseInvoicesDataOptions {
+	enabled?: boolean;
+}
+
+export function useInvoicesData(
+	options: UseInvoicesDataOptions = {},
+): InvoicesData {
+	const enabled = options.enabled ?? true;
+	const [isLoading, setIsLoading] = useState(enabled);
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [bikes, setBikes] = useState<InvoiceBike[]>([]);
 	const [services, setServices] = useState<Service[]>([]);
@@ -83,8 +105,9 @@ export function useInvoicesData(): InvoicesData {
 	}, []);
 
 	useEffect(() => {
+		if (!enabled) return;
 		void refetch();
-	}, [refetch]);
+	}, [enabled, refetch]);
 
 	const addPart = useCallback((part: Part) => {
 		setParts((prev) => [...prev, part].sort(compareParts));

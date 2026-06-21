@@ -4,10 +4,10 @@ import { useState } from "react";
 import { InvoiceBuilderModal } from "./invoices/InvoiceBuilderModal";
 import { InvoiceList } from "./invoices/InvoiceList";
 import { useInvoiceBuilder } from "./invoices/useInvoiceBuilder";
-import { useInvoicesData } from "./invoices/useInvoicesData";
+import { useInvoicesDataContext } from "./invoices/InvoicesDataProvider";
 
 export default function AdminInvoicesTab() {
-	const data = useInvoicesData();
+	const data = useInvoicesDataContext();
 	const [autoExpandInvoiceId, setAutoExpandInvoiceId] = useState<string | null>(
 		null,
 	);
