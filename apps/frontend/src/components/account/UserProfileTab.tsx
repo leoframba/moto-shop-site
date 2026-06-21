@@ -1,8 +1,8 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { getUserDisplayName } from "@/utils/auth";
 import { createClient } from "@/utils/supabase/client";
 
@@ -10,10 +10,18 @@ interface UserProfileTabProps {
 	user: User;
 }
 
+const profileInputClassName =
+	"w-full rounded-lg border border-neutral-700 bg-neutral-950 px-4 py-3 text-white placeholder:text-neutral-500 outline-none transition-colors focus:border-red-600";
+
 export default function UserProfileTab({ user }: UserProfileTabProps) {
 	const router = useRouter();
 	const supabase = createClient();
 	const displayName = getUserDisplayName(user);
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [passwordError, setPasswordError] = useState<string | null>(null);
+	const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+	const [passwordLoading, setPasswordLoading] = useState(false);
 	const memberSince = user.created_at
 		? new Date(user.created_at).toLocaleDateString("en-US", {
 				month: "long",
@@ -26,6 +34,37 @@ export default function UserProfileTab({ user }: UserProfileTabProps) {
 		await supabase.auth.signOut();
 		router.push("/");
 		router.refresh();
+	};
+
+	const handleChangePassword = async (event: React.SyntheticEvent) => {
+		event.preventDefault();
+		setPasswordError(null);
+		setPasswordMessage(null);
+
+		if (newPassword !== confirmPassword) {
+			setPasswordError("Passwords do not match.");
+			return;
+		}
+
+		if (newPassword.length < 8) {
+			setPasswordError("Password must be at least 8 characters.");
+			return;
+		}
+
+		setPasswordLoading(true);
+
+		const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+		if (error) {
+			setPasswordError(error.message);
+			setPasswordLoading(false);
+			return;
+		}
+
+		setNewPassword("");
+		setConfirmPassword("");
+		setPasswordMessage("Your password has been updated.");
+		setPasswordLoading(false);
 	};
 
 	return (
@@ -80,15 +119,73 @@ export default function UserProfileTab({ user }: UserProfileTabProps) {
 						Security
 					</h3>
 					<p className="text-neutral-400 text-sm">
-						Need to change your password? We&apos;ll email you a secure reset
-						link.
+						Update your password while signed in. If you are locked out, use
+						Forgot password on the sign-in page to get a reset link by email.
 					</p>
-					<Link
-						href="/forgot-password"
-						className="inline-block bg-neutral-950 border border-neutral-700 hover:border-red-600 text-white px-6 py-2 text-sm uppercase tracking-widest font-bold transition-all hover:bg-red-600/10"
-					>
-						Reset Password
-					</Link>
+					<form onSubmit={handleChangePassword} className="space-y-4">
+						<div>
+							<label
+								htmlFor="profile-new-password"
+								className="mb-1.5 block text-xs uppercase tracking-widest text-neutral-500"
+							>
+								New Password
+							</label>
+							<input
+								id="profile-new-password"
+								type="password"
+								value={newPassword}
+								onChange={(event) => setNewPassword(event.target.value)}
+								className={profileInputClassName}
+								placeholder="At least 8 characters"
+								minLength={8}
+								autoComplete="new-password"
+								required
+							/>
+						</div>
+						<div>
+							<label
+								htmlFor="profile-confirm-password"
+								className="mb-1.5 block text-xs uppercase tracking-widest text-neutral-500"
+							>
+								Confirm Password
+							</label>
+							<input
+								id="profile-confirm-password"
+								type="password"
+								value={confirmPassword}
+								onChange={(event) => setConfirmPassword(event.target.value)}
+								className={profileInputClassName}
+								placeholder="Repeat new password"
+								minLength={8}
+								autoComplete="new-password"
+								required
+							/>
+						</div>
+
+						{passwordError ? (
+							<div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+								<p className="text-center text-sm text-red-400">
+									{passwordError}
+								</p>
+							</div>
+						) : null}
+
+						{passwordMessage ? (
+							<div className="rounded-lg border border-red-600/20 bg-red-600/10 p-3">
+								<p className="text-center text-sm text-red-300">
+									{passwordMessage}
+								</p>
+							</div>
+						) : null}
+
+						<button
+							type="submit"
+							disabled={passwordLoading}
+							className="inline-block bg-neutral-950 border border-neutral-700 hover:border-red-600 text-white px-6 py-2 text-sm uppercase tracking-widest font-bold transition-all hover:bg-red-600/10 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{passwordLoading ? "Updating..." : "Change Password"}
+						</button>
+					</form>
 				</div>
 
 				<button

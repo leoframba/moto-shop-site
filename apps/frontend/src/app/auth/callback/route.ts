@@ -7,6 +7,12 @@ export async function GET(request: NextRequest) {
 	const next = searchParams.get("next") ?? "/account";
 
 	if (code) {
+		// Password reset links should not consume PKCE codes on GET — pass through
+		// to the client page where the user confirms via button.
+		if (next === "/reset-password") {
+			return NextResponse.redirect(`${origin}/reset-password?code=${code}`);
+		}
+
 		const supabase = await createClient();
 		const { error } = await supabase.auth.exchangeCodeForSession(code);
 
