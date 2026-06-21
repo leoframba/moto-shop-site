@@ -1,8 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getAuthRedirect } from "@/lib/auth-redirect";
+import { getAuthLinkRedirectPath } from "@/utils/auth-link-flow";
 
 export async function proxy(request: NextRequest) {
+	const authLinkRedirectPath = getAuthLinkRedirectPath(
+		request.nextUrl.pathname,
+		request.nextUrl.searchParams,
+	);
+
+	if (authLinkRedirectPath) {
+		return NextResponse.redirect(new URL(authLinkRedirectPath, request.url));
+	}
+
 	let supabaseResponse = NextResponse.next({
 		request,
 	});
