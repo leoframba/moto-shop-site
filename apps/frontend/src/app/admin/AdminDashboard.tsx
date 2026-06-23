@@ -3,8 +3,11 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import AdminSidebar, { type AdminTab } from "@/components/admin/AdminSidebar";
+import {
+	adminLoadingStateClass,
+	adminShellClass,
+} from "@/components/admin/adminUi";
 import { InvoicesDataProvider } from "@/components/admin/invoices/InvoicesDataProvider";
-import { adminLoadingStateClass, adminShellClass } from "@/components/admin/adminUi";
 
 function AdminTabLoader({ label }: { label: string }) {
 	return (
@@ -59,7 +62,9 @@ export default function AdminDashboard() {
 
 	return (
 		<InvoicesDataProvider>
-			<div className={`flex min-h-screen flex-col font-sans ${adminShellClass}`}>
+			<div
+				className={`flex min-h-screen flex-col font-sans ${adminShellClass}`}
+			>
 				<AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
 				<main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10">

@@ -19,6 +19,12 @@ import type {
 import { authApiRequest } from "@/utils/api";
 import VoiceRecorder from "../voice_notes/VoiceRecorder";
 import { buildInvoicePrintHtml } from "./buildInvoicePrintHtml";
+import {
+	getBikeFilterButtonLabel,
+	getOwnerFilterButtonLabel,
+	InvoiceBikeFilterModal,
+	InvoiceOwnerFilterModal,
+} from "./InvoiceFilterPickers";
 import { InvoicePhotosManager } from "./InvoicePhotosManager";
 import {
 	calculateInvoiceTotal,
@@ -31,8 +37,9 @@ import {
 	getInvoiceOwnerLabel,
 	getInvoiceStatusTagClasses,
 	getViableOwnerIdsForBike,
-	invoiceMatchesEntityFilters,
+	INVOICE_LIST_DEFAULT_STATUS_FILTERS,
 	INVOICE_STATUSES,
+	invoiceMatchesEntityFilters,
 	toCurrency,
 	toStatusLabel,
 } from "./invoiceHelpers";
@@ -46,12 +53,6 @@ import {
 	invoiceSecondaryButtonClass,
 	invoiceSubheadingClass,
 } from "./invoiceUi";
-import {
-	getBikeFilterButtonLabel,
-	getOwnerFilterButtonLabel,
-	InvoiceBikeFilterModal,
-	InvoiceOwnerFilterModal,
-} from "./InvoiceFilterPickers";
 
 interface VoiceNoteApiResponse {
 	transcript: string;
@@ -88,8 +89,9 @@ export function InvoiceList({
 	const [selectedBikeId, setSelectedBikeId] = useState("");
 	const [ownerFilterModalOpen, setOwnerFilterModalOpen] = useState(false);
 	const [bikeFilterModalOpen, setBikeFilterModalOpen] = useState(false);
-	const [activeStatusFilters, setActiveStatusFilters] =
-		useState<InvoiceRecord["status"][]>(INVOICE_STATUSES);
+	const [activeStatusFilters, setActiveStatusFilters] = useState<
+		InvoiceRecord["status"][]
+	>(INVOICE_LIST_DEFAULT_STATUS_FILTERS);
 	const [statusPickerInvoiceId, setStatusPickerInvoiceId] = useState<
 		string | null
 	>(null);

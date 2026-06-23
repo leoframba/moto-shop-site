@@ -52,6 +52,10 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 	hazardous_waste_rate: 0,
 };
 
+export const INVOICE_LIST_DEFAULT_STATUS_FILTERS = INVOICE_STATUSES.filter(
+	(status) => status !== "void",
+);
+
 export const createDraftId = (): string => {
 	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
 		return crypto.randomUUID();
@@ -182,10 +186,7 @@ export const invoiceMatchesEntityFilters = (
 	return true;
 };
 
-export const compareUsersByDisplayName = (
-	a: AdminUser,
-	b: AdminUser,
-): number =>
+export const compareUsersByDisplayName = (a: AdminUser, b: AdminUser): number =>
 	getUserDisplayName(a).localeCompare(getUserDisplayName(b), undefined, {
 		sensitivity: "base",
 	});
@@ -244,7 +245,9 @@ export const parseLegacyPartSnapshot = (
 	if (separatorIndex > 0) {
 		return {
 			partNumber: trimmed.slice(0, separatorIndex).trim(),
-			description: trimmed.slice(separatorIndex + LEGACY_PART_SNAPSHOT_SEPARATOR.length).trim(),
+			description: trimmed
+				.slice(separatorIndex + LEGACY_PART_SNAPSHOT_SEPARATOR.length)
+				.trim(),
 		};
 	}
 	return { description: trimmed, partNumber: "" };
@@ -261,12 +264,16 @@ export const resolvePartLineFromRecord = (
 	const isCustom = !partId;
 	const storedPartNumber = line.snapshot_part_number?.trim() ?? "";
 
-	if (storedPartNumber || !line.snapshot_name.includes(LEGACY_PART_SNAPSHOT_SEPARATOR)) {
+	if (
+		storedPartNumber ||
+		!line.snapshot_name.includes(LEGACY_PART_SNAPSHOT_SEPARATOR)
+	) {
 		if (partId) {
 			const matchedPart = parts.find((part) => part.id === partId);
 			return {
 				part_id: partId,
-				snapshot_name: line.snapshot_name.trim() || matchedPart?.description || "",
+				snapshot_name:
+					line.snapshot_name.trim() || matchedPart?.description || "",
 				snapshot_part_number:
 					storedPartNumber || matchedPart?.part_number?.trim() || "",
 				is_custom: false,
