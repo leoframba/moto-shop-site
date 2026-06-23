@@ -4,8 +4,20 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiHome, FiLogOut, FiMenu, FiX } from "react-icons/fi";
+import { FaMoneyBillWave, FaMotorcycle, FaToolbox } from "react-icons/fa6";
+import {
+	FiBarChart,
+	FiFile,
+	FiHome,
+	FiLogOut,
+	FiMenu,
+	FiSettings,
+	FiTool,
+	FiUsers,
+	FiX,
+} from "react-icons/fi";
 import { createClient } from "@/utils/supabase/client";
+import NewTag from "../NewTag";
 
 export type AdminTab =
 	| "services"
@@ -22,15 +34,20 @@ interface AdminSidebarProps {
 	setActiveTab: (tab: AdminTab) => void;
 }
 
-const ADMIN_TABS: { id: AdminTab; label: string }[] = [
-	{ id: "services", label: "Services" },
-	{ id: "sales", label: "Bike Sales" },
-	{ id: "bikes", label: "Bikes" },
-	{ id: "parts", label: "Parts" },
-	{ id: "invoices", label: "Invoices" },
-	{ id: "stats", label: "Stats Board" },
-	{ id: "users", label: "Users" },
-	{ id: "settings", label: "Settings" },
+const ADMIN_TABS: {
+	id: AdminTab;
+	label: string;
+	icon: React.ReactNode | null;
+	new: boolean;
+}[] = [
+	{ id: "services", label: "Services", icon: <FiTool />, new: false },
+	{ id: "sales", label: "Bike Sales", icon: <FaMoneyBillWave />, new: false },
+	{ id: "bikes", label: "Bikes", icon: <FaMotorcycle />, new: false },
+	{ id: "parts", label: "Parts", icon: <FaToolbox />, new: false },
+	{ id: "invoices", label: "Invoices", icon: <FiFile />, new: false },
+	{ id: "stats", label: "Stats Board", icon: <FiBarChart />, new: true },
+	{ id: "users", label: "Users", icon: <FiUsers />, new: false },
+	{ id: "settings", label: "Settings", icon: <FiSettings />, new: false },
 ];
 
 function tabButtonClass(isActive: boolean) {
@@ -186,9 +203,11 @@ export default function AdminSidebar({
 										key={tab.id}
 										type="button"
 										onClick={() => selectTab(tab.id)}
-										className={tabButtonClass(activeTab === tab.id)}
+										className={`${tabButtonClass(activeTab === tab.id)} flex items-center gap-2`}
 									>
+										{tab.icon ? tab.icon : null}
 										{tab.label}
+										{tab.new ? <NewTag /> : null}{" "}
 									</button>
 								))}
 							</nav>

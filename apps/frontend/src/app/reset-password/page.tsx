@@ -1,9 +1,9 @@
 "use client";
 
+import type { EmailOtpType } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EmailOtpType } from "@supabase/supabase-js";
 import AuthCard, {
 	authInputClassName,
 	authLabelClassName,
