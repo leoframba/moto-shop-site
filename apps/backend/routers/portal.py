@@ -1,6 +1,7 @@
 # routers/portal.py
 from dependencies import supabase, verify_user
 from fastapi import APIRouter, Depends, HTTPException
+from phone_utils import resolve_optional_phone, sync_auth_phone
 from portal_invoice_view import (
     CUSTOMER_VISIBLE_STATUSES,
     PRINTABLE_STATUSES,
@@ -245,7 +246,7 @@ async def update_profile(payload: UserUpdate, user=Depends(verify_user)):
         update_payload = {
             "first_name": payload.first_name,
             "last_name": payload.last_name,
-            "phone_number": payload.phone_number,
+            "phone_number": resolve_optional_phone(payload.phone_number),
         }
 
         response = (
@@ -254,6 +255,10 @@ async def update_profile(payload: UserUpdate, user=Depends(verify_user)):
         rows = response.data or []
         if not rows:
             raise HTTPException(status_code=404, detail="Profile not found")
+
+        if payload.phone_number is not None:
+            sync_auth_phone(supabase, user.id, update_payload["phone_number"])
+
         return rows[0]
     except HTTPException:
         raise
