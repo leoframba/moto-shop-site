@@ -32,14 +32,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		const supabase = await createClient();
 		const { data } = await supabase
 			.from("bike_listings")
-			.select("id, updated_at, created_at")
+			.select("id, created_at")
 			.neq("status", "draft");
 
 		listingEntries = (data ?? []).map((listing) => ({
 			url: `${SITE_URL}/sales/${listing.id}`,
-			lastModified: new Date(
-				listing.updated_at ?? listing.created_at ?? Date.now(),
-			),
+			lastModified: new Date(listing.created_at ?? Date.now()),
 			changeFrequency: "weekly" as const,
 			priority: 0.8,
 		}));
