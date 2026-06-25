@@ -5,7 +5,12 @@ from urllib.parse import urlparse
 
 from dependencies import supabase, verify_admin
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from phone_utils import resolve_optional_phone, sync_auth_phone
+from invite_utils import (
+    invite_link_label,
+    is_placeholder_invite_email,
+    resolve_invite_email,
+)
+from phone_utils import resolve_optional_phone, sync_auth_email, sync_auth_phone
 from schemas import (
     BikeCreate,
     BikeUpdate,
@@ -41,6 +46,36 @@ from voice_note import format_voice_note_block, summarize_voice_note
 
 def _sync_auth_phone(user_id: str, phone_number: str | None) -> None:
     sync_auth_phone(supabase, user_id, phone_number)
+
+
+def _sync_auth_email(user_id: str, email: str) -> None:
+    sync_auth_email(supabase, user_id, email)
+
+
+def _ensure_auth_invite_email(user_id: str, invite_email: str, user_row: dict) -> None:
+    """Attach a non-routable placeholder email in Auth when the rider is phone-only."""
+    if (user_row.get("email") or "").strip():
+        return
+    if not is_placeholder_invite_email(invite_email):
+        return
+    try:
+        _sync_auth_email(user_id, invite_email)
+    except Exception as auth_error:
+        message = str(auth_error)
+        if "already" in message.lower() and "registered" in message.lower():
+            raise HTTPException(
+                status_code=409,
+                detail="A user with that email already exists.",
+            )
+        raise HTTPException(status_code=400, detail=message)
+
+
+def _require_user_contact(email: str | None, phone_number: str | None) -> None:
+    if not email and not phone_number:
+        raise HTTPException(
+            status_code=400,
+            detail="Either email or phone number is required.",
+        )
 
 
 def _get_auth_confirmation_flags(user_id: str) -> dict[str, bool]:
@@ -374,7 +409,6 @@ async def create_user(payload: UserCreate):
             create_attrs["email_confirm"] = False
         if normalized_phone:
             create_attrs["phone"] = normalized_phone
-            create_attrs["phone_confirm"] = True
 
         try:
             created_response = supabase.auth.admin.create_user(create_attrs)
@@ -415,21 +449,42 @@ async def create_user(payload: UserCreate):
 async def update_user(user_id: str, payload: UserUpdate):
     try:
         existing = (
-            supabase.table("users").select("id, is_admin").eq("id", user_id).execute()
+            supabase.table("users")
+            .select("id, email, phone_number, is_admin")
+            .eq("id", user_id)
+            .execute()
         )
         existing_rows = existing.data or []
         if not existing_rows:
             raise HTTPException(status_code=404, detail="User not found")
-        if existing_rows[0].get("is_admin"):
+        existing_row = existing_rows[0]
+        if existing_row.get("is_admin"):
             raise HTTPException(
                 status_code=403, detail="Admin accounts cannot be edited here."
             )
 
+        existing_email = existing_row.get("email")
+        if "email" in payload.model_fields_set:
+            next_email = payload.email
+            if existing_email and next_email != existing_email:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email cannot be changed once set. Contact support if correction is needed.",
+                )
+        else:
+            next_email = existing_email
+
+        next_phone = resolve_optional_phone(payload.phone_number)
+
+        _require_user_contact(next_email, next_phone)
+
         update_payload = {
             "first_name": payload.first_name,
             "last_name": payload.last_name,
-            "phone_number": resolve_optional_phone(payload.phone_number),
+            "phone_number": next_phone,
         }
+        if "email" in payload.model_fields_set:
+            update_payload["email"] = next_email
 
         updated = (
             supabase.table("users").update(update_payload).eq("id", user_id).execute()
@@ -439,7 +494,23 @@ async def update_user(user_id: str, payload: UserUpdate):
             raise HTTPException(status_code=404, detail="User not found")
 
         if payload.phone_number is not None:
-            _sync_auth_phone(user_id, update_payload["phone_number"])
+            _sync_auth_phone(user_id, next_phone)
+
+        if (
+            "email" in payload.model_fields_set
+            and next_email
+            and next_email != existing_email
+        ):
+            try:
+                _sync_auth_email(user_id, next_email)
+            except Exception as auth_error:
+                message = str(auth_error)
+                if "already" in message.lower() and "registered" in message.lower():
+                    raise HTTPException(
+                        status_code=409,
+                        detail="A user with that email already exists.",
+                    )
+                raise HTTPException(status_code=400, detail=message)
 
         return updated_rows[0]
     except HTTPException:
@@ -569,38 +640,45 @@ def _extract_link_properties(link_response) -> dict:
 async def send_user_invite(user_id: str, payload: UserSendInvite):
     try:
         user_row = _fetch_rider_user_row(user_id)
-        email = (user_row.get("email") or "").strip()
-        if not email:
-            raise HTTPException(
-                status_code=400,
-                detail="User has no email address. Add an email before inviting.",
-            )
+        try:
+            invite_email = resolve_invite_email(user_row)
+        except ValueError as contact_error:
+            raise HTTPException(status_code=400, detail=str(contact_error))
 
         user_metadata = _user_metadata_from_row(user_row)
         site_url = _resolve_invite_redirect_base(payload.redirect_base_url)
         redirect_to = f"{site_url}/accept-invite"
+        display_label = invite_link_label(user_row)
 
         if payload.channel == "link":
+            _ensure_auth_invite_email(user_id, invite_email, user_row)
             action_link = _mint_accept_invite_link(
-                email, user_metadata, payload.redirect_base_url
+                invite_email, user_metadata, payload.redirect_base_url
             )
             return {
-                "email": email,
+                "email": display_label,
                 "action_link": action_link,
                 "message": "Invite link generated.",
             }
+
+        real_email = (user_row.get("email") or "").strip()
+        if not real_email:
+            raise HTTPException(
+                status_code=400,
+                detail="User has no email address. Add an email before sending an email invite.",
+            )
 
         try:
             invite_options = {"redirect_to": redirect_to}
             if user_metadata:
                 invite_options["data"] = user_metadata
-            supabase.auth.admin.invite_user_by_email(email, invite_options)
+            supabase.auth.admin.invite_user_by_email(real_email, invite_options)
         except Exception as invite_error:
             raise HTTPException(status_code=400, detail=str(invite_error))
 
         return {
-            "email": email,
-            "message": f"Invitation email sent to {email}.",
+            "email": real_email,
+            "message": f"Invitation email sent to {real_email}.",
         }
     except HTTPException:
         raise

@@ -240,6 +240,16 @@ class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone_number: str | None = None
+    email: str | None = None
+    setup_complete: bool = False
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            value = v.strip().lower()
+            return value or None
+        return v
 
     @field_validator("first_name", "last_name", "phone_number", mode="before")
     @classmethod
@@ -247,6 +257,15 @@ class UserUpdate(BaseModel):
         if isinstance(v, str):
             value = v.strip()
             return value or None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("A valid email address is required.")
         return v
 
 

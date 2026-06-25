@@ -30,10 +30,24 @@ def resolve_optional_phone(value: str | None) -> str | None:
     return normalized
 
 
-def sync_auth_phone(supabase_client, user_id: str, phone_number: str | None) -> None:
-    """Set Supabase Auth phone so riders can sign in with phone + password."""
+def sync_auth_phone(
+    supabase_client,
+    user_id: str,
+    phone_number: str | None,
+    *,
+    confirm: bool = False,
+) -> None:
+    """Set Supabase Auth phone; confirm only after invite/setup verification."""
     if not phone_number:
         return
+    payload: dict[str, str | bool] = {"phone": phone_number}
+    if confirm:
+        payload["phone_confirm"] = True
+    supabase_client.auth.admin.update_user_by_id(user_id, payload)
+
+
+def sync_auth_email(supabase_client, user_id: str, email: str) -> None:
+    """Set Supabase Auth email (unconfirmed until the rider verifies)."""
     supabase_client.auth.admin.update_user_by_id(
-        user_id, {"phone": phone_number, "phone_confirm": True}
+        user_id, {"email": email, "email_confirm": False}
     )

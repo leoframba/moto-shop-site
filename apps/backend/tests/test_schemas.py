@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from schemas import PartCreate
+from schemas import PartCreate, UserCreate, UserUpdate
 
 
 class TestPartCreate:
@@ -47,3 +47,24 @@ class TestPartCreate:
                 description="Invalid type",
                 base_price=1.0,
             )
+
+
+class TestUserCreate:
+    def test_requires_email_or_phone(self):
+        with pytest.raises(ValidationError):
+            UserCreate(first_name="Pat")
+
+    def test_accepts_phone_only(self):
+        user = UserCreate(phone_number="5551234567")
+        assert user.email is None
+        assert user.phone_number == "5551234567"
+
+
+class TestUserUpdate:
+    def test_accepts_optional_email(self):
+        user = UserUpdate(email="rider@example.com")
+        assert user.email == "rider@example.com"
+
+    def test_rejects_invalid_email(self):
+        with pytest.raises(ValidationError):
+            UserUpdate(email="not-an-email")
