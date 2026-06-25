@@ -65,7 +65,9 @@ export const createDraftId = (): string => {
 
 export const getUserDisplayName = (user: AdminUser): string => {
 	const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
-	return fullName || user.email;
+	return (
+		fullName || user.email?.trim() || user.phone_number?.trim() || "Unknown"
+	);
 };
 
 export const toCurrency = (value: number): string => `$${value.toFixed(2)}`;
@@ -126,7 +128,11 @@ export const getInvoiceCustomerSnapshot = (
 
 export const getInvoiceOwnerLabel = (invoice: InvoiceWithRelations): string => {
 	if (invoice.owner) {
-		return `${getUserDisplayName(invoice.owner)} (${invoice.owner.email})`;
+		const contact =
+			invoice.owner.email?.trim() || invoice.owner.phone_number?.trim();
+		return contact
+			? `${getUserDisplayName(invoice.owner)} (${contact})`
+			: getUserDisplayName(invoice.owner);
 	}
 
 	const customer = getInvoiceCustomerSnapshot(invoice);

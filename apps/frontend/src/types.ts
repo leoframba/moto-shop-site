@@ -97,12 +97,14 @@ export interface BikeFormData {
 
 export interface AdminUser {
 	id: string;
-	email: string;
+	email?: string | null;
 	first_name?: string | null;
 	last_name?: string | null;
 	address?: string | null;
 	phone_number?: string | null;
 	is_admin?: boolean;
+	email_confirmed?: boolean;
+	phone_confirmed?: boolean;
 }
 
 export interface InvoiceBike {

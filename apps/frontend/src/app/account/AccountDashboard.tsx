@@ -5,7 +5,11 @@ import { useState } from "react";
 import GarageTab from "@/components/account/GarageTab";
 import UserProfileTab from "@/components/account/UserProfileTab";
 import UserSidebar, { type AccountTab } from "@/components/account/UserSidebar";
-import { isAdminUser } from "@/utils/auth";
+import {
+	getUserContactLabel,
+	getUserDisplayName,
+	isAdminUser,
+} from "@/utils/auth";
 
 interface AccountDashboardProps {
 	user: User;
@@ -13,13 +17,16 @@ interface AccountDashboardProps {
 
 export default function AccountDashboard({ user }: AccountDashboardProps) {
 	const [activeTab, setActiveTab] = useState<AccountTab>("garage");
+	const displayName = getUserDisplayName(user);
+	const contactLabel = getUserContactLabel(user);
 
 	return (
 		<div className="flex min-h-screen flex-col bg-neutral-950 font-sans">
 			<UserSidebar
 				activeTab={activeTab}
 				setActiveTab={setActiveTab}
-				userEmail={user.email ?? ""}
+				userDisplayName={displayName}
+				userContactLabel={contactLabel}
 				isAdmin={isAdminUser(user)}
 			/>
 

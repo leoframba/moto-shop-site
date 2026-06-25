@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { InvoiceBuilderModal } from "./invoices/InvoiceBuilderModal";
 import { InvoiceList } from "./invoices/InvoiceList";
-import { useInvoiceBuilder } from "./invoices/useInvoiceBuilder";
 import { useInvoicesDataContext } from "./invoices/InvoicesDataProvider";
+import { useInvoiceBuilder } from "./invoices/useInvoiceBuilder";
 
 export default function AdminInvoicesTab() {
 	const data = useInvoicesDataContext();
@@ -77,6 +77,7 @@ export default function AdminInvoicesTab() {
 				taxRate={Number(data.shopSettings.tax_rate ?? 0)}
 				onPartCreated={data.addPart}
 				onBikeCreated={data.addBike}
+				onUserCreated={data.addUser}
 			/>
 
 			<InvoiceList

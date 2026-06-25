@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { adminPickerOptionTitleClass } from "@/components/admin/adminUi";
 import {
 	BikeManagerForm,
 	getInitialBikeFormData,
@@ -22,9 +23,12 @@ import {
 	partMatchesQuery,
 } from "@/components/admin/parts/partUtils";
 import {
-	adminPickerOptionMetaClass,
-	adminPickerOptionTitleClass,
-} from "@/components/admin/adminUi";
+	getInitialRiderFormData,
+	type RiderFormData,
+	toUserCreatePayload,
+	UserManagerForm,
+	validateRiderCreateInput,
+} from "@/components/admin/users/UserManagerForm";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -73,15 +77,66 @@ const pickerClearOptionClass = invoicePickerClearOptionClass;
 interface OwnerPickerModalProps {
 	users: AdminUser[];
 	onSelect: (ownerId: string) => void;
+	onUserCreated: (user: AdminUser) => void;
 	onClose: () => void;
 }
 
 export function OwnerPickerModal({
 	users,
 	onSelect,
+	onUserCreated,
 	onClose,
 }: OwnerPickerModalProps) {
 	const [searchTerm, setSearchTerm] = useState("");
+	const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+	const [createUserFormData, setCreateUserFormData] = useState(
+		getInitialRiderFormData,
+	);
+	const [isSaving, setIsSaving] = useState(false);
+
+	const openCreateUser = () => {
+		setCreateUserFormData(getInitialRiderFormData());
+		setIsCreateUserOpen(true);
+	};
+
+	const resetCreateForm = () => {
+		setCreateUserFormData(getInitialRiderFormData());
+		setIsCreateUserOpen(false);
+	};
+
+	const handleCreateFormChange = (
+		field: keyof RiderFormData,
+		value: string,
+	) => {
+		setCreateUserFormData((prev) => ({ ...prev, [field]: value }));
+	};
+
+	const handleCreateSave = async () => {
+		const validationError = validateRiderCreateInput(createUserFormData);
+		if (validationError) {
+			toast.warning(validationError);
+			return;
+		}
+
+		setIsSaving(true);
+		try {
+			const createdUser = await authApiRequest<AdminUser>("/api/admin/users", {
+				method: "POST",
+				body: JSON.stringify(toUserCreatePayload(createUserFormData)),
+			});
+			onUserCreated(createdUser);
+			toast.success("User created.");
+			resetCreateForm();
+			onSelect(createdUser.id);
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to create user.",
+			);
+		} finally {
+			setIsSaving(false);
+		}
+	};
 
 	const filteredUsers = useMemo(() => {
 		const query = searchTerm.trim().toLowerCase();
@@ -97,60 +152,98 @@ export function OwnerPickerModal({
 	}, [users, searchTerm]);
 
 	return (
-		<AdminModal open title="Select Owner" onClose={onClose} size="md">
-			<input
-				value={searchTerm}
-				onChange={(e) => setSearchTerm(e.target.value)}
-				placeholder="Search owner name, email, phone..."
-				className={invoiceModalSearchInputClass}
-			/>
-			<div className={modalScrollBodyClass}>
-				<button
-					type="button"
-					onClick={() => onSelect("")}
-					className={pickerClearOptionClass}
-				>
-					No owner linked
-				</button>
-				{filteredUsers.length === 0 ? (
-					<div className={pickerEmptyStateClass}>
-						No users match your search.
-					</div>
-				) : (
-					<div className={pickerTableWrapClass}>
-						<table className="w-full border-collapse bg-neutral-900">
-							<thead>
-								<tr className={pickerTableHeadRowClass}>
-									<th className={pickerTableHeadCellClass}>Name</th>
-									<th className={pickerTableHeadCellClass}>Phone</th>
-								</tr>
-							</thead>
-							<tbody className={pickerTableBodyClass}>
-								{filteredUsers.map((user) => (
-									<tr
-										key={user.id}
-										className={pickerSelectableRowClass}
-										onClick={() => onSelect(user.id)}
-									>
-										<td className="px-4 py-3">
-											<p className="font-bold text-white">
-												{getUserDisplayName(user)}
-											</p>
-											<p className="truncate text-xs text-neutral-300">
-												{user.email}
-											</p>
-										</td>
-										<td className="px-4 py-3 text-sm text-neutral-300">
-											{user.phone_number ?? "—"}
-										</td>
+		<>
+			<AdminModal
+				open
+				title="Select Owner"
+				onClose={onClose}
+				size="md"
+				closeOnEscape={!isCreateUserOpen}
+				closeOnBackdrop={!isCreateUserOpen}
+			>
+				<input
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					placeholder="Search owner name, email, phone..."
+					className={invoiceModalSearchInputClass}
+				/>
+				<div className={modalScrollBodyClass}>
+					<button
+						type="button"
+						onClick={openCreateUser}
+						className={invoiceCreateActionClass}
+					>
+						<p className="font-semibold text-emerald-300">+ Create User</p>
+						<p className="text-xs text-neutral-300">
+							Add a new rider to the catalog — saves to the database.
+						</p>
+					</button>
+					<button
+						type="button"
+						onClick={() => onSelect("")}
+						className={pickerClearOptionClass}
+					>
+						No owner linked
+					</button>
+					{filteredUsers.length === 0 ? (
+						<div className={pickerEmptyStateClass}>
+							No users match your search.
+						</div>
+					) : (
+						<div className={pickerTableWrapClass}>
+							<table className="w-full border-collapse bg-neutral-900">
+								<thead>
+									<tr className={pickerTableHeadRowClass}>
+										<th className={pickerTableHeadCellClass}>Name</th>
+										<th className={pickerTableHeadCellClass}>Phone</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</div>
-		</AdminModal>
+								</thead>
+								<tbody className={pickerTableBodyClass}>
+									{filteredUsers.map((user) => (
+										<tr
+											key={user.id}
+											className={pickerSelectableRowClass}
+											onClick={() => onSelect(user.id)}
+										>
+											<td className="px-4 py-3">
+												<p className="font-bold text-white">
+													{getUserDisplayName(user)}
+												</p>
+												<p className="truncate text-xs text-neutral-300">
+													{user.email?.trim() || user.phone_number || "—"}
+												</p>
+											</td>
+											<td className="px-4 py-3 text-sm text-neutral-300">
+												{user.phone_number ?? "—"}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</div>
+			</AdminModal>
+
+			{isCreateUserOpen && (
+				<AdminModal
+					open
+					title="Create User"
+					onClose={resetCreateForm}
+					size="lg"
+					zIndex={MODAL_NESTED_Z_INDEX}
+					lockBackgroundScroll={false}
+				>
+					<UserManagerForm
+						formData={createUserFormData}
+						isSaving={isSaving}
+						onChange={handleCreateFormChange}
+						onSave={handleCreateSave}
+						onCancel={resetCreateForm}
+					/>
+				</AdminModal>
+			)}
+		</>
 	);
 }
 
@@ -664,7 +757,9 @@ export function PartPickerModal({
 										<th className={`${pickerTableHeadCellClass} w-36`}>
 											Part #
 										</th>
-										<th className={`${pickerTableHeadCellClass} w-48 max-w-[12rem]`}>
+										<th
+											className={`${pickerTableHeadCellClass} w-48 max-w-[12rem]`}
+										>
 											Part name
 										</th>
 										<th className={`${pickerTableHeadCellClass} text-right`}>

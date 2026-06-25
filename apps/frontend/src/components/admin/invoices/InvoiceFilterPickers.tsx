@@ -17,7 +17,8 @@ const filterSearchPanelClass =
 const filterSearchInputClass =
 	"w-full rounded border border-neutral-700 bg-neutral-950 p-3 text-sm text-white outline-none focus:border-emerald-500";
 
-const filterTableWrapClass = "overflow-x-auto rounded-lg border border-neutral-800";
+const filterTableWrapClass =
+	"overflow-x-auto rounded-lg border border-neutral-800";
 
 const filterTableHeadRowClass =
 	"border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-300";
@@ -134,7 +135,7 @@ export function InvoiceOwnerFilterModal({
 											{getUserDisplayName(user)}
 										</td>
 										<td className="max-w-[16rem] truncate px-4 py-3 text-sm text-neutral-300">
-											{user.email}
+											{user.email?.trim() || user.phone_number || "—"}
 										</td>
 										<td className="px-4 py-3 text-sm text-neutral-300">
 											{user.phone_number ?? "—"}
@@ -163,7 +164,9 @@ export function InvoiceBikeFilterModal({
 	onClose,
 	clearOptionLabel = "All bikes",
 }: InvoiceBikeFilterModalProps) {
-	const [searchFilters, setSearchFilters] = useState(getInitialBikeSearchFilters);
+	const [searchFilters, setSearchFilters] = useState(
+		getInitialBikeSearchFilters,
+	);
 
 	const filteredBikes = useMemo(() => {
 		const vinQuery = searchFilters.vin.trim().toLowerCase();

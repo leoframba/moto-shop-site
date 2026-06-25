@@ -33,16 +33,16 @@ import {
 	invoiceBodyMutedClass,
 	invoiceCardClass,
 	invoiceCheckboxClass,
+	invoiceDatetimeFieldClass,
 	invoiceEmptyHintClass,
 	invoiceFieldInputLgClass,
-	invoiceDatetimeFieldClass,
 	invoiceHeaderClass,
+	invoiceHeaderSaveButtonClass,
 	invoiceHeaderTitleClass,
 	invoiceHintClass,
 	invoiceLabelClass,
 	invoiceOverlayClass,
 	invoicePickerButtonClass,
-	invoiceHeaderSaveButtonClass,
 	invoiceReadOnlyFieldClass,
 	invoiceSecondaryButtonClass,
 	invoiceSectionClass,
@@ -78,6 +78,7 @@ interface InvoiceBuilderModalProps {
 	taxRate: number;
 	onPartCreated: (part: Part) => void;
 	onBikeCreated: (bike: InvoiceBike) => void;
+	onUserCreated: (user: AdminUser) => void;
 }
 
 export function InvoiceBuilderModal({
@@ -89,6 +90,7 @@ export function InvoiceBuilderModal({
 	taxRate,
 	onPartCreated,
 	onBikeCreated,
+	onUserCreated,
 }: InvoiceBuilderModalProps) {
 	const shouldGuardUnload = builder.isOpen && builder.isDirty;
 
@@ -206,9 +208,7 @@ export function InvoiceBuilderModal({
 												id="invoice-date"
 												type="datetime-local"
 												value={builder.invoiceDate}
-												onChange={(e) =>
-													builder.setInvoiceDate(e.target.value)
-												}
+												onChange={(e) => builder.setInvoiceDate(e.target.value)}
 												onClick={(e) => openDatetimePicker(e.currentTarget)}
 												className={invoiceDatetimeFieldClass}
 											/>
@@ -839,9 +839,7 @@ export function InvoiceBuilderModal({
 											<table className={invoiceTableClassParts}>
 												<thead>
 													<tr className={invoiceTableHeadRowClass}>
-														<th
-															className={`${invoiceTableHeadCellClass} w-40`}
-														>
+														<th className={`${invoiceTableHeadCellClass} w-40`}>
 															Part #
 														</th>
 														<th
@@ -895,7 +893,9 @@ export function InvoiceBuilderModal({
 																	</span>
 																)}
 															</td>
-															<td className={`${invoiceTableCellClass} max-w-[11rem]`}>
+															<td
+																className={`${invoiceTableCellClass} max-w-[11rem]`}
+															>
 																<button
 																	id={`invoice-part-${line.id}`}
 																	type="button"
@@ -1035,6 +1035,7 @@ export function InvoiceBuilderModal({
 						builder.setOwnerId(ownerId);
 						builder.setIsOwnerPickerOpen(false);
 					}}
+					onUserCreated={onUserCreated}
 					onClose={() => builder.setIsOwnerPickerOpen(false)}
 				/>
 			)}

@@ -102,7 +102,8 @@ export function BikeManagerForm({
 						<option value="">No owner linked</option>
 						{users.map((user) => (
 							<option key={user.id} value={user.id}>
-								{getUserDisplayName(user)} ({user.email})
+								{getUserDisplayName(user)} (
+								{user.email?.trim() || user.phone_number || "—"})
 							</option>
 						))}
 					</select>

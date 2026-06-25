@@ -3,20 +3,23 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import AuthCard, {
-	authInputClassName,
-	authLabelClassName,
-} from "@/components/auth/AuthCard";
+import AuthCard from "@/components/auth/AuthCard";
 import { isAdminUser } from "@/utils/auth";
 import {
 	clearAuthHashFromUrl,
 	getAuthCallbackErrorMessage,
 	parseAuthHashError,
 } from "@/utils/auth-errors";
+import {
+	formatIdentifierForDisplay,
+	isEmailIdentifier,
+	parseEmailOrPhone,
+} from "@/utils/phone";
 import { createClient } from "@/utils/supabase/client";
 
 function LoginForm() {
-	const [email, setEmail] = useState("");
+	const [emailOrPhone, setEmailOrPhone] = useState("");
+	const [identifier, setIdentifier] = useState<string | null>(null);
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
@@ -26,6 +29,7 @@ function LoginForm() {
 	const callbackError = searchParams.get("error");
 
 	const supabase = createClient();
+	const loginUsesEmail = identifier ? isEmailIdentifier(identifier) : false;
 
 	useEffect(() => {
 		const hashError = parseAuthHashError();
@@ -44,9 +48,19 @@ function LoginForm() {
 		setLoading(true);
 		setError(null);
 
+		if (!password) {
+			setError("Please enter a password");
+			setLoading(false);
+			return;
+		}
+
+		const identifierPayload = loginUsesEmail
+			? { email: identifier ?? "" }
+			: { phone: identifier ?? "" };
+
 		const { data, error: signInError } = await supabase.auth.signInWithPassword(
 			{
-				email,
+				...identifierPayload,
 				password,
 			},
 		);
@@ -67,6 +81,27 @@ function LoginForm() {
 		router.refresh();
 	};
 
+	const handleIdentifierSubmit = (e: React.SyntheticEvent) => {
+		e.preventDefault();
+
+		const parsed = parseEmailOrPhone(emailOrPhone);
+		if (parsed.type === "error") {
+			setError(parsed.message);
+			return;
+		}
+
+		setIdentifier(parsed.value);
+		setError(null);
+		setEmailOrPhone("");
+	};
+
+	const handleChangeIdentifier = () => {
+		setIdentifier(null);
+		setError(null);
+		setPassword("");
+		setEmailOrPhone("");
+	};
+
 	return (
 		<AuthCard
 			title="Rider Login"
@@ -77,59 +112,109 @@ function LoginForm() {
 				</p>
 			}
 		>
-			<form onSubmit={handleLogin} className="space-y-6">
-				<div>
-					<label htmlFor="email-login" className={authLabelClassName}>
-						Email Address
-					</label>
-					<input
-						type="email"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						id="email-login"
-						className={authInputClassName}
-						placeholder="you@example.com"
-						required
-					/>
-				</div>
-
-				<div>
-					<div className="flex items-center justify-between mb-2">
-						<label htmlFor="password-login" className={authLabelClassName}>
-							Password
-						</label>
-						<Link
-							href="/forgot-password"
-							className="text-xs text-red-500 hover:text-red-400 transition-colors"
+			{identifier === null ? (
+				<form onSubmit={handleIdentifierSubmit} className="space-y-6">
+					{error && (
+						<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+							<p className="text-sm text-red-400 text-center">{error}</p>
+						</div>
+					)}
+					<div className="relative w-full">
+						<input
+							type="text"
+							name="username"
+							autoComplete="username"
+							value={emailOrPhone}
+							onChange={(e) => setEmailOrPhone(e.target.value)}
+							id="identifier"
+							className="peer w-full bg-neutral-950 border border-neutral-800 rounded-lg px-5 pt-6 pb-2 text-white focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors placeholder-transparent"
+							placeholder="Email or phone number"
+						/>
+						<label
+							htmlFor="identifier"
+							className="absolute left-5 top-4 text-neutral-500 text-base pointer-events-none transition-all duration-200 transform origin-[0]
+							peer-focus:scale-75 peer-focus:-translate-y-2.5
+							peer-[:not(:placeholder-shown)]:scale-75 peer-[:not(:placeholder-shown)]:-translate-y-2.5"
 						>
-							Forgot password?
-						</Link>
+							Email or phone number
+						</label>
+					</div>
+					<button
+						type="submit"
+						disabled={loading}
+						className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						Next
+					</button>
+				</form>
+			) : (
+				<form onSubmit={handleLogin} className="space-y-6">
+					{error && (
+						<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+							<p className="text-sm text-red-400 text-center">{error}</p>
+						</div>
+					)}
+					<div className="flex items-center justify-center gap-3">
+						<span>{formatIdentifierForDisplay(identifier)}</span>
+						<button
+							type="button"
+							className="text-lg font-bold text-red-600 hover:text-red-500 transition-colors"
+							onClick={handleChangeIdentifier}
+						>
+							Change
+						</button>
 					</div>
 					<input
-						type="password"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						id="password-login"
-						className={authInputClassName}
-						placeholder="••••••••"
-						required
+						type="text"
+						name="username"
+						autoComplete="username"
+						value={identifier}
+						readOnly
+						tabIndex={-1}
+						aria-hidden
+						className="sr-only"
 					/>
-				</div>
-
-				{error && (
-					<div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-						<p className="text-sm text-red-400 text-center">{error}</p>
+					<div className="space-y-2">
+						{loginUsesEmail ? (
+							<div className="flex justify-end">
+								<Link
+									href="/forgot-password"
+									className="text-xs text-red-500 hover:text-red-400 transition-colors"
+								>
+									Forgot password?
+								</Link>
+							</div>
+						) : null}
+						<div className="relative w-full">
+							<input
+								type="password"
+								name="password"
+								autoComplete="current-password"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								id="password"
+								className="peer w-full bg-neutral-950 border border-neutral-800 rounded-lg px-5 pt-6 pb-2 text-white focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors placeholder-transparent"
+								placeholder="Password"
+							/>
+							<label
+								htmlFor="password"
+								className="absolute left-5 top-4 text-neutral-500 text-base pointer-events-none transition-all duration-200 transform origin-[0]
+							peer-focus:scale-75 peer-focus:-translate-y-2.5
+							peer-[:not(:placeholder-shown)]:scale-75 peer-[:not(:placeholder-shown)]:-translate-y-2.5"
+							>
+								Password
+							</label>
+						</div>
 					</div>
-				)}
-
-				<button
-					type="submit"
-					disabled={loading}
-					className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					{loading ? "Signing in..." : "Sign In"}
-				</button>
-			</form>
+					<button
+						type="submit"
+						disabled={loading}
+						className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{loading ? "Logging in..." : "Log In"}
+					</button>
+				</form>
+			)}
 		</AuthCard>
 	);
 }

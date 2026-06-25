@@ -26,21 +26,7 @@ export interface InvoicesData {
 	refetch: () => Promise<void>;
 	addPart: (part: Part) => void;
 	addBike: (bike: InvoiceBike) => void;
-}
-
-export interface InvoicesData {
-	isLoading: boolean;
-	users: AdminUser[];
-	bikes: InvoiceBike[];
-	services: Service[];
-	parts: Part[];
-	shopHourlyRate: number;
-	shopSettings: ShopSettings;
-	invoices: InvoiceWithRelations[];
-	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
-	refetch: () => Promise<void>;
-	addPart: (part: Part) => void;
-	addBike: (bike: InvoiceBike) => void;
+	addUser: (user: AdminUser) => void;
 }
 
 interface UseInvoicesDataOptions {
@@ -125,6 +111,10 @@ export function useInvoicesData(
 		[users],
 	);
 
+	const addUser = useCallback((user: AdminUser) => {
+		setUsers((prev) => [user, ...prev]);
+	}, []);
+
 	return {
 		isLoading,
 		users,
@@ -138,5 +128,6 @@ export function useInvoicesData(
 		refetch,
 		addPart,
 		addBike,
+		addUser,
 	};
 }

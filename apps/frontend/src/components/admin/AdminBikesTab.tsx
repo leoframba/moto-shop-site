@@ -8,14 +8,10 @@ import {
 	getInitialBikeFormData,
 	toBikePayload,
 } from "@/components/admin/bikes/BikeManagerForm";
+import { getUserDisplayName } from "@/components/admin/invoices/invoiceHelpers";
 import { AdminModal } from "@/components/admin/modals";
 import type { AdminUser, InvoiceBike, InvoiceBikeFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
-
-const getUserDisplayName = (user: AdminUser): string => {
-	const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
-	return fullName || user.email;
-};
 
 const toBikeFormData = (bike: InvoiceBike): InvoiceBikeFormData => ({
 	owner_id: bike.owner_id ?? "",
