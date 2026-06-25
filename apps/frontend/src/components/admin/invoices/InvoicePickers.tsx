@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { adminPickerOptionTitleClass } from "@/components/admin/adminUi";
 import {
 	BikeManagerForm,
 	getInitialBikeFormData,
@@ -21,10 +22,6 @@ import {
 	getPartSaveErrorMessage,
 	partMatchesQuery,
 } from "@/components/admin/parts/partUtils";
-import {
-	adminPickerOptionMetaClass,
-	adminPickerOptionTitleClass,
-} from "@/components/admin/adminUi";
 import type {
 	AdminUser,
 	InvoiceBike,
@@ -664,7 +661,9 @@ export function PartPickerModal({
 										<th className={`${pickerTableHeadCellClass} w-36`}>
 											Part #
 										</th>
-										<th className={`${pickerTableHeadCellClass} w-48 max-w-[12rem]`}>
+										<th
+											className={`${pickerTableHeadCellClass} w-48 max-w-[12rem]`}
+										>
 											Part name
 										</th>
 										<th className={`${pickerTableHeadCellClass} text-right`}>

@@ -14,9 +14,9 @@ import type {
 import { authApiRequest } from "@/utils/api";
 import {
 	createDraftId,
-	datetimeLocalValueToIso,
 	type DraftPartLine,
 	type DraftServiceLine,
+	datetimeLocalValueToIso,
 	getUserDisplayName,
 	HAZARDOUS_WASTE_LINE_NAME,
 	isInvoiceNumberTaken,
@@ -64,7 +64,9 @@ export function useInvoiceBuilder({
 	const [customerPhone, setCustomerPhone] = useState("");
 	const [customerEmail, setCustomerEmail] = useState("");
 	const [invoiceNumber, setInvoiceNumber] = useState("");
-	const [invoiceDate, setInvoiceDate] = useState(() => toDatetimeLocalInputValue());
+	const [invoiceDate, setInvoiceDate] = useState(() =>
+		toDatetimeLocalInputValue(),
+	);
 
 	const [serviceLines, setServiceLines] = useState<DraftServiceLine[]>([]);
 	const [partLines, setPartLines] = useState<DraftPartLine[]>([]);
@@ -315,6 +317,7 @@ export function useInvoiceBuilder({
 				return {
 					id: createDraftId(),
 					service_id: line.service_id ?? "",
+					employee_id: line.employee_id ?? "",
 					snapshot_name: line.snapshot_name,
 					is_custom: !line.service_id,
 					pricing_type: resolvedPricingType === "hourly" ? "hourly" : "fixed",
@@ -369,6 +372,7 @@ export function useInvoiceBuilder({
 			{
 				id: createDraftId(),
 				service_id: "",
+				employee_id: "",
 				snapshot_name: "",
 				is_custom: false,
 				pricing_type: "",
@@ -708,6 +712,7 @@ export function useInvoiceBuilder({
 				...serviceLines.map((line) => ({
 					item_type: "service" as const,
 					service_id: line.service_id || null,
+					employee_id: line.employee_id || null,
 					snapshot_name: line.snapshot_name.trim(),
 					pricing_type: (line.pricing_type === "hourly"
 						? "hourly"

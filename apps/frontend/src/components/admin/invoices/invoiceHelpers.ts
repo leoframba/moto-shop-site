@@ -12,12 +12,18 @@ import type {
 export interface DraftServiceLine {
 	id: string;
 	service_id: string;
+	employee_id: string;
 	snapshot_name: string;
 	is_custom: boolean;
 	pricing_type: Service["pricing_type"] | "";
 	unit_price: number;
 	quantity: number;
 }
+
+export const getEmployeeDisplayName = (employee: {
+	first_name: string;
+	last_name: string;
+}): string => `${employee.first_name} ${employee.last_name}`.trim();
 
 export interface DraftPartLine {
 	id: string;
@@ -50,11 +56,19 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 	hourly_rate: 0,
 	tax_rate: 0,
 	hazardous_waste_rate: 0,
+	pay_period_length: "bi-weekly",
+	anchor_date: "2026-06-17",
+	timezone: "America/Los_Angeles",
 };
 
 export const INVOICE_LIST_DEFAULT_STATUS_FILTERS = INVOICE_STATUSES.filter(
 	(status) => status !== "void",
 );
+
+export const LABOR_DEFAULT_STATUS_FILTERS: InvoiceRecord["status"][] = [
+	"completed",
+	"paid",
+];
 
 export const createDraftId = (): string => {
 	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {

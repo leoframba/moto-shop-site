@@ -41,6 +41,39 @@ export interface ShopSettings {
 	hourly_rate: number;
 	tax_rate?: number | null;
 	hazardous_waste_rate?: number | null;
+	pay_period_length?: PayPeriodLength | null;
+	anchor_date?: string | null;
+	timezone?: string | null;
+}
+
+export type PayPeriodLength = "weekly" | "bi-weekly" | "monthly";
+
+export interface Employee {
+	id: string;
+	first_name: string;
+	last_name: string;
+	created_at?: string;
+}
+
+export interface LaborBreakdownLine {
+	id: string;
+	invoice_id: string;
+	invoice_number: number;
+	snapshot_name: string;
+	pricing_type: LinePricingType;
+	hours: number;
+}
+
+export interface LaborSummaryRow {
+	employee_id: string | null;
+	employee_name: string;
+	hours: number;
+	breakdown: LaborBreakdownLine[];
+}
+
+export interface LaborSummary {
+	rows: LaborSummaryRow[];
+	total_hours: number;
 }
 
 export interface SocialLinkProps {
@@ -162,6 +195,7 @@ export interface InvoiceLineItemPayload {
 	item_type: InvoiceItemType;
 	service_id?: string | null;
 	part_id?: string | null;
+	employee_id?: string | null;
 	snapshot_name: string;
 	snapshot_part_number?: string | null;
 	pricing_type?: LinePricingType | null;
@@ -209,6 +243,7 @@ export interface InvoiceLineItemRecord {
 	item_type: InvoiceItemType;
 	service_id?: string | null;
 	part_id?: string | null;
+	employee_id?: string | null;
 	snapshot_name: string;
 	snapshot_part_number?: string | null;
 	pricing_type?: LinePricingType | null;

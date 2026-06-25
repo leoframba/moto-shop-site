@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { compareParts } from "@/components/admin/parts/partUtils";
 import type {
 	AdminUser,
+	Employee,
 	InvoiceBike,
 	InvoiceWithRelations,
 	Part,
@@ -16,6 +17,7 @@ import { DEFAULT_SHOP_SETTINGS } from "./invoiceHelpers";
 export interface InvoicesData {
 	isLoading: boolean;
 	users: AdminUser[];
+	employees: Employee[];
 	bikes: InvoiceBike[];
 	services: Service[];
 	parts: Part[];
@@ -24,23 +26,11 @@ export interface InvoicesData {
 	invoices: InvoiceWithRelations[];
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
 	refetch: () => Promise<void>;
+	refetchEmployees: () => Promise<void>;
 	addPart: (part: Part) => void;
 	addBike: (bike: InvoiceBike) => void;
-}
-
-export interface InvoicesData {
-	isLoading: boolean;
-	users: AdminUser[];
-	bikes: InvoiceBike[];
-	services: Service[];
-	parts: Part[];
-	shopHourlyRate: number;
-	shopSettings: ShopSettings;
-	invoices: InvoiceWithRelations[];
-	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
-	refetch: () => Promise<void>;
-	addPart: (part: Part) => void;
-	addBike: (bike: InvoiceBike) => void;
+	addEmployee: (employee: Employee) => void;
+	updateEmployee: (employee: Employee) => void;
 }
 
 interface UseInvoicesDataOptions {
@@ -53,6 +43,7 @@ export function useInvoicesData(
 	const enabled = options.enabled ?? true;
 	const [isLoading, setIsLoading] = useState(enabled);
 	const [users, setUsers] = useState<AdminUser[]>([]);
+	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [bikes, setBikes] = useState<InvoiceBike[]>([]);
 	const [services, setServices] = useState<Service[]>([]);
 	const [parts, setParts] = useState<Part[]>([]);
@@ -62,11 +53,25 @@ export function useInvoicesData(
 	);
 	const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
 
+	const refetchEmployees = useCallback(async () => {
+		try {
+			const employeeRows = await authApiRequest<Employee[]>(
+				"/api/admin/employees",
+				{ cache: "no-store" },
+			);
+			setEmployees(employeeRows);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load employees.");
+		}
+	}, []);
+
 	const refetch = useCallback(async () => {
 		setIsLoading(true);
 		try {
 			const [
 				userRows,
+				employeeRows,
 				bikeRows,
 				partRows,
 				servicesPayload,
@@ -74,6 +79,9 @@ export function useInvoicesData(
 				settings,
 			] = await Promise.all([
 				authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
+				authApiRequest<Employee[]>("/api/admin/employees", {
+					cache: "no-store",
+				}),
 				authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
 					cache: "no-store",
 				}),
@@ -90,6 +98,7 @@ export function useInvoicesData(
 			]);
 
 			setUsers(userRows);
+			setEmployees(employeeRows);
 			setBikes(bikeRows);
 			setParts(partRows);
 			setShopHourlyRate(Number(servicesPayload.hourly_rate ?? 0));
@@ -125,9 +134,20 @@ export function useInvoicesData(
 		[users],
 	);
 
+	const addEmployee = useCallback((employee: Employee) => {
+		setEmployees((prev) => [...prev, employee]);
+	}, []);
+
+	const updateEmployee = useCallback((employee: Employee) => {
+		setEmployees((prev) =>
+			prev.map((current) => (current.id === employee.id ? employee : current)),
+		);
+	}, []);
+
 	return {
 		isLoading,
 		users,
+		employees,
 		bikes,
 		services,
 		parts,
@@ -136,7 +156,10 @@ export function useInvoicesData(
 		invoices,
 		setInvoices,
 		refetch,
+		refetchEmployees,
 		addPart,
 		addBike,
+		addEmployee,
+		updateEmployee,
 	};
 }

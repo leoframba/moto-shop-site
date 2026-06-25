@@ -1,14 +1,18 @@
 # routers/admin.py
 import os
 import uuid
+from datetime import datetime
 from urllib.parse import urlparse
 
 from dependencies import supabase, verify_admin
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from labor_utils import line_labor_hours
 from schemas import (
     BikeCreate,
     BikeUpdate,
     CategoryCreate,
+    EmployeeCreate,
+    EmployeeUpdate,
     InvoiceCreate,
     InvoiceMechanicNotesUpdate,
     InvoiceStatusUpdate,
@@ -233,6 +237,187 @@ async def update_shop_settings(payload: ShopSettingsUpdate):
         if not rows:
             raise HTTPException(status_code=404, detail="Shop settings not found")
         return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# EMPLOYEE MANAGEMENT
+# ==========================================
+
+
+@router.get("/employees")
+async def list_employees():
+    try:
+        response = (
+            supabase.table("employees")
+            .select("id, first_name, last_name, created_at")
+            .order("last_name")
+            .order("first_name")
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/employees")
+async def create_employee(payload: EmployeeCreate):
+    try:
+        response = (
+            supabase.table("employees")
+            .insert(
+                {
+                    "first_name": payload.first_name,
+                    "last_name": payload.last_name,
+                }
+            )
+            .execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=400, detail="Failed to create employee")
+        return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/employees/{employee_id}")
+async def update_employee(employee_id: str, payload: EmployeeUpdate):
+    try:
+        response = (
+            supabase.table("employees")
+            .update(
+                {
+                    "first_name": payload.first_name,
+                    "last_name": payload.last_name,
+                }
+            )
+            .eq("id", employee_id)
+            .execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/labor/summary")
+async def labor_summary(
+    start_at: datetime = Query(..., description="Inclusive range start (ISO 8601)"),
+    end_at: datetime = Query(..., description="Inclusive range end (ISO 8601)"),
+    statuses: list[str] = Query(
+        default=["completed", "paid"],
+        description="Invoice statuses to include",
+    ),
+):
+    try:
+        if end_at < start_at:
+            raise HTTPException(
+                status_code=400,
+                detail="end_at must be on or after start_at.",
+            )
+
+        if not statuses:
+            return {"rows": [], "total_hours": 0.0}
+
+        invoices_response = (
+            supabase.table("invoices")
+            .select("id, invoice_number")
+            .gte("created_at", start_at.isoformat())
+            .lte("created_at", end_at.isoformat())
+            .in_("status", statuses)
+            .execute()
+        )
+        invoices = invoices_response.data or []
+        invoice_ids = [row["id"] for row in invoices]
+        if not invoice_ids:
+            return {"rows": [], "total_hours": 0.0}
+
+        settings_response = (
+            supabase.table("shop_settings").select("hourly_rate").eq("id", 1).execute()
+        )
+        settings_rows = settings_response.data or []
+        hourly_rate = float(settings_rows[0]["hourly_rate"]) if settings_rows else 0.0
+
+        invoice_numbers = {row["id"]: row.get("invoice_number") for row in invoices}
+
+        lines_response = (
+            supabase.table("invoice_line_items")
+            .select(
+                "id, invoice_id, employee_id, quantity, unit_price, pricing_type, snapshot_name"
+            )
+            .in_("invoice_id", invoice_ids)
+            .eq("item_type", "service")
+            .execute()
+        )
+
+        employees_response = (
+            supabase.table("employees").select("id, first_name, last_name").execute()
+        )
+        employee_names = {
+            row["id"]: f"{row.get('first_name', '')} {row.get('last_name', '')}".strip()
+            for row in (employees_response.data or [])
+        }
+
+        grouped: dict[str, dict] = {}
+        for line in lines_response.data or []:
+            employee_id = line.get("employee_id")
+            key = employee_id or "__shop__"
+            if key not in grouped:
+                grouped[key] = {"hours": 0.0, "breakdown": []}
+
+            pricing_type = line.get("pricing_type") or "fixed"
+            quantity = float(line.get("quantity") or 0)
+            unit_price = float(line.get("unit_price") or 0)
+            hours = line_labor_hours(pricing_type, quantity, unit_price, hourly_rate)
+            grouped[key]["hours"] += hours
+
+            invoice_id = line.get("invoice_id")
+            grouped[key]["breakdown"].append(
+                {
+                    "id": line.get("id"),
+                    "invoice_id": invoice_id,
+                    "invoice_number": invoice_numbers.get(invoice_id),
+                    "snapshot_name": line.get("snapshot_name") or "Service",
+                    "pricing_type": pricing_type,
+                    "hours": hours,
+                }
+            )
+
+        rows = []
+        for key, payload in sorted(
+            grouped.items(),
+            key=lambda item: (-item[1]["hours"], item[0]),
+        ):
+            breakdown = sorted(
+                payload["breakdown"],
+                key=lambda entry: (
+                    -(entry.get("invoice_number") or 0),
+                    entry.get("snapshot_name") or "",
+                ),
+            )
+            rows.append(
+                {
+                    "employee_id": None if key == "__shop__" else key,
+                    "employee_name": "Shop Labor"
+                    if key == "__shop__"
+                    else employee_names.get(key, "Unknown"),
+                    "hours": round(payload["hours"], 1),
+                    "breakdown": breakdown,
+                }
+            )
+
+        total_hours = round(sum(row["hours"] for row in rows), 1)
+        return {"rows": rows, "total_hours": total_hours}
     except HTTPException:
         raise
     except Exception as e:
@@ -579,6 +764,7 @@ def _invoice_line_item_row(invoice_id: str, item) -> dict:
         "item_type": item.item_type,
         "service_id": item.service_id if item.item_type == "service" else None,
         "part_id": item.part_id if item.item_type == "part" else None,
+        "employee_id": item.employee_id if item.item_type == "service" else None,
         "snapshot_name": item.snapshot_name,
         "pricing_type": item.pricing_type if item.item_type == "service" else None,
         "unit_price": item.unit_price,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { ShopSettings } from "@/types";
+import type { PayPeriodLength, ShopSettings } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
 interface ShopSettingsFormData {
@@ -14,7 +14,16 @@ interface ShopSettingsFormData {
 	hourly_rate: number;
 	tax_rate: number;
 	hazardous_waste_rate: number;
+	pay_period_length: PayPeriodLength;
+	anchor_date: string;
+	timezone: string;
 }
+
+const PAY_PERIOD_OPTIONS: { value: PayPeriodLength; label: string }[] = [
+	{ value: "weekly", label: "Weekly" },
+	{ value: "bi-weekly", label: "Bi-weekly" },
+	{ value: "monthly", label: "Monthly" },
+];
 
 const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
 	shop_name: settings.shop_name ?? "",
@@ -25,6 +34,9 @@ const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
 	hourly_rate: Number(settings.hourly_rate ?? 0),
 	tax_rate: Number(settings.tax_rate ?? 0),
 	hazardous_waste_rate: Number(settings.hazardous_waste_rate ?? 0),
+	pay_period_length: settings.pay_period_length ?? "bi-weekly",
+	anchor_date: settings.anchor_date ?? "2026-06-17",
+	timezone: settings.timezone ?? "America/Los_Angeles",
 });
 
 export default function AdminShopSettingsTab() {
@@ -39,6 +51,9 @@ export default function AdminShopSettingsTab() {
 		hourly_rate: 0,
 		tax_rate: 0,
 		hazardous_waste_rate: 0,
+		pay_period_length: "bi-weekly",
+		anchor_date: "2026-06-17",
+		timezone: "America/Los_Angeles",
 	});
 
 	const fetchSettings = useCallback(async () => {
@@ -84,6 +99,9 @@ export default function AdminShopSettingsTab() {
 					hourly_rate: Number(formData.hourly_rate),
 					tax_rate: Number(formData.tax_rate),
 					hazardous_waste_rate: Number(formData.hazardous_waste_rate),
+					pay_period_length: formData.pay_period_length,
+					anchor_date: formData.anchor_date || null,
+					timezone: formData.timezone || null,
 				}),
 			});
 			toast.success("Shop settings updated.");
@@ -245,6 +263,72 @@ export default function AdminShopSettingsTab() {
 							onChange={(e) => updateField("shop_address", e.target.value)}
 							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
 						/>
+					</div>
+				</div>
+
+				<div className="border-t border-neutral-800 pt-5">
+					<h3 className="mb-1 text-sm font-bold uppercase tracking-widest text-white">
+						Pay Period & Labor
+					</h3>
+					<p className="mb-4 text-xs text-neutral-400">
+						Controls how the Labor dashboard calculates the current pay period.
+					</p>
+					<div className="grid md:grid-cols-2 gap-4">
+						<div>
+							<label
+								htmlFor="shop-pay-period-length"
+								className="text-xs text-neutral-300 block mb-1"
+							>
+								Pay Period Length
+							</label>
+							<select
+								id="shop-pay-period-length"
+								value={formData.pay_period_length}
+								onChange={(e) =>
+									updateField(
+										"pay_period_length",
+										e.target.value as PayPeriodLength,
+									)
+								}
+								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+							>
+								{PAY_PERIOD_OPTIONS.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</div>
+						<div>
+							<label
+								htmlFor="shop-anchor-date"
+								className="text-xs text-neutral-300 block mb-1"
+							>
+								Anchor Date
+							</label>
+							<input
+								id="shop-anchor-date"
+								type="date"
+								value={formData.anchor_date}
+								onChange={(e) => updateField("anchor_date", e.target.value)}
+								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+							/>
+						</div>
+						<div className="md:col-span-2">
+							<label
+								htmlFor="shop-timezone"
+								className="text-xs text-neutral-300 block mb-1"
+							>
+								Timezone
+							</label>
+							<input
+								id="shop-timezone"
+								value={formData.timezone}
+								onChange={(e) => updateField("timezone", e.target.value)}
+								placeholder="America/Los_Angeles"
+								className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
+							/>
+						</div>
 					</div>
 				</div>
 

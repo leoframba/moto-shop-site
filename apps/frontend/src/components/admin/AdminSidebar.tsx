@@ -7,12 +7,14 @@ import { useEffect, useState } from "react";
 import { FaMoneyBillWave, FaMotorcycle, FaToolbox } from "react-icons/fa6";
 import {
 	FiBarChart,
+	FiClock,
 	FiFile,
 	FiHome,
 	FiLogOut,
 	FiMenu,
 	FiSettings,
 	FiTool,
+	FiUserCheck,
 	FiUsers,
 	FiX,
 } from "react-icons/fi";
@@ -25,6 +27,8 @@ export type AdminTab =
 	| "bikes"
 	| "parts"
 	| "invoices"
+	| "labor"
+	| "employees"
 	| "stats"
 	| "users"
 	| "settings";
@@ -45,6 +49,8 @@ const ADMIN_TABS: {
 	{ id: "bikes", label: "Bikes", icon: <FaMotorcycle />, new: false },
 	{ id: "parts", label: "Parts", icon: <FaToolbox />, new: false },
 	{ id: "invoices", label: "Invoices", icon: <FiFile />, new: false },
+	{ id: "labor", label: "Labor", icon: <FiClock />, new: true },
+	{ id: "employees", label: "Employees", icon: <FiUserCheck />, new: true },
 	{ id: "stats", label: "Stats Board", icon: <FiBarChart />, new: true },
 	{ id: "users", label: "Users", icon: <FiUsers />, new: false },
 	{ id: "settings", label: "Settings", icon: <FiSettings />, new: false },

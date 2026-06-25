@@ -5,6 +5,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { NumberStepperInput } from "@/components/admin/NumberStepperInput";
 import type {
 	AdminUser,
+	Employee,
 	InvoiceBike,
 	InvoiceStatus,
 	Part,
@@ -18,6 +19,7 @@ import {
 } from "./InvoicePickers";
 import {
 	getBikeDisplayLabel,
+	getEmployeeDisplayName,
 	getPartLineDisplayLabel,
 	getPartLinePartNumber,
 	HAZARDOUS_WASTE_LINE_NAME,
@@ -33,16 +35,16 @@ import {
 	invoiceBodyMutedClass,
 	invoiceCardClass,
 	invoiceCheckboxClass,
+	invoiceDatetimeFieldClass,
 	invoiceEmptyHintClass,
 	invoiceFieldInputLgClass,
-	invoiceDatetimeFieldClass,
 	invoiceHeaderClass,
+	invoiceHeaderSaveButtonClass,
 	invoiceHeaderTitleClass,
 	invoiceHintClass,
 	invoiceLabelClass,
 	invoiceOverlayClass,
 	invoicePickerButtonClass,
-	invoiceHeaderSaveButtonClass,
 	invoiceReadOnlyFieldClass,
 	invoiceSecondaryButtonClass,
 	invoiceSectionClass,
@@ -72,6 +74,7 @@ import type { InvoiceBuilder } from "./useInvoiceBuilder";
 interface InvoiceBuilderModalProps {
 	builder: InvoiceBuilder;
 	users: AdminUser[];
+	employees: Employee[];
 	bikes: InvoiceBike[];
 	services: Service[];
 	parts: Part[];
@@ -83,6 +86,7 @@ interface InvoiceBuilderModalProps {
 export function InvoiceBuilderModal({
 	builder,
 	users,
+	employees,
 	bikes,
 	services,
 	parts,
@@ -206,9 +210,7 @@ export function InvoiceBuilderModal({
 												id="invoice-date"
 												type="datetime-local"
 												value={builder.invoiceDate}
-												onChange={(e) =>
-													builder.setInvoiceDate(e.target.value)
-												}
+												onChange={(e) => builder.setInvoiceDate(e.target.value)}
 												onClick={(e) => openDatetimePicker(e.currentTarget)}
 												className={invoiceDatetimeFieldClass}
 											/>
@@ -688,6 +690,9 @@ export function InvoiceBuilderModal({
 														<th className={invoiceTableHeadCellClass}>
 															Service
 														</th>
+														<th className={`${invoiceTableHeadCellClass} w-36`}>
+															Mechanic
+														</th>
 														<th className={`${invoiceTableHeadCellClass} w-28`}>
 															Pricing
 														</th>
@@ -730,6 +735,30 @@ export function InvoiceBuilderModal({
 																			? "Custom service"
 																			: "Select service...")}
 																</button>
+															</td>
+															<td className={invoiceTableCellClass}>
+																<select
+																	id={`invoice-service-employee-${line.id}`}
+																	value={line.employee_id}
+																	onChange={(e) =>
+																		builder.updateServiceLine(
+																			line.id,
+																			"employee_id",
+																			e.target.value,
+																		)
+																	}
+																	className={invoiceTableInputClass}
+																>
+																	<option value="">Shop Labor</option>
+																	{employees.map((employee) => (
+																		<option
+																			key={employee.id}
+																			value={employee.id}
+																		>
+																			{getEmployeeDisplayName(employee)}
+																		</option>
+																	))}
+																</select>
 															</td>
 															<td className={invoiceTableCellClass}>
 																<select
@@ -839,9 +868,7 @@ export function InvoiceBuilderModal({
 											<table className={invoiceTableClassParts}>
 												<thead>
 													<tr className={invoiceTableHeadRowClass}>
-														<th
-															className={`${invoiceTableHeadCellClass} w-40`}
-														>
+														<th className={`${invoiceTableHeadCellClass} w-40`}>
 															Part #
 														</th>
 														<th
@@ -895,7 +922,9 @@ export function InvoiceBuilderModal({
 																	</span>
 																)}
 															</td>
-															<td className={`${invoiceTableCellClass} max-w-[11rem]`}>
+															<td
+																className={`${invoiceTableCellClass} max-w-[11rem]`}
+															>
 																<button
 																	id={`invoice-part-${line.id}`}
 																	type="button"

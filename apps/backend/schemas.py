@@ -126,6 +126,7 @@ class InvoiceLineItemCreate(BaseModel):
     item_type: Literal["service", "part", "hazardous_waste"]
     service_id: str | None = None
     part_id: str | None = None
+    employee_id: str | None = None
     snapshot_name: str = Field(..., min_length=1)
     snapshot_part_number: str | None = None
     pricing_type: Literal["hourly", "fixed"] | None = None
@@ -147,7 +148,7 @@ class InvoiceLineItemCreate(BaseModel):
             return value or None
         return v
 
-    @field_validator("service_id", "part_id", mode="before")
+    @field_validator("service_id", "part_id", "employee_id", mode="before")
     @classmethod
     def blank_reference_to_none(cls, v):
         if isinstance(v, str):
@@ -162,13 +163,17 @@ class InvoiceLineItemCreate(BaseModel):
         elif self.item_type == "part":
             self.service_id = None
             self.pricing_type = None
+            self.employee_id = None
         elif self.item_type == "hazardous_waste":
             self.service_id = None
             self.part_id = None
             self.pricing_type = None
             self.snapshot_part_number = None
+            self.employee_id = None
         if self.item_type != "part":
             self.snapshot_part_number = None
+        if self.item_type != "service":
+            self.employee_id = None
         return self
 
 
@@ -280,6 +285,26 @@ class UserInvite(BaseModel):
         return v
 
 
+class EmployeeCreate(BaseModel):
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def normalize_name(cls, v: str) -> str:
+        return v.strip()
+
+
+class EmployeeUpdate(BaseModel):
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def normalize_name(cls, v: str) -> str:
+        return v.strip()
+
+
 class UserResendInvite(BaseModel):
     redirect_base_url: str | None = None
 
@@ -293,9 +318,33 @@ class ShopSettingsUpdate(BaseModel):
     hourly_rate: float | None = Field(default=None, ge=0)
     tax_rate: float | None = Field(default=None, ge=0, le=100)
     hazardous_waste_rate: float | None = Field(default=None, ge=0)
+    pay_period_length: Literal["weekly", "bi-weekly", "monthly"] | None = None
+    anchor_date: str | None = None
+    timezone: str | None = None
+
+    @field_validator("anchor_date", mode="before")
+    @classmethod
+    def normalize_anchor_date(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
+
+    @field_validator("timezone", mode="before")
+    @classmethod
+    def normalize_timezone(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
 
     @field_validator(
-        "shop_name", "shop_address", "shop_phone", "shop_email", "bar_number", mode="before"
+        "shop_name",
+        "shop_address",
+        "shop_phone",
+        "shop_email",
+        "bar_number",
+        mode="before",
     )
     @classmethod
     def normalize_text(cls, v):

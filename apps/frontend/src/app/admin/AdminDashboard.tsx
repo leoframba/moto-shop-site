@@ -42,6 +42,16 @@ const AdminInvoicesTab = dynamic(
 	{ loading: () => <AdminTabLoader label="Invoices" /> },
 );
 
+const AdminLaborTab = dynamic(
+	() => import("@/components/admin/AdminLaborTab"),
+	{ loading: () => <AdminTabLoader label="Labor" /> },
+);
+
+const AdminEmployeesTab = dynamic(
+	() => import("@/components/admin/AdminEmployeesTab"),
+	{ loading: () => <AdminTabLoader label="Employees" /> },
+);
+
 const AdminStatsBoardTab = dynamic(
 	() => import("@/components/admin/AdminStatsBoardTab"),
 	{ loading: () => <AdminTabLoader label="Stats Board" /> },
@@ -73,6 +83,8 @@ export default function AdminDashboard() {
 					{activeTab === "bikes" && <AdminBikesTab />}
 					{activeTab === "parts" && <AdminPartsTab />}
 					{activeTab === "invoices" && <AdminInvoicesTab />}
+					{activeTab === "labor" && <AdminLaborTab />}
+					{activeTab === "employees" && <AdminEmployeesTab />}
 					{activeTab === "stats" && <AdminStatsBoardTab />}
 					{activeTab === "users" && <AdminUsersTab />}
 					{activeTab === "settings" && <AdminShopSettingsTab />}

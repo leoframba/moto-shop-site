@@ -5,6 +5,6 @@
 		"lint": "venv/Scripts/ruff check .",
 		"format": "venv/Scripts/ruff format .",
 		"test": "venv/Scripts/pytest",
-		"dev":  "uvicorn main:app --reload"
+		"dev": "uvicorn main:app --reload"
 	}
 }
