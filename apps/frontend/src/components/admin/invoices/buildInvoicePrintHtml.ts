@@ -1,4 +1,8 @@
-import type { InvoiceLineItemRecord, InvoiceWithRelations, ShopSettings } from "@/types";
+import type {
+	InvoiceLineItemRecord,
+	InvoiceWithRelations,
+	ShopSettings,
+} from "@/types";
 import {
 	calculateLineTotal,
 	getInvoiceCustomerSnapshot,
@@ -73,14 +77,18 @@ export const buildInvoicePrintHtml = (
 		<td class="num strong">$${calculateLineTotal(line).toFixed(2)}</td>
 	</tr>`;
 
-	const getPartLinePartNumberForPrint = (line: InvoiceLineItemRecord): string => {
+	const getPartLinePartNumberForPrint = (
+		line: InvoiceLineItemRecord,
+	): string => {
 		const stored = line.snapshot_part_number?.trim();
 		if (stored) return stored;
 		if (!line.snapshot_name.includes(" — ")) return "";
 		return parseLegacyPartSnapshot(line.snapshot_name).partNumber;
 	};
 
-	const getPartLineDescriptionForPrint = (line: InvoiceLineItemRecord): string => {
+	const getPartLineDescriptionForPrint = (
+		line: InvoiceLineItemRecord,
+	): string => {
 		const stored = line.snapshot_part_number?.trim();
 		if (stored || !line.snapshot_name.includes(" — ")) {
 			return line.snapshot_name;
@@ -159,17 +167,34 @@ export const buildInvoicePrintHtml = (
 		</section>`
 		: "";
 
-	const notesSection = hasNotes
-		? `<section class="section section-compact">
-			<h2 class="section-title">Mechanic Notes</h2>
-			<div class="notes"><pre>${mechanicNotes}</pre></div>
-		</section>`
-		: "";
-
 	const taxRow =
 		hasParts || salesTax > 0
 			? `<div class="totals-row"><span>Sales tax &middot; parts only (${normalizedTaxRate.toFixed(3)}%)</span><strong>$${salesTax.toFixed(2)}</strong></div>`
 			: "";
+
+	const notesColumn = hasNotes
+		? `<div class="notes-column">
+			<h2 class="section-title">Mechanic Notes</h2>
+			<div class="notes"><pre>${mechanicNotes}</pre></div>
+		</div>`
+		: "";
+
+	const footerSection = `<footer class="footer">
+			<div>Thank you for choosing ${safeShopName}.</div>
+			<div class="footer-fine">Labor is not subject to sales tax. Please retain this invoice for your records.</div>
+		</footer>`;
+
+	const summarySection = `<section class="summary-block${hasNotes ? "" : " summary-block--totals-only"}">
+		${notesColumn}
+		<div class="summary-aside">
+			<section class="totals">
+				<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
+				${taxRow}
+				<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>
+			</section>
+			${footerSection}
+		</div>
+	</section>`;
 
 	const providerLines = [
 		safeShopAddress ? `<div>${safeShopAddress}</div>` : "",
@@ -364,11 +389,28 @@ export const buildInvoicePrintHtml = (
 		font-size: 10px;
 		line-height: 1.35;
 	}
-	.totals {
+	.summary-block {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 280px;
+		gap: 12px;
 		margin-top: 8px;
-		margin-left: auto;
+		align-items: start;
+	}
+	.summary-block--totals-only {
+		display: block;
+	}
+	.notes-column .section-title {
+		margin: 0 0 4px;
+	}
+	.summary-aside {
 		width: 280px;
+	}
+	.totals {
+		width: 100%;
 		border: 1px solid var(--line);
+	}
+	.summary-block--totals-only .summary-aside {
+		margin-left: auto;
 	}
 	.totals-row {
 		display: flex;
@@ -384,7 +426,7 @@ export const buildInvoicePrintHtml = (
 		font-weight: 800;
 	}
 	.footer {
-		margin-top: 10px;
+		margin-top: 8px;
 		padding-top: 6px;
 		border-top: 1px dashed var(--line);
 		font-size: 9px;
@@ -403,6 +445,11 @@ export const buildInvoicePrintHtml = (
 		th, .kv, .group-head th, .group-subtotal td, .totals-row.grand {
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
+		}
+		.totals,
+		.summary-aside {
+			break-inside: avoid;
+			page-break-inside: avoid;
 		}
 	}
 	</style>
@@ -436,18 +483,7 @@ export const buildInvoicePrintHtml = (
 
 		${bikeSection}
 		${lineItemsSection}
-		${notesSection}
-
-		<section class="totals">
-			<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
-			${taxRow}
-			<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>
-		</section>
-
-		<footer class="footer">
-			<div>Thank you for choosing ${safeShopName}.</div>
-			<div class="footer-fine">Labor is not subject to sales tax. Please retain this invoice for your records.</div>
-		</footer>
+		${summarySection}
 	</div>
 	<script>window.onload = function () { window.print(); };</script>
 </body>
