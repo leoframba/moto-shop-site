@@ -439,9 +439,14 @@ export const buildInvoicePrintHtml = (
 		letter-spacing: 0.02em;
 	}
 	@media print {
-		body { padding: 0; }
+		@page {
+			size: auto;
+			margin: 0;
+		}
+		body {
+			padding: 0.4in;
+		}
 		.invoice { border: 0; padding: 0; }
-		@page { margin: 0.4in; }
 		th, .kv, .group-head th, .group-subtotal td, .totals-row.grand {
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;

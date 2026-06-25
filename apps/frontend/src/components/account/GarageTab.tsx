@@ -19,6 +19,7 @@ import type {
 	ShopSettings,
 } from "@/types";
 import { authApiRequest } from "@/utils/api";
+import { printHtmlDocument } from "@/utils/printHtml";
 
 interface GarageResponse {
 	tax_rate: number;
@@ -102,20 +103,12 @@ export default function GarageTab() {
 				`/api/portal/invoices/${invoiceId}/print`,
 				{ cache: "no-store" },
 			);
-			const printWindow = window.open("", "_blank", "width=960,height=720");
-			if (!printWindow) {
-				toast.error("Could not open print preview window.");
-				return;
-			}
-			printWindow.document.open();
-			printWindow.document.write(
+			printHtmlDocument(
 				buildInvoicePrintHtml(
 					{ ...data.invoice, line_items: data.invoice.line_items ?? [] },
 					data.shop_settings,
 				),
 			);
-			printWindow.document.close();
-			printWindow.focus();
 		} catch (error) {
 			console.error(error);
 			toast.error(

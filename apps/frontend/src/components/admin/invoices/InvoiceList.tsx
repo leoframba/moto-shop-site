@@ -17,6 +17,7 @@ import type {
 	ShopSettings,
 } from "@/types";
 import { authApiRequest } from "@/utils/api";
+import { printHtmlDocument } from "@/utils/printHtml";
 import VoiceRecorder from "../voice_notes/VoiceRecorder";
 import { buildInvoicePrintHtml } from "./buildInvoicePrintHtml";
 import {
@@ -294,21 +295,11 @@ export function InvoiceList({
 
 	const openPrintPreview = (invoice: InvoiceWithRelations) => {
 		try {
-			const printWindow = window.open("", "_blank", "width=960,height=720");
-			if (!printWindow) {
-				toast.error("Could not open print preview window.");
-				return;
-			}
 			const invoiceForPrint: InvoiceWithRelations = {
 				...invoice,
 				line_items: invoice.line_items ?? [],
 			};
-			printWindow.document.open();
-			printWindow.document.write(
-				buildInvoicePrintHtml(invoiceForPrint, shopSettings),
-			);
-			printWindow.document.close();
-			printWindow.focus();
+			printHtmlDocument(buildInvoicePrintHtml(invoiceForPrint, shopSettings));
 		} catch (error) {
 			console.error("Print preview error:", error);
 			toast.error("Print preview failed to render.");
