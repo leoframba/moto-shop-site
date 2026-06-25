@@ -31,6 +31,7 @@ export interface InvoicesData {
 	addBike: (bike: InvoiceBike) => void;
 	addEmployee: (employee: Employee) => void;
 	updateEmployee: (employee: Employee) => void;
+	addUser: (user: AdminUser) => void;
 }
 
 interface UseInvoicesDataOptions {
@@ -144,6 +145,10 @@ export function useInvoicesData(
 		);
 	}, []);
 
+	const addUser = useCallback((user: AdminUser) => {
+		setUsers((prev) => [user, ...prev]);
+	}, []);
+
 	return {
 		isLoading,
 		users,
@@ -161,5 +166,6 @@ export function useInvoicesData(
 		addBike,
 		addEmployee,
 		updateEmployee,
+		addUser,
 	};
 }

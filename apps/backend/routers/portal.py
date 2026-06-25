@@ -1,6 +1,7 @@
 # routers/portal.py
 from dependencies import supabase, verify_user
 from fastapi import APIRouter, Depends, HTTPException
+from phone_utils import resolve_optional_phone, sync_auth_email, sync_auth_phone
 from portal_invoice_view import (
     CUSTOMER_VISIBLE_STATUSES,
     PRINTABLE_STATUSES,
@@ -242,11 +243,39 @@ async def update_profile(payload: UserUpdate, user=Depends(verify_user)):
                 status_code=403, detail="Admins cannot update profile here."
             )
 
+        existing = (
+            supabase.table("users")
+            .select("email")
+            .eq("id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        existing_row = existing.data if existing else None
+        existing_email = (existing_row or {}).get("email") or ""
+
         update_payload = {
             "first_name": payload.first_name,
             "last_name": payload.last_name,
-            "phone_number": payload.phone_number,
+            "phone_number": resolve_optional_phone(payload.phone_number),
         }
+
+        if "email" in payload.model_fields_set and payload.email:
+            if existing_email.strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email cannot be changed here. Contact the shop for help.",
+                )
+            update_payload["email"] = payload.email
+            try:
+                sync_auth_email(supabase, user.id, payload.email)
+            except Exception as auth_error:
+                message = str(auth_error)
+                if "already" in message.lower() and "registered" in message.lower():
+                    raise HTTPException(
+                        status_code=409,
+                        detail="A user with that email already exists.",
+                    )
+                raise HTTPException(status_code=400, detail=message)
 
         response = (
             supabase.table("users").update(update_payload).eq("id", user.id).execute()
@@ -254,6 +283,15 @@ async def update_profile(payload: UserUpdate, user=Depends(verify_user)):
         rows = response.data or []
         if not rows:
             raise HTTPException(status_code=404, detail="Profile not found")
+
+        if payload.phone_number is not None:
+            sync_auth_phone(
+                supabase,
+                user.id,
+                update_payload["phone_number"],
+                confirm=bool(payload.setup_complete),
+            )
+
         return rows[0]
     except HTTPException:
         raise

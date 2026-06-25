@@ -245,6 +245,16 @@ class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     phone_number: str | None = None
+    email: str | None = None
+    setup_complete: bool = False
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            value = v.strip().lower()
+            return value or None
+        return v
 
     @field_validator("first_name", "last_name", "phone_number", mode="before")
     @classmethod
@@ -253,6 +263,53 @@ class UserUpdate(BaseModel):
             value = v.strip()
             return value or None
         return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("A valid email address is required.")
+        return v
+
+
+class UserCreate(BaseModel):
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    phone_number: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            value = v.strip().lower()
+            return value or None
+        return v
+
+    @field_validator("first_name", "last_name", "phone_number", mode="before")
+    @classmethod
+    def blank_to_none(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("A valid email address is required.")
+        return v
+
+    @model_validator(mode="after")
+    def require_email_or_phone(self):
+        if not self.email and not self.phone_number:
+            raise ValueError("Either email or phone number is required.")
+        return self
 
 
 class UserInvite(BaseModel):
@@ -306,6 +363,11 @@ class EmployeeUpdate(BaseModel):
 
 
 class UserResendInvite(BaseModel):
+    redirect_base_url: str | None = None
+
+
+class UserSendInvite(BaseModel):
+    channel: Literal["link", "email"] = "link"
     redirect_base_url: str | None = None
 
 

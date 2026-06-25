@@ -3,7 +3,11 @@
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { getUserDisplayName } from "@/utils/auth";
+import {
+	getUserContactLabel,
+	getUserDisplayName,
+	userHasRealEmail,
+} from "@/utils/auth";
 import { createClient } from "@/utils/supabase/client";
 
 interface UserProfileTabProps {
@@ -17,6 +21,8 @@ export default function UserProfileTab({ user }: UserProfileTabProps) {
 	const router = useRouter();
 	const supabase = createClient();
 	const displayName = getUserDisplayName(user);
+	const contactLabel = getUserContactLabel(user);
+	const hasRealEmail = userHasRealEmail(user);
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -86,7 +92,9 @@ export default function UserProfileTab({ user }: UserProfileTabProps) {
 						</div>
 						<div>
 							<p className="text-white font-bold text-lg">{displayName}</p>
-							<p className="text-neutral-400 text-sm">{user.email}</p>
+							{contactLabel ? (
+								<p className="text-neutral-400 text-sm">{contactLabel}</p>
+							) : null}
 						</div>
 					</div>
 
@@ -97,20 +105,22 @@ export default function UserProfileTab({ user }: UserProfileTabProps) {
 							</dt>
 							<dd className="text-white font-mono">{memberSince}</dd>
 						</div>
-						<div className="flex justify-between">
-							<dt className="text-neutral-500 uppercase tracking-widest text-xs">
-								Email Verified
-							</dt>
-							<dd
-								className={
-									user.email_confirmed_at
-										? "text-red-500 font-bold uppercase text-xs"
-										: "text-neutral-400 text-xs"
-								}
-							>
-								{user.email_confirmed_at ? "Yes" : "Pending"}
-							</dd>
-						</div>
+						{hasRealEmail ? (
+							<div className="flex justify-between">
+								<dt className="text-neutral-500 uppercase tracking-widest text-xs">
+									Email Verified
+								</dt>
+								<dd
+									className={
+										user.email_confirmed_at
+											? "text-red-500 font-bold uppercase text-xs"
+											: "text-neutral-400 text-xs"
+									}
+								>
+									{user.email_confirmed_at ? "Yes" : "Pending"}
+								</dd>
+							</div>
+						) : null}
 					</dl>
 				</div>
 

@@ -81,6 +81,7 @@ interface InvoiceBuilderModalProps {
 	taxRate: number;
 	onPartCreated: (part: Part) => void;
 	onBikeCreated: (bike: InvoiceBike) => void;
+	onUserCreated: (user: AdminUser) => void;
 }
 
 export function InvoiceBuilderModal({
@@ -93,6 +94,7 @@ export function InvoiceBuilderModal({
 	taxRate,
 	onPartCreated,
 	onBikeCreated,
+	onUserCreated,
 }: InvoiceBuilderModalProps) {
 	const shouldGuardUnload = builder.isOpen && builder.isDirty;
 
@@ -1064,6 +1066,7 @@ export function InvoiceBuilderModal({
 						builder.setOwnerId(ownerId);
 						builder.setIsOwnerPickerOpen(false);
 					}}
+					onUserCreated={onUserCreated}
 					onClose={() => builder.setIsOwnerPickerOpen(false)}
 				/>
 			)}

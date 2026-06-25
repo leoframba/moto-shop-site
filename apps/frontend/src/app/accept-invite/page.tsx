@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AuthCard, {
-	authInputClassName,
 	authLabelClassName,
+	authStaticInputClassName,
 } from "@/components/auth/AuthCard";
 import { authApiRequest } from "@/utils/api";
 import {
@@ -14,6 +14,9 @@ import {
 	parseAuthHashError,
 	parseAuthHashTokens,
 } from "@/utils/auth-errors";
+import { isValidEmail } from "@/utils/email";
+import { isPlaceholderInviteEmail } from "@/utils/invite";
+import { formatPhoneForDisplay, normalizePhoneToE164 } from "@/utils/phone";
 import { createClient } from "@/utils/supabase/client";
 
 type InviteMetadata = {
@@ -51,6 +54,8 @@ export default function AcceptInvitePage() {
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
 	const [phoneNumber, setPhoneNumber] = useState("");
+	const [optionalEmail, setOptionalEmail] = useState("");
+	const [isPhoneSignup, setIsPhoneSignup] = useState(false);
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -71,10 +76,18 @@ export default function AcceptInvitePage() {
 	const hydrateFromUser = useCallback((user: User | null) => {
 		if (!user) return;
 		const metadata = readInviteMetadata(user);
-		setEmail(user.email ?? "");
+		const authEmail = user.email ?? "";
+		const isPlaceholder = isPlaceholderInviteEmail(authEmail);
+		const authPhone = user.phone ?? metadata.phone_number ?? "";
+		const phoneSignup =
+			Boolean(authPhone.trim()) && (isPlaceholder || !authEmail.trim());
+
+		setIsPhoneSignup(phoneSignup);
+		setEmail(isPlaceholder ? "" : authEmail);
+		setOptionalEmail("");
 		setFirstName(metadata.first_name ?? "");
 		setLastName(metadata.last_name ?? "");
-		setPhoneNumber(metadata.phone_number ?? "");
+		setPhoneNumber(authPhone);
 		setReady(true);
 		setError(null);
 	}, []);
@@ -245,14 +258,53 @@ export default function AcceptInvitePage() {
 
 		setLoading(true);
 
-		const { error: updateError } = await supabase.auth.updateUser({
+		const trimmedOptionalEmail = optionalEmail.trim().toLowerCase();
+		if (trimmedOptionalEmail && !isValidEmail(trimmedOptionalEmail)) {
+			setError("Please enter a valid email address.");
+			setLoading(false);
+			return;
+		}
+
+		const trimmedPhone = phoneNumber.trim();
+		const e164Phone = trimmedPhone ? normalizePhoneToE164(trimmedPhone) : null;
+		if (isPhoneSignup) {
+			if (!e164Phone) {
+				setError("Your phone number is missing. Contact the shop for help.");
+				setLoading(false);
+				return;
+			}
+		} else if (trimmedPhone && !e164Phone) {
+			setError("Please enter a valid 10-digit US phone number.");
+			setLoading(false);
+			return;
+		}
+
+		const authUpdate: {
+			password: string;
+			phone?: string;
+			email?: string;
+			data: {
+				first_name: string | null;
+				last_name: string | null;
+				phone_number: string | null;
+			};
+		} = {
 			password,
 			data: {
 				first_name: firstName.trim() || null,
 				last_name: lastName.trim() || null,
-				phone_number: phoneNumber.trim() || null,
+				phone_number: e164Phone,
 			},
-		});
+		};
+
+		if (!isPhoneSignup && e164Phone) {
+			authUpdate.phone = e164Phone;
+		}
+		if (isPhoneSignup && trimmedOptionalEmail) {
+			authUpdate.email = trimmedOptionalEmail;
+		}
+
+		const { error: updateError } = await supabase.auth.updateUser(authUpdate);
 
 		if (updateError) {
 			setError(updateError.message);
@@ -266,12 +318,25 @@ export default function AcceptInvitePage() {
 				body: JSON.stringify({
 					first_name: firstName.trim() || null,
 					last_name: lastName.trim() || null,
-					phone_number: phoneNumber.trim() || null,
+					phone_number: e164Phone,
+					setup_complete: isPhoneSignup,
+					...(isPhoneSignup && trimmedOptionalEmail
+						? { email: trimmedOptionalEmail }
+						: {}),
 				}),
 			});
 		} catch (profileError) {
 			console.error(profileError);
-			// Password is set — profile sync is best-effort.
+			if (isPhoneSignup) {
+				setError(
+					profileError instanceof Error
+						? profileError.message
+						: "Password saved, but phone sign-in could not be enabled. Contact the shop.",
+				);
+				setLoading(false);
+				return;
+			}
+			// Password is set — profile sync is best-effort for email invites.
 		}
 
 		setCompleted(true);
@@ -365,18 +430,59 @@ export default function AcceptInvitePage() {
 			}
 		>
 			<form onSubmit={handleComplete} className="space-y-5">
-				<div>
-					<label htmlFor="invite-email" className={authLabelClassName}>
-						Email
-					</label>
-					<input
-						id="invite-email"
-						type="email"
-						value={email}
-						readOnly
-						className={`${authInputClassName} cursor-not-allowed opacity-80`}
-					/>
-				</div>
+				{isPhoneSignup ? (
+					<>
+						<div>
+							<label
+								htmlFor="invite-phone-display"
+								className={authLabelClassName}
+							>
+								Phone
+							</label>
+							<input
+								id="invite-phone-display"
+								type="tel"
+								value={formatPhoneForDisplay(phoneNumber) || phoneNumber}
+								readOnly
+								className={`${authStaticInputClassName} cursor-not-allowed opacity-80`}
+							/>
+							<p className="mt-1 text-xs text-neutral-500">
+								Your sign-in number is set by the shop and cannot be changed
+								here.
+							</p>
+						</div>
+						<div>
+							<label
+								htmlFor="invite-email-optional"
+								className={authLabelClassName}
+							>
+								Email <span className="text-neutral-500">(optional)</span>
+							</label>
+							<input
+								id="invite-email-optional"
+								type="email"
+								value={optionalEmail}
+								onChange={(e) => setOptionalEmail(e.target.value)}
+								className={authStaticInputClassName}
+								placeholder="you@example.com"
+								autoComplete="email"
+							/>
+						</div>
+					</>
+				) : (
+					<div>
+						<label htmlFor="invite-email" className={authLabelClassName}>
+							Email
+						</label>
+						<input
+							id="invite-email"
+							type="email"
+							value={email}
+							readOnly
+							className={`${authStaticInputClassName} cursor-not-allowed opacity-80`}
+						/>
+					</div>
+				)}
 
 				<div className="grid grid-cols-2 gap-4">
 					<div>
@@ -388,7 +494,7 @@ export default function AcceptInvitePage() {
 							type="text"
 							value={firstName}
 							onChange={(e) => setFirstName(e.target.value)}
-							className={authInputClassName}
+							className={authStaticInputClassName}
 							placeholder="Alex"
 						/>
 					</div>
@@ -401,25 +507,31 @@ export default function AcceptInvitePage() {
 							type="text"
 							value={lastName}
 							onChange={(e) => setLastName(e.target.value)}
-							className={authInputClassName}
+							className={authStaticInputClassName}
 							placeholder="Rider"
 						/>
 					</div>
 				</div>
 
-				<div>
-					<label htmlFor="invite-phone" className={authLabelClassName}>
-						Phone Number
-					</label>
-					<input
-						id="invite-phone"
-						type="tel"
-						value={phoneNumber}
-						onChange={(e) => setPhoneNumber(e.target.value)}
-						className={authInputClassName}
-						placeholder="(555) 123-4567"
-					/>
-				</div>
+				{!isPhoneSignup && (
+					<div>
+						<label htmlFor="invite-phone" className={authLabelClassName}>
+							Phone Number <span className="text-neutral-500">(optional)</span>
+						</label>
+						<input
+							id="invite-phone"
+							type="tel"
+							value={phoneNumber}
+							onChange={(e) => setPhoneNumber(e.target.value)}
+							className={authStaticInputClassName}
+							placeholder="(555) 123-4567"
+							autoComplete="tel"
+						/>
+						<p className="mt-1 text-xs text-neutral-500">
+							US numbers only. Used for sign-in and shop contact.
+						</p>
+					</div>
+				)}
 
 				<div>
 					<label htmlFor="invite-password" className={authLabelClassName}>
@@ -430,7 +542,7 @@ export default function AcceptInvitePage() {
 						type="password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
-						className={authInputClassName}
+						className={authStaticInputClassName}
 						placeholder="At least 8 characters"
 						minLength={8}
 						required
@@ -449,7 +561,7 @@ export default function AcceptInvitePage() {
 						type="password"
 						value={confirmPassword}
 						onChange={(e) => setConfirmPassword(e.target.value)}
-						className={authInputClassName}
+						className={authStaticInputClassName}
 						placeholder="Repeat password"
 						minLength={8}
 						required

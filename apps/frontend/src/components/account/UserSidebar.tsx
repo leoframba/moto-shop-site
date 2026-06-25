@@ -12,7 +12,8 @@ export type AccountTab = "garage" | "services" | "inventory" | "profile";
 interface UserSidebarProps {
 	activeTab: AccountTab;
 	setActiveTab: (tab: AccountTab) => void;
-	userEmail: string;
+	userDisplayName: string;
+	userContactLabel: string;
 	isAdmin?: boolean;
 }
 
@@ -81,7 +82,8 @@ function UserSidebarFooter({
 export default function UserSidebar({
 	activeTab,
 	setActiveTab,
-	userEmail,
+	userDisplayName,
+	userContactLabel,
 	isAdmin = false,
 }: UserSidebarProps) {
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -172,9 +174,14 @@ export default function UserSidebar({
 									<h1 className="text-lg font-black uppercase italic tracking-tighter text-white md:text-xl">
 										My <span className="text-red-600">Account</span>
 									</h1>
-									<p className="mt-1 truncate text-xs text-neutral-500">
-										{userEmail}
+									<p className="mt-1 truncate text-sm font-semibold text-white">
+										{userDisplayName}
 									</p>
+									{userContactLabel ? (
+										<p className="truncate text-xs text-neutral-500">
+											{userContactLabel}
+										</p>
+									) : null}
 								</div>
 								<button
 									type="button"

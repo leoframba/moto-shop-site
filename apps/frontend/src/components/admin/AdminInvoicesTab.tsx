@@ -83,6 +83,7 @@ export default function AdminInvoicesTab() {
 				taxRate={Number(data.shopSettings.tax_rate ?? 0)}
 				onPartCreated={data.addPart}
 				onBikeCreated={data.addBike}
+				onUserCreated={data.addUser}
 			/>
 
 			<InvoiceList

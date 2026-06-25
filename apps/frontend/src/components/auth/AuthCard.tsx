@@ -32,6 +32,10 @@ export default function AuthCard({
 }
 
 export const authInputClassName =
+	"peer w-full bg-neutral-950 border border-neutral-800 rounded-lg px-5 pt-6 pb-2 text-white focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors placeholder-transparent";
+
+/** Inputs with an external label above the field (not floating-label layout). */
+export const authStaticInputClassName =
 	"w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors";
 
 export const authLabelClassName =
