@@ -58,14 +58,6 @@ export default function Navbar() {
 		{ name: "Contact", href: "/contact" },
 	];
 
-	if (
-		pathname.startsWith("/admin") ||
-		pathname.startsWith("/account") ||
-		pathname.startsWith("/accept-invite")
-	) {
-		return null;
-	}
-
 	const displayName = user ? getUserDisplayName(user) : null;
 
 	return (

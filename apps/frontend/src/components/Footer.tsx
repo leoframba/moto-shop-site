@@ -1,21 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 import type { SocialLinkProps } from "@/types";
 
 export default function Footer() {
-	const pathname = usePathname();
-
-	if (
-		pathname.startsWith("/admin") ||
-		pathname.startsWith("/account") ||
-		pathname.startsWith("/accept-invite")
-	) {
-		return null;
-	}
-
 	return (
 		<footer className="bg-neutral-950 border-t border-neutral-900 py-16 px-4">
 			<div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center">

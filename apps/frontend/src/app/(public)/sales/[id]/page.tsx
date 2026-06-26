@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar";
 import type { BikeListing } from "@/types";
 import { formatPrice, sortBikeImages } from "@/utils/helper";
 import { createClient } from "@/utils/supabase/client";
@@ -57,8 +56,6 @@ export default function SalesDetailPage() {
 
 	return (
 		<main className="min-h-screen bg-black font-sans text-white">
-			<Navbar />
-
 			<div className="pt-32 pb-20 max-w-6xl mx-auto px-4">
 				<Link
 					href="/sales"
