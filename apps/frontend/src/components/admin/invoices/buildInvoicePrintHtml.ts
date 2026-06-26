@@ -17,6 +17,155 @@ const escapeHtml = (value: unknown): string =>
 		.replace(/"/g, "&quot;")
 		.replace(/'/g, "&#039;");
 
+type LineItemTableRow = {
+	html: string;
+	groupTitle?: string;
+	isGroupHead?: boolean;
+	isSubtotal?: boolean;
+};
+
+const isLineItemRow = (row: LineItemTableRow): boolean =>
+	!row.isGroupHead && !row.isSubtotal;
+
+// --- Page-1 layout budget (letter paper, 0.4in margins) -------------------
+// All values are in "line-item-row" height units (~22px). Tune these if the
+// summary ever slips off page one or page one looks too sparse/crowded.
+const PAGE_ROW_CAPACITY = 41;
+const HEADER_ROWS = 9;
+const BIKE_ROWS = 2;
+const SUMMARY_RESERVE_ROWS = 7;
+// A mechanic-notes line is shorter than a line-item row, so each reserved row
+// fits a little under two wrapped note lines.
+const NOTE_LINES_PER_ROW = 1.5;
+// Approx characters per wrapped line in the notes column when it sits beside
+// the totals box on page one.
+const NOTES_CHARS_PER_LINE = 80;
+
+const getTopContentRows = (hasBike: boolean): number =>
+	HEADER_ROWS + (hasBike ? BIKE_ROWS : 0);
+
+/** Rough row budget for line items on page one. */
+const getFirstPageLineItemRowBudget = (
+	hasBike: boolean,
+	groupCount: number,
+): number => {
+	// Reserve a row per group so each group's subtotal (e.g. the parts total)
+	// always has room beside its items on page one instead of being clipped
+	// behind the summary or orphaned onto a second page by itself.
+	const subtotalReserve = groupCount;
+	return Math.max(
+		4,
+		PAGE_ROW_CAPACITY -
+			getTopContentRows(hasBike) -
+			SUMMARY_RESERVE_ROWS -
+			subtotalReserve,
+	);
+};
+
+/**
+ * How many wrapped note lines fit beside the totals on page one, based on the
+ * vertical space left after the header, bike, and first-page line items.
+ */
+const getFirstPageNoteLineCapacity = (
+	hasBike: boolean,
+	firstPageLineItemCount: number,
+): number => {
+	const summaryRegionRows = Math.max(
+		SUMMARY_RESERVE_ROWS,
+		PAGE_ROW_CAPACITY - getTopContentRows(hasBike) - firstPageLineItemCount,
+	);
+	return Math.max(0, Math.floor(summaryRegionRows * NOTE_LINES_PER_ROW));
+};
+
+/**
+ * Split raw (unescaped) notes into the chunk that fits beside the totals on
+ * page one and the remainder that flows onto the continuation page. Splits on
+ * line boundaries where possible, only hard-wrapping a single line that is too
+ * long to fit on its own.
+ */
+const splitNotesForFirstPage = (
+	rawNotes: string,
+	charsPerLine: number,
+	maxLines: number,
+): { firstPage: string; continuation: string } => {
+	if (maxLines <= 0) {
+		return { firstPage: "", continuation: rawNotes };
+	}
+
+	const rawLines = rawNotes.split("\n");
+	const firstLines: string[] = [];
+	let usedLines = 0;
+	let index = 0;
+
+	for (; index < rawLines.length; index += 1) {
+		const line = rawLines[index];
+		const wrappedHeight = Math.max(1, Math.ceil(line.length / charsPerLine));
+
+		if (usedLines + wrappedHeight <= maxLines) {
+			firstLines.push(line);
+			usedLines += wrappedHeight;
+			continue;
+		}
+
+		// This line does not fully fit. If at least one wrapped row is still
+		// available and the line is long enough to wrap, hard-split it.
+		const remainingRows = maxLines - usedLines;
+		if (remainingRows >= 1 && line.length > charsPerLine) {
+			const cutChars = remainingRows * charsPerLine;
+			firstLines.push(line.slice(0, cutChars));
+			rawLines[index] = line.slice(cutChars);
+		}
+		break;
+	}
+
+	return {
+		firstPage: firstLines.join("\n"),
+		continuation: rawLines.slice(index).join("\n"),
+	};
+};
+
+const splitLineItemRows = (
+	rows: LineItemTableRow[],
+	budget: number,
+): { firstPage: LineItemTableRow[]; continuation: LineItemTableRow[] } => {
+	if (rows.length <= budget) {
+		return { firstPage: rows, continuation: [] };
+	}
+
+	// Never end page one on a dangling group header with no rows beneath it.
+	let cut = budget;
+	while (cut > 1 && rows[cut - 1]?.isGroupHead) {
+		cut -= 1;
+	}
+
+	const firstPage = rows.slice(0, cut);
+	let continuation = rows.slice(cut);
+
+	// If the only overflow is trailing subtotal/header rows (no real line
+	// items), keep them with their items on page one. The per-group reserve in
+	// the budget guarantees there is room, so the parts total never ends up
+	// alone on a second page.
+	if (continuation.length > 0 && !continuation.some(isLineItemRow)) {
+		return { firstPage: rows, continuation: [] };
+	}
+
+	const firstContinuation = continuation[0];
+
+	if (firstContinuation?.groupTitle && !firstContinuation.isGroupHead) {
+		const title = escapeHtml(firstContinuation.groupTitle);
+		continuation = [
+			{
+				html: `<tr class="group-head"><th colspan="5">${title} (continued)</th></tr>`,
+				groupTitle: firstContinuation.groupTitle,
+				isGroupHead: true,
+			},
+			...continuation,
+		];
+	}
+
+	return { firstPage, continuation };
+};
+
 export const buildInvoicePrintHtml = (
 	invoice: InvoiceWithRelations,
 	shopSettings: ShopSettings,
@@ -54,7 +203,7 @@ export const buildInvoicePrintHtml = (
 
 	const bike = invoice.bike;
 	const customer = getInvoiceCustomerSnapshot(invoice);
-	const mechanicNotes = escapeHtml(invoice.mechanic_notes ?? "").trim();
+	const rawMechanicNotes = String(invoice.mechanic_notes ?? "").trim();
 	const createdDate = invoice.created_at
 		? new Date(invoice.created_at).toLocaleDateString()
 		: "N/A";
@@ -66,7 +215,7 @@ export const buildInvoicePrintHtml = (
 	const hasHazardousWaste = hazardousWaste.length > 0;
 	const hasServices = services.length > 0;
 	const hasParts = parts.length > 0;
-	const hasNotes = mechanicNotes.length > 0;
+	const hasNotes = rawMechanicNotes.length > 0;
 
 	const renderLineItemRow = (line: (typeof safeLineItems)[number]) =>
 		`<tr>
@@ -114,23 +263,89 @@ export const buildInvoicePrintHtml = (
 		<td class="num strong">$${amount.toFixed(2)}</td>
 	</tr>`;
 
-	const renderLineItemGroup = (
+	const buildLineItemGroupRows = (
 		title: string,
 		items: typeof safeLineItems,
 		subtotalLabel: string,
 		subtotal: number,
 		itemRenderer: (line: InvoiceLineItemRecord) => string = renderLineItemRow,
-	) => `<tr class="group-head">
-		<th colspan="5">${title}</th>
-	</tr>
-	${items.map(itemRenderer).join("")}
-	${renderGroupSubtotal(subtotalLabel, subtotal)}`;
+	): LineItemTableRow[] => {
+		if (items.length === 0) return [];
+		return [
+			{
+				html: `<tr class="group-head"><th colspan="5">${escapeHtml(title)}</th></tr>`,
+				groupTitle: title,
+				isGroupHead: true,
+			},
+			...items.map((line) => ({
+				html: itemRenderer(line),
+				groupTitle: title,
+			})),
+			{
+				html: renderGroupSubtotal(subtotalLabel, subtotal),
+				groupTitle: title,
+				isSubtotal: true,
+			},
+		];
+	};
 
-	const lineItemsSection =
-		hasHazardousWaste || hasServices || hasParts
-			? `<section class="section">
-			<table class="line-items">
-				<colgroup>
+	const allLineItemRows: LineItemTableRow[] = [
+		...(hasHazardousWaste
+			? buildLineItemGroupRows(
+					"Hazardous Waste Disposal",
+					hazardousWaste,
+					"Hazardous Waste Total",
+					hazardousWasteSubtotal,
+				)
+			: []),
+		...(hasServices
+			? buildLineItemGroupRows(
+					"Labor & Services",
+					services,
+					"Labor Total",
+					servicesSubtotal,
+				)
+			: []),
+		...(hasParts
+			? buildLineItemGroupRows(
+					"Parts & Materials",
+					parts,
+					"Parts Total",
+					partsSubtotal,
+					renderPartLineItemRow,
+				)
+			: []),
+	];
+
+	const lineItemGroupCount =
+		(hasHazardousWaste ? 1 : 0) + (hasServices ? 1 : 0) + (hasParts ? 1 : 0);
+
+	const {
+		firstPage: firstPageLineItemRows,
+		continuation: continuationLineItemRows,
+	} = splitLineItemRows(
+		allLineItemRows,
+		getFirstPageLineItemRowBudget(hasBike, lineItemGroupCount),
+	);
+
+	// Split notes so the part that fits beside the totals stays on page one and
+	// any overflow flows onto the continuation page. This keeps the summary
+	// pinned to page one while long notes can run onto later pages.
+	const { firstPage: firstPageNotes, continuation: continuationNotes } =
+		hasNotes
+			? splitNotesForFirstPage(
+					rawMechanicNotes,
+					NOTES_CHARS_PER_LINE,
+					getFirstPageNoteLineCapacity(hasBike, firstPageLineItemRows.length),
+				)
+			: { firstPage: "", continuation: "" };
+
+	const hasFirstPageNotes = firstPageNotes.length > 0;
+	const hasContinuationNotes = continuationNotes.length > 0;
+	const hasContinuation =
+		continuationLineItemRows.length > 0 || hasContinuationNotes;
+
+	const lineItemsTableHead = `<colgroup>
 					<col class="col-qty" />
 					<col class="col-part-num" />
 					<col class="col-desc" />
@@ -145,15 +360,25 @@ export const buildInvoicePrintHtml = (
 						<th class="num">Unit</th>
 						<th class="num">Total</th>
 					</tr>
-				</thead>
+				</thead>`;
+
+	const renderLineItemsTable = (rows: LineItemTableRow[], extraClass = "") =>
+		rows.length > 0
+			? `<section class="section">
+			<table class="line-items${extraClass ? ` ${extraClass}` : ""}">
+				${lineItemsTableHead}
 				<tbody>
-					${hasHazardousWaste ? renderLineItemGroup("Hazardous Waste Disposal", hazardousWaste, "Hazardous Waste Total", hazardousWasteSubtotal) : ""}
-					${hasServices ? renderLineItemGroup("Labor &amp; Services", services, "Labor Total", servicesSubtotal) : ""}
-					${hasParts ? renderLineItemGroup("Parts &amp; Materials", parts, "Parts Total", partsSubtotal, renderPartLineItemRow) : ""}
+					${rows.map((row) => row.html).join("")}
 				</tbody>
 			</table>
 		</section>`
 			: "";
+
+	const firstPageLineItemsSection = renderLineItemsTable(firstPageLineItemRows);
+	const continuationLineItemsSection = renderLineItemsTable(
+		continuationLineItemRows,
+		"line-items--continuation",
+	);
 
 	const bikeSection = hasBike
 		? `<section class="kv">
@@ -172,10 +397,24 @@ export const buildInvoicePrintHtml = (
 			? `<div class="totals-row"><span>Sales tax &middot; parts only (${normalizedTaxRate.toFixed(3)}%)</span><strong>$${salesTax.toFixed(2)}</strong></div>`
 			: "";
 
-	const notesColumn = hasNotes
+	const notesColumn = hasFirstPageNotes
 		? `<div class="notes-column">
 			<h2 class="section-title">Mechanic Notes</h2>
-			<div class="notes"><pre>${mechanicNotes}</pre></div>
+			<div class="notes"><pre>${escapeHtml(firstPageNotes)}</pre></div>
+		</div>`
+		: "";
+
+	const continuationNotesSection = hasContinuationNotes
+		? `<section class="section notes-section">
+			<h2 class="section-title">Mechanic Notes${hasFirstPageNotes ? " (continued)" : ""}</h2>
+			<div class="notes"><pre>${escapeHtml(continuationNotes)}</pre></div>
+		</section>`
+		: "";
+
+	const continuationSection = hasContinuation
+		? `<div class="invoice-continuation">
+			${continuationLineItemsSection}
+			${continuationNotesSection}
 		</div>`
 		: "";
 
@@ -184,7 +423,7 @@ export const buildInvoicePrintHtml = (
 			<div class="footer-fine">Labor is not subject to sales tax. Please retain this invoice for your records.</div>
 		</footer>`;
 
-	const summarySection = `<section class="summary-block${hasNotes ? "" : " summary-block--totals-only"}">
+	const summarySection = `<section class="summary-block${hasFirstPageNotes ? "" : " summary-block--totals-only"}">
 		${notesColumn}
 		<div class="summary-aside">
 			<section class="totals">
@@ -390,27 +629,28 @@ export const buildInvoicePrintHtml = (
 		line-height: 1.35;
 	}
 	.summary-block {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 280px;
+		display: flex;
 		gap: 12px;
+		align-items: flex-end;
 		margin-top: 8px;
-		align-items: start;
 	}
 	.summary-block--totals-only {
-		display: block;
+		justify-content: flex-end;
+	}
+	.notes-column {
+		flex: 1 1 auto;
+		min-width: 0;
 	}
 	.notes-column .section-title {
 		margin: 0 0 4px;
 	}
 	.summary-aside {
+		flex: 0 0 280px;
 		width: 280px;
 	}
 	.totals {
 		width: 100%;
 		border: 1px solid var(--line);
-	}
-	.summary-block--totals-only .summary-aside {
-		margin-left: auto;
 	}
 	.totals-row {
 		display: flex;
@@ -440,13 +680,47 @@ export const buildInvoicePrintHtml = (
 	}
 	@media print {
 		@page {
-			size: auto;
-			margin: 0;
+			size: letter;
+			margin: 0.4in;
 		}
 		body {
-			padding: 0.4in;
+			padding: 0;
 		}
 		.invoice { border: 0; padding: 0; }
+		/*
+		 * Page 1 is a sticky-footer flex column: the body grows to fill the
+		 * page so the summary is pinned to the bottom. Line items are
+		 * row-budgeted into the continuation page, so page-1 content never
+		 * overlaps the summary.
+		 */
+		.invoice-page-one {
+			display: flex;
+			flex-direction: column;
+			min-height: 10.2in;
+		}
+		.invoice-page-one-body {
+			flex: 1 1 auto;
+		}
+		.invoice-continuation {
+			break-before: page;
+			page-break-before: always;
+		}
+		.summary-block {
+			flex-shrink: 0;
+			break-inside: avoid;
+			page-break-inside: avoid;
+		}
+		.summary-aside {
+			break-inside: avoid;
+			page-break-inside: avoid;
+		}
+		.line-items thead {
+			display: table-header-group;
+		}
+		.line-items tr {
+			break-inside: avoid;
+			page-break-inside: avoid;
+		}
 		th, .kv, .group-head th, .group-subtotal td, .totals-row.grand {
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
@@ -461,34 +735,39 @@ export const buildInvoicePrintHtml = (
 </head>
 <body>
 	<div class="invoice">
-		<header class="top">
-			<div>
-				<h1 class="h1">Service Invoice</h1>
-				<div class="muted">${safeShopName}</div>
-			</div>
-			<div class="meta">
-				<div class="meta-row"><span>Invoice #</span><strong>${invoice.invoice_number}</strong></div>
-				<div class="meta-row"><span>Date</span><strong>${createdDate}</strong></div>
-				<div class="meta-row"><span>Status</span><span class="status-pill">${escapeHtml(statusLabel)}</span></div>
-			</div>
-		</header>
+		<div class="invoice-page-one">
+			<div class="invoice-page-one-body">
+				<header class="top">
+					<div>
+						<h1 class="h1">Service Invoice</h1>
+						<div class="muted">${safeShopName}</div>
+					</div>
+					<div class="meta">
+						<div class="meta-row"><span>Invoice #</span><strong>${invoice.invoice_number}</strong></div>
+						<div class="meta-row"><span>Date</span><strong>${createdDate}</strong></div>
+						<div class="meta-row"><span>Status</span><span class="status-pill">${escapeHtml(statusLabel)}</span></div>
+					</div>
+				</header>
 
-		<section class="grid-2">
-			<div class="card">
-				<div><strong>${escapeHtml(customer.name)}</strong></div>
-				${customer.email ? `<div>${escapeHtml(customer.email)}</div>` : ""}
-				${customer.phone ? `<div>${escapeHtml(customer.phone)}</div>` : ""}
-				${customer.address ? `<div>${escapeHtml(customer.address)}</div>` : ""}
-			</div>
-			<div class="card">
-				<div><strong>${safeShopName}</strong></div>
-				${providerLines}
-			</div>
-		</section>
+				<section class="grid-2">
+					<div class="card">
+						<div><strong>${escapeHtml(customer.name)}</strong></div>
+						${customer.email ? `<div>${escapeHtml(customer.email)}</div>` : ""}
+						${customer.phone ? `<div>${escapeHtml(customer.phone)}</div>` : ""}
+						${customer.address ? `<div>${escapeHtml(customer.address)}</div>` : ""}
+					</div>
+					<div class="card">
+						<div><strong>${safeShopName}</strong></div>
+						${providerLines}
+					</div>
+				</section>
 
-		${bikeSection}
-		${lineItemsSection}
-		${summarySection}
+				${bikeSection}
+				${firstPageLineItemsSection}
+			</div>
+			${summarySection}
+		</div>
+		${continuationSection}
 	</div>
 	<script>window.onload = function () { window.print(); };</script>
 </body>
