@@ -62,7 +62,7 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 };
 
 export const INVOICE_LIST_DEFAULT_STATUS_FILTERS = INVOICE_STATUSES.filter(
-	(status) => status !== "void",
+	(status) => status !== "void" && status !== "paid",
 );
 
 export const LABOR_DEFAULT_STATUS_FILTERS: InvoiceRecord["status"][] = [
@@ -94,8 +94,25 @@ export const parseNumberInput = (value: string, fallback = 0): number => {
 export const calculateLineTotal = (line: InvoiceLineItemRecord): number =>
 	Number(line.unit_price) * Number(line.quantity);
 
-export const calculateInvoiceTotal = (invoice: InvoiceWithRelations): number =>
-	invoice.line_items.reduce((sum, line) => sum + calculateLineTotal(line), 0);
+export const calculateInvoiceTotal = (invoice: InvoiceWithRelations): number => {
+	if (invoice.line_items.length > 0) {
+		return invoice.line_items.reduce(
+			(sum, line) => sum + calculateLineTotal(line),
+			0,
+		);
+	}
+	if (invoice.invoice_subtotal != null) {
+		return Number(invoice.invoice_subtotal);
+	}
+	return 0;
+};
+
+export const getInvoiceLineItemCount = (
+	invoice: InvoiceWithRelations,
+): number => invoice.line_item_count ?? invoice.line_items.length;
+
+export const invoiceNeedsLineItems = (invoice: InvoiceWithRelations): boolean =>
+	getInvoiceLineItemCount(invoice) > 0 && invoice.line_items.length === 0;
 
 export const getInvoiceCustomerSnapshot = (
 	invoice: InvoiceWithRelations,

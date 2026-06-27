@@ -824,3 +824,209 @@ class TestAdminRoutes:
         assert payload[0]["owner"]["id"] == "user-1"
         assert payload[0]["bike"]["id"] == "bike-1"
         assert len(payload[0]["line_items"]) == 1
+        assert payload[0]["line_item_count"] == 1
+        assert payload[0]["invoice_subtotal"] == 125.0
+
+    def test_list_invoices_without_line_items_returns_summaries(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        invoices_result = MagicMock()
+        invoices_result.data = [
+            {
+                "id": "inv-1",
+                "invoice_number": 1001,
+                "owner_id": "user-1",
+                "bike_id": "bike-1",
+                "status": "draft",
+            }
+        ]
+
+        line_items_result = MagicMock()
+        line_items_result.data = [
+            {
+                "invoice_id": "inv-1",
+                "unit_price": 125,
+                "quantity": 1,
+            }
+        ]
+
+        users_result = MagicMock()
+        users_result.data = [
+            {
+                "id": "user-1",
+                "email": "customer@example.com",
+                "first_name": "Customer",
+                "last_name": "One",
+                "phone_number": "555-1212",
+            }
+        ]
+
+        bikes_result = MagicMock()
+        bikes_result.data = [
+            {
+                "id": "bike-1",
+                "owner_id": "user-1",
+                "year": 2019,
+                "make": "Yamaha",
+                "model": "MT-09",
+                "vin": "VIN123",
+                "license_plate": "ABC123",
+            }
+        ]
+
+        invoices_table = MagicMock()
+        invoices_table.select.return_value.order.return_value.execute.return_value = (
+            invoices_result
+        )
+
+        line_items_table = MagicMock()
+        line_items_table.select.return_value.in_.return_value.execute.return_value = (
+            line_items_result
+        )
+
+        users_table = MagicMock()
+        users_table.select.return_value.in_.return_value.execute.return_value = (
+            users_result
+        )
+
+        bikes_table = MagicMock()
+        bikes_table.select.return_value.in_.return_value.execute.return_value = (
+            bikes_result
+        )
+
+        def table_side_effect(name):
+            if name == "invoices":
+                return invoices_table
+            if name == "invoice_line_items":
+                return line_items_table
+            if name == "users":
+                return users_table
+            if name == "bikes":
+                return bikes_table
+            return MagicMock()
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.get(
+                "/api/admin/invoices?include_line_items=false",
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert len(payload) == 1
+        assert payload[0]["line_items"] == []
+        assert payload[0]["line_item_count"] == 1
+        assert payload[0]["invoice_subtotal"] == 125.0
+
+    def test_get_invoice_returns_hydrated_invoice(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        invoices_result = MagicMock()
+        invoices_result.data = [
+            {
+                "id": "inv-1",
+                "invoice_number": 1001,
+                "owner_id": "user-1",
+                "bike_id": "bike-1",
+                "status": "draft",
+            }
+        ]
+
+        line_items_result = MagicMock()
+        line_items_result.data = [
+            {
+                "id": "line-1",
+                "invoice_id": "inv-1",
+                "item_type": "service",
+                "snapshot_name": "Oil Change",
+                "unit_price": 125,
+                "quantity": 1,
+            }
+        ]
+
+        users_result = MagicMock()
+        users_result.data = [
+            {
+                "id": "user-1",
+                "email": "customer@example.com",
+                "first_name": "Customer",
+                "last_name": "One",
+                "phone_number": "555-1212",
+            }
+        ]
+
+        bikes_result = MagicMock()
+        bikes_result.data = [
+            {
+                "id": "bike-1",
+                "owner_id": "user-1",
+                "year": 2019,
+                "make": "Yamaha",
+                "model": "MT-09",
+                "vin": "VIN123",
+                "license_plate": "ABC123",
+            }
+        ]
+
+        invoices_table = MagicMock()
+        invoices_table.select.return_value.eq.return_value.execute.return_value = (
+            invoices_result
+        )
+
+        line_items_table = MagicMock()
+        line_items_table.select.return_value.in_.return_value.order.return_value.execute.return_value = line_items_result
+
+        users_table = MagicMock()
+        users_table.select.return_value.in_.return_value.execute.return_value = (
+            users_result
+        )
+
+        bikes_table = MagicMock()
+        bikes_table.select.return_value.in_.return_value.execute.return_value = (
+            bikes_result
+        )
+
+        def table_side_effect(name):
+            if name == "invoices":
+                return invoices_table
+            if name == "invoice_line_items":
+                return line_items_table
+            if name == "users":
+                return users_table
+            if name == "bikes":
+                return bikes_table
+            return MagicMock()
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.get(
+                "/api/admin/invoices/inv-1",
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["id"] == "inv-1"
+        assert payload["owner"]["id"] == "user-1"
+        assert len(payload["line_items"]) == 1

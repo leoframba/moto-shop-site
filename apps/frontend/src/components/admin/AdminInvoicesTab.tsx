@@ -21,7 +21,7 @@ export default function AdminInvoicesTab() {
 		shopHourlyRate: data.shopHourlyRate,
 		shopHazardousWasteRate: Number(data.shopSettings.hazardous_waste_rate ?? 0),
 		onSaved: async (invoiceId) => {
-			await data.refetch();
+			await data.refetchInvoice(invoiceId);
 			setAutoExpandInvoiceId(invoiceId);
 		},
 	});
@@ -29,7 +29,14 @@ export default function AdminInvoicesTab() {
 	useEffect(() => {
 		if (!builder.isOpen) return;
 		void data.refetchEmployees();
-	}, [builder.isOpen, data.refetchEmployees]);
+		void data.refetchUsers();
+		void data.refetchBikes();
+	}, [
+		builder.isOpen,
+		data.refetchBikes,
+		data.refetchEmployees,
+		data.refetchUsers,
+	]);
 
 	if (data.isLoading) {
 		return (
@@ -92,7 +99,7 @@ export default function AdminInvoicesTab() {
 				bikes={data.bikes}
 				shopSettings={data.shopSettings}
 				setInvoices={data.setInvoices}
-				refetch={data.refetch}
+				onLoadInvoiceLines={data.refetchInvoice}
 				onEdit={builder.startEdit}
 				onInvoiceDeleted={builder.handleInvoiceDeleted}
 				autoExpandInvoiceId={autoExpandInvoiceId}

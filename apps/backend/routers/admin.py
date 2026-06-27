@@ -1000,8 +1000,173 @@ def _invoice_line_item_row(invoice_id: str, item) -> dict:
     return row
 
 
+def _fetch_invoice_users_by_id(owner_ids: list[str]) -> dict:
+    if not owner_ids:
+        return {}
+    users_response = (
+        supabase.table("users")
+        .select("id, email, first_name, last_name, phone_number")
+        .in_("id", owner_ids)
+        .execute()
+    )
+    return {user["id"]: user for user in (users_response.data or [])}
+
+
+def _fetch_invoice_bikes_by_id(bike_ids: list[str]) -> dict:
+    if not bike_ids:
+        return {}
+    bikes_response = (
+        supabase.table("bikes")
+        .select("id, owner_id, year, make, model, vin, license_plate")
+        .in_("id", bike_ids)
+        .execute()
+    )
+    return {bike["id"]: bike for bike in (bikes_response.data or [])}
+
+
+def _line_item_subtotal(line_item: dict) -> float:
+    return float(line_item.get("unit_price") or 0) * float(line_item.get("quantity") or 0)
+
+
+def _summarize_line_items(line_items: list[dict]) -> dict:
+    return {
+        "line_item_count": len(line_items),
+        "invoice_subtotal": sum(_line_item_subtotal(item) for item in line_items),
+    }
+
+
+def _compute_line_item_summaries(invoice_ids: list[str]) -> dict[str, dict]:
+    if not invoice_ids:
+        return {}
+
+    line_items_response = (
+        supabase.table("invoice_line_items")
+        .select("invoice_id, unit_price, quantity")
+        .in_("invoice_id", invoice_ids)
+        .execute()
+    )
+
+    summaries: dict[str, dict] = {}
+    for item in line_items_response.data or []:
+        invoice_id = item.get("invoice_id")
+        if not invoice_id:
+            continue
+        entry = summaries.setdefault(
+            invoice_id,
+            {"line_item_count": 0, "invoice_subtotal": 0.0},
+        )
+        entry["line_item_count"] += 1
+        entry["invoice_subtotal"] += _line_item_subtotal(item)
+
+    return summaries
+
+
+def _fetch_line_items_by_invoice(invoice_ids: list[str]) -> dict[str, list[dict]]:
+    if not invoice_ids:
+        return {}
+
+    line_items_response = (
+        supabase.table("invoice_line_items")
+        .select("*")
+        .in_("invoice_id", invoice_ids)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    line_items_by_invoice: dict[str, list[dict]] = {}
+    for item in line_items_response.data or []:
+        invoice_id = item.get("invoice_id")
+        if not invoice_id:
+            continue
+        line_items_by_invoice.setdefault(invoice_id, []).append(item)
+
+    return line_items_by_invoice
+
+
+def _hydrate_invoice(
+    invoice: dict,
+    users_by_id: dict,
+    bikes_by_id: dict,
+    line_items: list[dict],
+) -> dict:
+    summary = _summarize_line_items(line_items)
+    return {
+        **invoice,
+        "owner": (
+            users_by_id.get(invoice.get("owner_id"))
+            if invoice.get("owner_id")
+            else None
+        ),
+        "bike": (
+            bikes_by_id.get(invoice.get("bike_id"))
+            if invoice.get("bike_id")
+            else None
+        ),
+        "line_items": line_items,
+        **summary,
+    }
+
+
+def _hydrate_invoice_list(
+    invoices: list[dict],
+    include_line_items: bool,
+) -> list[dict]:
+    if not invoices:
+        return []
+
+    invoice_ids = [invoice["id"] for invoice in invoices]
+    owner_ids = list(
+        {invoice["owner_id"] for invoice in invoices if invoice.get("owner_id")}
+    )
+    bike_ids = list(
+        {invoice["bike_id"] for invoice in invoices if invoice.get("bike_id")}
+    )
+
+    users_by_id = _fetch_invoice_users_by_id(owner_ids)
+    bikes_by_id = _fetch_invoice_bikes_by_id(bike_ids)
+
+    if include_line_items:
+        line_items_by_invoice = _fetch_line_items_by_invoice(invoice_ids)
+        return [
+            _hydrate_invoice(
+                invoice,
+                users_by_id,
+                bikes_by_id,
+                line_items_by_invoice.get(invoice["id"], []),
+            )
+            for invoice in invoices
+        ]
+
+    summaries = _compute_line_item_summaries(invoice_ids)
+    hydrated_invoices = []
+    for invoice in invoices:
+        summary = summaries.get(
+            invoice["id"],
+            {"line_item_count": 0, "invoice_subtotal": 0.0},
+        )
+        hydrated_invoices.append(
+            {
+                **invoice,
+                "owner": (
+                    users_by_id.get(invoice.get("owner_id"))
+                    if invoice.get("owner_id")
+                    else None
+                ),
+                "bike": (
+                    bikes_by_id.get(invoice.get("bike_id"))
+                    if invoice.get("bike_id")
+                    else None
+                ),
+                "line_items": [],
+                **summary,
+            }
+        )
+
+    return hydrated_invoices
+
+
 @router.get("/invoices")
-async def list_invoices():
+async def list_invoices(include_line_items: bool = Query(True)):
     try:
         invoices_response = (
             supabase.table("invoices")
@@ -1010,74 +1175,25 @@ async def list_invoices():
             .execute()
         )
         invoices = invoices_response.data or []
+        return _hydrate_invoice_list(invoices, include_line_items)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        if not invoices:
-            return []
 
-        invoice_ids = [invoice["id"] for invoice in invoices]
-        owner_ids = list(
-            {invoice["owner_id"] for invoice in invoices if invoice.get("owner_id")}
+@router.get("/invoices/{invoice_id}")
+async def get_invoice(invoice_id: str):
+    try:
+        invoice_response = (
+            supabase.table("invoices").select("*").eq("id", invoice_id).execute()
         )
-        bike_ids = list(
-            {invoice["bike_id"] for invoice in invoices if invoice.get("bike_id")}
-        )
+        invoice_rows = invoice_response.data or []
+        if not invoice_rows:
+            raise HTTPException(status_code=404, detail="Invoice not found")
 
-        line_items_response = (
-            supabase.table("invoice_line_items")
-            .select("*")
-            .in_("invoice_id", invoice_ids)
-            .order("created_at", desc=False)
-            .execute()
-        )
-        line_items = line_items_response.data or []
-
-        users_by_id = {}
-        if owner_ids:
-            users_response = (
-                supabase.table("users")
-                .select("id, email, first_name, last_name, phone_number")
-                .in_("id", owner_ids)
-                .execute()
-            )
-            users_by_id = {user["id"]: user for user in (users_response.data or [])}
-
-        bikes_by_id = {}
-        if bike_ids:
-            bikes_response = (
-                supabase.table("bikes")
-                .select("id, owner_id, year, make, model, vin, license_plate")
-                .in_("id", bike_ids)
-                .execute()
-            )
-            bikes_by_id = {bike["id"]: bike for bike in (bikes_response.data or [])}
-
-        line_items_by_invoice = {}
-        for item in line_items:
-            invoice_id = item.get("invoice_id")
-            if not invoice_id:
-                continue
-            line_items_by_invoice.setdefault(invoice_id, []).append(item)
-
-        hydrated_invoices = []
-        for invoice in invoices:
-            hydrated_invoices.append(
-                {
-                    **invoice,
-                    "owner": (
-                        users_by_id.get(invoice.get("owner_id"))
-                        if invoice.get("owner_id")
-                        else None
-                    ),
-                    "bike": (
-                        bikes_by_id.get(invoice.get("bike_id"))
-                        if invoice.get("bike_id")
-                        else None
-                    ),
-                    "line_items": line_items_by_invoice.get(invoice["id"], []),
-                }
-            )
-
-        return hydrated_invoices
+        hydrated = _hydrate_invoice_list([invoice_rows[0]], include_line_items=True)
+        return hydrated[0]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

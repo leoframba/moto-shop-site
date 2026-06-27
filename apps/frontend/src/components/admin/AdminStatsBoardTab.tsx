@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import {
 	adminCardHeadingClass,
@@ -149,6 +149,10 @@ export default function AdminStatsBoardTab() {
 		useState<InvoiceRecord["status"][]>(DEFAULT_STATUS_FILTERS);
 	const [expandedBreakdown, setExpandedBreakdown] =
 		useState<StatsBreakdownCategory | null>(null);
+
+	useEffect(() => {
+		void data.ensureInvoiceLinesLoaded();
+	}, [data.ensureInvoiceLinesLoaded]);
 
 	const taxRate = Number(data.shopSettings.tax_rate ?? 0);
 	const dateRangeInvalid = Boolean(startDate && endDate && startDate > endDate);

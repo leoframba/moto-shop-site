@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	FiChevronDown,
 	FiChevronRight,
@@ -35,12 +35,14 @@ import {
 	formatDateTime,
 	getBikesOwnedByUser,
 	getInvoiceBikeLabel,
+	getInvoiceLineItemCount,
 	getInvoiceOwnerLabel,
 	getInvoiceStatusTagClasses,
 	getViableOwnerIdsForBike,
 	INVOICE_LIST_DEFAULT_STATUS_FILTERS,
 	INVOICE_STATUSES,
 	invoiceMatchesEntityFilters,
+	invoiceNeedsLineItems,
 	toCurrency,
 	toStatusLabel,
 } from "./invoiceHelpers";
@@ -67,7 +69,7 @@ interface InvoiceListProps {
 	bikes: InvoiceBike[];
 	shopSettings: ShopSettings;
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
-	refetch: () => Promise<void>;
+	onLoadInvoiceLines: (invoiceId: string) => Promise<InvoiceWithRelations | null>;
 	onEdit: (invoice: InvoiceWithRelations) => void;
 	onInvoiceDeleted: (invoiceId: string) => void;
 	autoExpandInvoiceId: string | null;
@@ -79,12 +81,16 @@ export function InvoiceList({
 	bikes,
 	shopSettings,
 	setInvoices,
-	refetch,
+	onLoadInvoiceLines,
 	onEdit,
 	onInvoiceDeleted,
 	autoExpandInvoiceId,
 }: InvoiceListProps) {
 	const [expandedInvoiceIds, setExpandedInvoiceIds] = useState<string[]>([]);
+	const [loadingLineItemsInvoiceIds, setLoadingLineItemsInvoiceIds] = useState<
+		string[]
+	>([]);
+	const startedLineLoadsRef = useRef(new Set<string>());
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedUserId, setSelectedUserId] = useState("");
 	const [selectedBikeId, setSelectedBikeId] = useState("");
@@ -134,12 +140,40 @@ export function InvoiceList({
 		);
 	}, [autoExpandInvoiceId]);
 
+	const loadInvoiceLines = async (invoiceId: string) => {
+		const invoice = invoices.find((row) => row.id === invoiceId);
+		if (!invoice || !invoiceNeedsLineItems(invoice)) return;
+		if (startedLineLoadsRef.current.has(invoiceId)) return;
+
+		startedLineLoadsRef.current.add(invoiceId);
+		setLoadingLineItemsInvoiceIds((prev) => [...prev, invoiceId]);
+		try {
+			await onLoadInvoiceLines(invoiceId);
+		} finally {
+			setLoadingLineItemsInvoiceIds((prev) =>
+				prev.filter((id) => id !== invoiceId),
+			);
+		}
+	};
+
+	useEffect(() => {
+		for (const invoice of invoices) {
+			if (!invoiceNeedsLineItems(invoice)) continue;
+			void loadInvoiceLines(invoice.id);
+		}
+	}, [invoices]);
+
 	const toggleExpandedInvoice = (invoiceId: string) => {
-		setExpandedInvoiceIds((prev) =>
-			prev.includes(invoiceId)
-				? prev.filter((existingId) => existingId !== invoiceId)
-				: [...prev, invoiceId],
-		);
+		const isExpanded = expandedInvoiceIds.includes(invoiceId);
+		if (isExpanded) {
+			setExpandedInvoiceIds((prev) =>
+				prev.filter((existingId) => existingId !== invoiceId),
+			);
+			return;
+		}
+
+		setExpandedInvoiceIds((prev) => [...prev, invoiceId]);
+		void loadInvoiceLines(invoiceId);
 	};
 
 	const toggleStatusFilter = (status: InvoiceRecord["status"]) => {
@@ -194,10 +228,10 @@ export function InvoiceList({
 			);
 			toast.success(`Invoice #${invoice.invoice_number} deleted.`);
 			onInvoiceDeleted(invoice.id);
+			setInvoices((prev) => prev.filter((row) => row.id !== invoice.id));
 			setExpandedInvoiceIds((prev) =>
 				prev.filter((existingId) => existingId !== invoice.id),
 			);
-			await refetch();
 		} catch (error) {
 			console.error(error);
 			toast.error("Failed to delete invoice.");
@@ -491,7 +525,10 @@ export function InvoiceList({
 				<div className="space-y-3 sm:space-y-4">
 					{filteredInvoices.map((invoice) => {
 						const isExpanded = expandedInvoiceIds.includes(invoice.id);
-						const invoiceLinesCount = invoice.line_items.length;
+						const invoiceLinesCount = getInvoiceLineItemCount(invoice);
+						const isLoadingLineItems = loadingLineItemsInvoiceIds.includes(
+							invoice.id,
+						);
 						const statusLabel = toStatusLabel(invoice.status);
 
 						return (
@@ -582,14 +619,20 @@ export function InvoiceList({
 											<button
 												type="button"
 												onClick={() => onEdit(invoice)}
-												className={`${invoiceActionButtonClass} bg-blue-800/80 hover:bg-blue-700`}
+												disabled={
+													isLoadingLineItems || invoiceNeedsLineItems(invoice)
+												}
+												className={`${invoiceActionButtonClass} bg-blue-800/80 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:opacity-60`}
 											>
 												<FiEdit2 className="h-4 w-4" aria-hidden /> Edit
 											</button>
 											<button
 												type="button"
 												onClick={() => openPrintPreview(invoice)}
-												className={`${invoiceActionButtonClass} bg-emerald-700 hover:bg-emerald-600`}
+												disabled={
+													isLoadingLineItems || invoiceNeedsLineItems(invoice)
+												}
+												className={`${invoiceActionButtonClass} bg-emerald-700 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:opacity-60`}
 											>
 												<FiPrinter className="h-4 w-4" aria-hidden /> Print
 												Preview
@@ -656,7 +699,11 @@ export function InvoiceList({
 												</p>
 											</div>
 
-											{invoice.line_items.length === 0 ? (
+											{isLoadingLineItems ? (
+												<p className="text-sm text-neutral-300 animate-pulse">
+													Loading line items...
+												</p>
+											) : invoice.line_items.length === 0 ? (
 												<p className="text-sm text-neutral-300">
 													No line items on this invoice.
 												</p>

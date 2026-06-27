@@ -14,6 +14,11 @@ import type {
 import { authApiRequest } from "@/utils/api";
 import { DEFAULT_SHOP_SETTINGS } from "./invoiceHelpers";
 
+export interface RefetchOptions {
+	silent?: boolean;
+	includeLineItems?: boolean;
+}
+
 export interface InvoicesData {
 	isLoading: boolean;
 	users: AdminUser[];
@@ -25,8 +30,12 @@ export interface InvoicesData {
 	shopSettings: ShopSettings;
 	invoices: InvoiceWithRelations[];
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
-	refetch: () => Promise<void>;
+	refetch: (options?: RefetchOptions) => Promise<void>;
+	refetchUsers: () => Promise<void>;
+	refetchBikes: () => Promise<void>;
 	refetchEmployees: () => Promise<void>;
+	refetchInvoice: (invoiceId: string) => Promise<InvoiceWithRelations | null>;
+	ensureInvoiceLinesLoaded: () => Promise<void>;
 	addPart: (part: Part) => void;
 	addBike: (bike: InvoiceBike) => void;
 	addEmployee: (employee: Employee) => void;
@@ -54,6 +63,30 @@ export function useInvoicesData(
 	);
 	const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
 
+	const refetchUsers = useCallback(async () => {
+		try {
+			const userRows = await authApiRequest<AdminUser[]>("/api/admin/users", {
+				cache: "no-store",
+			});
+			setUsers(userRows);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load users.");
+		}
+	}, []);
+
+	const refetchBikes = useCallback(async () => {
+		try {
+			const bikeRows = await authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
+				cache: "no-store",
+			});
+			setBikes(bikeRows);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load bikes.");
+		}
+	}, []);
+
 	const refetchEmployees = useCallback(async () => {
 		try {
 			const employeeRows = await authApiRequest<Employee[]>(
@@ -67,8 +100,47 @@ export function useInvoicesData(
 		}
 	}, []);
 
-	const refetch = useCallback(async () => {
-		setIsLoading(true);
+	const refetchInvoice = useCallback(async (invoiceId: string) => {
+		try {
+			const invoice = await authApiRequest<InvoiceWithRelations>(
+				`/api/admin/invoices/${invoiceId}`,
+				{ cache: "no-store" },
+			);
+			setInvoices((prev) => {
+				const existingIndex = prev.findIndex((row) => row.id === invoiceId);
+				if (existingIndex === -1) {
+					return [invoice, ...prev];
+				}
+				const next = [...prev];
+				next[existingIndex] = invoice;
+				return next;
+			});
+			return invoice;
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to refresh invoice.");
+			return null;
+		}
+	}, []);
+
+	const ensureInvoiceLinesLoaded = useCallback(async () => {
+		try {
+			const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
+				"/api/admin/invoices?include_line_items=true",
+				{ cache: "no-store" },
+			);
+			setInvoices(invoiceRows);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load invoice line items.");
+		}
+	}, []);
+
+	const refetch = useCallback(async (options: RefetchOptions = {}) => {
+		const { silent = false, includeLineItems = false } = options;
+		if (!silent) {
+			setIsLoading(true);
+		}
 		try {
 			const [
 				userRows,
@@ -90,9 +162,10 @@ export function useInvoicesData(
 				authApiRequest<ServiceResponse>("/api/admin/services", {
 					cache: "no-store",
 				}),
-				authApiRequest<InvoiceWithRelations[]>("/api/admin/invoices", {
-					cache: "no-store",
-				}),
+				authApiRequest<InvoiceWithRelations[]>(
+					`/api/admin/invoices?include_line_items=${includeLineItems ? "true" : "false"}`,
+					{ cache: "no-store" },
+				),
 				authApiRequest<ShopSettings>("/api/admin/shop-settings", {
 					cache: "no-store",
 				}),
@@ -110,7 +183,9 @@ export function useInvoicesData(
 			console.error(error);
 			toast.error("Failed to load invoice dependencies.");
 		} finally {
-			setIsLoading(false);
+			if (!silent) {
+				setIsLoading(false);
+			}
 		}
 	}, []);
 
@@ -161,7 +236,11 @@ export function useInvoicesData(
 		invoices,
 		setInvoices,
 		refetch,
+		refetchUsers,
+		refetchBikes,
 		refetchEmployees,
+		refetchInvoice,
+		ensureInvoiceLinesLoaded,
 		addPart,
 		addBike,
 		addEmployee,

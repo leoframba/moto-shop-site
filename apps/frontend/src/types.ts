@@ -261,6 +261,8 @@ export interface InvoiceWithRelations extends InvoiceRecord {
 	owner?: AdminUser | null;
 	bike?: InvoiceBike | null;
 	line_items: InvoiceLineItemRecord[];
+	line_item_count?: number;
+	invoice_subtotal?: number;
 	/** Set by the rider portal API to control detail visibility. */
 	customer_view_level?: CustomerInvoiceViewLevel;
 }
