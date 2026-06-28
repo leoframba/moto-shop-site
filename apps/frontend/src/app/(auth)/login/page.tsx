@@ -155,7 +155,9 @@ function LoginForm() {
 						</div>
 					)}
 					<div className="flex items-center justify-center gap-3">
-						<span>{formatIdentifierForDisplay(identifier)}</span>
+						<span className="text-white">
+							{formatIdentifierForDisplay(identifier)}
+						</span>
 						<button
 							type="button"
 							className="text-lg font-bold text-red-600 hover:text-red-500 transition-colors"

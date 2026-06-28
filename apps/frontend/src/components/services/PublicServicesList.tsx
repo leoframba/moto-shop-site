@@ -75,7 +75,7 @@ export default function PublicServicesList() {
 					href="/contact"
 					className="inline-block bg-red-600 hover:bg-red-500 text-white px-10 py-4 font-bold text-lg uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)]"
 				>
-					Send an Inquiry
+					Contact the Shop
 				</Link>
 				<p className="text-neutral-500 text-sm mt-6 uppercase tracking-widest">
 					First come, first served. Walk-ins always welcome.
