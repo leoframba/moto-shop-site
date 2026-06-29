@@ -21,6 +21,7 @@ export interface RefetchOptions {
 
 export interface InvoicesData {
 	isLoading: boolean;
+	isInvoicesLoading: boolean;
 	users: AdminUser[];
 	employees: Employee[];
 	bikes: InvoiceBike[];
@@ -52,6 +53,7 @@ export function useInvoicesData(
 ): InvoicesData {
 	const enabled = options.enabled ?? true;
 	const [isLoading, setIsLoading] = useState(enabled);
+	const [isInvoicesLoading, setIsInvoicesLoading] = useState(enabled);
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [bikes, setBikes] = useState<InvoiceBike[]>([]);
@@ -136,10 +138,77 @@ export function useInvoicesData(
 		}
 	}, []);
 
+	const loadBuilderDependencies = useCallback(async (silent = false) => {
+		if (!silent) {
+			setIsLoading(true);
+		}
+		try {
+			const [
+				userRows,
+				employeeRows,
+				bikeRows,
+				partRows,
+				servicesPayload,
+				settings,
+			] = await Promise.all([
+				authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
+				authApiRequest<Employee[]>("/api/admin/employees", {
+					cache: "no-store",
+				}),
+				authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
+					cache: "no-store",
+				}),
+				authApiRequest<Part[]>("/api/admin/parts", { cache: "no-store" }),
+				authApiRequest<ServiceResponse>("/api/admin/services", {
+					cache: "no-store",
+				}),
+				authApiRequest<ShopSettings>("/api/admin/shop-settings", {
+					cache: "no-store",
+				}),
+			]);
+
+			setUsers(userRows);
+			setEmployees(employeeRows);
+			setBikes(bikeRows);
+			setParts(partRows);
+			setShopHourlyRate(Number(servicesPayload.hourly_rate ?? 0));
+			setServices(servicesPayload.services ?? []);
+			setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load invoice dependencies.");
+		} finally {
+			if (!silent) {
+				setIsLoading(false);
+			}
+		}
+	}, []);
+
+	const loadInvoices = useCallback(async (silent = false, includeLineItems = false) => {
+		if (!silent) {
+			setIsInvoicesLoading(true);
+		}
+		try {
+			const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
+				`/api/admin/invoices?include_line_items=${includeLineItems ? "true" : "false"}`,
+				{ cache: "no-store" },
+			);
+			setInvoices(invoiceRows);
+		} catch (error) {
+			console.error(error);
+			toast.error("Failed to load invoices.");
+		} finally {
+			if (!silent) {
+				setIsInvoicesLoading(false);
+			}
+		}
+	}, []);
+
 	const refetch = useCallback(async (options: RefetchOptions = {}) => {
 		const { silent = false, includeLineItems = false } = options;
 		if (!silent) {
 			setIsLoading(true);
+			setIsInvoicesLoading(true);
 		}
 		try {
 			const [
@@ -185,14 +254,18 @@ export function useInvoicesData(
 		} finally {
 			if (!silent) {
 				setIsLoading(false);
+				setIsInvoicesLoading(false);
 			}
 		}
 	}, []);
 
 	useEffect(() => {
 		if (!enabled) return;
-		void refetch();
-	}, [enabled, refetch]);
+		void (async () => {
+			await loadBuilderDependencies();
+			await loadInvoices();
+		})();
+	}, [enabled, loadBuilderDependencies, loadInvoices]);
 
 	const addPart = useCallback((part: Part) => {
 		setParts((prev) => [...prev, part].sort(compareParts));
@@ -226,6 +299,7 @@ export function useInvoicesData(
 
 	return {
 		isLoading,
+		isInvoicesLoading,
 		users,
 		employees,
 		bikes,

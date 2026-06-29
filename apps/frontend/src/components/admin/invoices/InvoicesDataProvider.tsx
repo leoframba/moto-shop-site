@@ -31,6 +31,7 @@ export function InvoicesDataProvider({ children }: { children: ReactNode }) {
 		() => ({
 			...data,
 			isLoading: !loadRequested || data.isLoading,
+			isInvoicesLoading: !loadRequested || data.isInvoicesLoading,
 			ensureLoaded,
 			hasLoaded: loadRequested,
 		}),

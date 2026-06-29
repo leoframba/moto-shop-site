@@ -6,7 +6,8 @@ export async function signInViaLogin(
 	{ email, password }: TestCredentials,
 ) {
 	await page.goto("/login");
-	await page.getByLabel(/email address/i).fill(email);
+	await page.getByLabel(/email or phone number/i).fill(email);
+	await page.getByRole("button", { name: /^next$/i }).click();
 	await page.getByLabel(/^password$/i).fill(password);
-	await page.getByRole("button", { name: /sign in/i }).click();
+	await page.getByRole("button", { name: /log in/i }).click();
 }

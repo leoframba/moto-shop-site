@@ -19,15 +19,14 @@ test.describe("Admin auth flows", () => {
 		await expect(page).toHaveURL(/\/admin/);
 		await expect(page.getByText(/shop admin/i)).toBeVisible();
 
-		const sidebar = page.locator("aside");
-		await expect(
-			sidebar.getByRole("button", { name: /services/i }),
-		).toBeVisible({
+		await page.getByRole("button", { name: /open admin menu/i }).click();
+		const nav = page.getByRole("dialog", { name: /admin navigation/i });
+		await expect(nav.getByRole("button", { name: /services/i })).toBeVisible({
 			timeout: 10000,
 		});
-		await expect(
-			sidebar.getByRole("button", { name: /bike sales/i }),
-		).toBeVisible({ timeout: 10000 });
+		await expect(nav.getByRole("button", { name: /bike sales/i })).toBeVisible({
+			timeout: 10000,
+		});
 	});
 
 	test("admin navbar link appears when signed in", async ({ page }) => {

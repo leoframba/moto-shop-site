@@ -17,7 +17,11 @@ test.describe("Customer auth flows", () => {
 
 		await expect(page).toHaveURL(/\/account/);
 		await expect(page.getByText(/my account/i)).toBeVisible();
-		await expect(page.getByRole("button", { name: /profile/i })).toBeVisible();
+
+		await page.getByRole("button", { name: /open account menu/i }).click();
+		const nav = page.getByRole("dialog", { name: /account navigation/i });
+		await expect(nav.getByRole("button", { name: /profile/i })).toBeVisible();
+		await expect(nav.getByRole("button", { name: /garage/i })).toBeVisible();
 	});
 
 	test("signed-in customer sees account in navbar", async ({ page }) => {

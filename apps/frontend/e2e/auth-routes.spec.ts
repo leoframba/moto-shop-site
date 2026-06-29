@@ -17,14 +17,13 @@ test.describe("Route protection (unauthenticated)", () => {
 		await expect(
 			page.getByRole("heading", { name: /rider login/i }),
 		).toBeVisible();
-		await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+		await expect(page.getByLabel(/email or phone number/i)).toBeVisible();
+		await expect(page.getByRole("button", { name: /^next$/i })).toBeVisible();
 	});
 
-	test("login page links to signup", async ({ page }) => {
+	test("login page shows invite-only signup message", async ({ page }) => {
 		await page.goto("/login");
-		await expect(
-			page.getByRole("link", { name: /create an account/i }),
-		).toBeVisible();
+		await expect(page.getByText(/invite only/i)).toBeVisible();
 	});
 
 	test("shows forgot password page", async ({ page }) => {
@@ -54,13 +53,9 @@ test.describe("Route protection (unauthenticated)", () => {
 		).not.toBeVisible();
 	});
 
-	test("signup page is reachable from login", async ({ page }) => {
-		await page.goto("/login");
-		await page.getByRole("link", { name: /create an account/i }).click();
-		await expect(page).toHaveURL(/\/signup/);
-		await expect(
-			page.getByRole("heading", { name: /create account/i }),
-		).toBeVisible();
-		await expect(page.getByRole("button", { name: /sign up/i })).toBeVisible();
+	test("signup page shows invite-only gate", async ({ page }) => {
+		await page.goto("/signup");
+		await expect(page.getByRole("heading", { name: /invite only/i })).toBeVisible();
+		await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible();
 	});
 });
