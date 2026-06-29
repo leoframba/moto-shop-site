@@ -21,6 +21,7 @@ from schemas import (
     EmployeeUpdate,
     InvoiceCreate,
     InvoiceMechanicNotesUpdate,
+    InvoicePhotoCaptionUpdate,
     InvoiceStatusUpdate,
     InvoiceUpdate,
     PartCreate,
@@ -1377,11 +1378,17 @@ async def list_invoice_photos(invoice_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _normalize_caption(value: str | None) -> str | None:
+    normalized = (value or "").strip()
+    return normalized or None
+
+
 @router.post("/invoices/{invoice_id}/photos")
 async def upload_invoice_photos(
     invoice_id: str,
     files: list[UploadFile] = File(...),
     caption: str | None = Form(None),
+    captions: list[str] | None = Form(None),
     admin=Depends(verify_admin),
 ):
     try:
@@ -1391,10 +1398,13 @@ async def upload_invoice_photos(
         if not (invoice_response.data or []):
             raise HTTPException(status_code=404, detail="Invoice not found")
 
-        normalized_caption = (caption or "").strip() or None
+        fallback_caption = _normalize_caption(caption)
+        per_file_captions = [
+            _normalize_caption(value) for value in (captions or [])
+        ]
         created_rows: list[dict] = []
 
-        for upload in files:
+        for index, upload in enumerate(files):
             content_type = upload.content_type or "application/octet-stream"
             if not content_type.startswith(ALLOWED_PHOTO_MIME_PREFIX):
                 raise HTTPException(
@@ -1426,13 +1436,19 @@ async def upload_invoice_photos(
                     detail=f"Failed to upload {upload.filename or 'file'}: {upload_error}",
                 )
 
+            photo_caption = (
+                per_file_captions[index]
+                if index < len(per_file_captions)
+                else fallback_caption
+            )
+
             insert_response = (
                 supabase.table("invoice_photos")
                 .insert(
                     {
                         "invoice_id": invoice_id,
                         "storage_path": storage_path,
-                        "caption": normalized_caption,
+                        "caption": photo_caption,
                         "uploaded_by": getattr(admin, "id", None),
                     }
                 )
@@ -1467,6 +1483,43 @@ async def delete_invoice_photo(invoice_id: str, photo_id: str):
         remove_objects([rows[0].get("storage_path")])
         supabase.table("invoice_photos").delete().eq("id", photo_id).execute()
         return {"message": "Photo deleted."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/invoices/{invoice_id}/photos/{photo_id}")
+async def update_invoice_photo_caption(
+    invoice_id: str,
+    photo_id: str,
+    payload: InvoicePhotoCaptionUpdate,
+    admin=Depends(verify_admin),
+):
+    try:
+        photo_response = (
+            supabase.table("invoice_photos")
+            .select("*")
+            .eq("id", photo_id)
+            .eq("invoice_id", invoice_id)
+            .execute()
+        )
+        rows = photo_response.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        update_response = (
+            supabase.table("invoice_photos")
+            .update({"caption": payload.caption})
+            .eq("id", photo_id)
+            .eq("invoice_id", invoice_id)
+            .execute()
+        )
+        updated_rows = update_response.data or []
+        if not updated_rows:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        return attach_signed_urls(updated_rows)[0]
     except HTTPException:
         raise
     except Exception as e:

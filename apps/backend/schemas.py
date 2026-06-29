@@ -234,6 +234,18 @@ class InvoiceMechanicNotesUpdate(BaseModel):
         return v
 
 
+class InvoicePhotoCaptionUpdate(BaseModel):
+    caption: str | None = None
+
+    @field_validator("caption", mode="before")
+    @classmethod
+    def blank_to_none(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            return value or None
+        return v
+
+
 class VoiceNoteRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

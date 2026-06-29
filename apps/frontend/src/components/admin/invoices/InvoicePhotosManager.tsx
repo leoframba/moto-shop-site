@@ -6,10 +6,30 @@ import { toast } from "sonner";
 import type { InvoicePhoto } from "@/types";
 import { authApiRequest, authApiUpload } from "@/utils/api";
 import { compressImage } from "@/utils/image";
+import { InvoicePhotoLightbox } from "@/components/invoices/InvoicePhotoLightbox";
+import {
+	InvoicePhotoUploadModal,
+	type PendingPhotoUpload,
+} from "./InvoicePhotoUploadModal";
 
 interface InvoicePhotosManagerProps {
 	invoiceId: string;
 	embedded?: boolean;
+}
+
+function createPendingUpload(file: File): PendingPhotoUpload {
+	return {
+		id: crypto.randomUUID(),
+		file,
+		previewUrl: URL.createObjectURL(file),
+		caption: "",
+	};
+}
+
+function revokePendingUploads(uploads: PendingPhotoUpload[]) {
+	for (const upload of uploads) {
+		URL.revokeObjectURL(upload.previewUrl);
+	}
 }
 
 export function InvoicePhotosManager({
@@ -18,9 +38,17 @@ export function InvoicePhotosManager({
 }: InvoicePhotosManagerProps) {
 	const [photos, setPhotos] = useState<InvoicePhoto[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
+	const [isCompressing, setIsCompressing] = useState(false);
 	const [isUploading, setIsUploading] = useState(false);
+	const [pendingUploads, setPendingUploads] = useState<PendingPhotoUpload[]>(
+		[],
+	);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const pendingUploadsRef = useRef<PendingPhotoUpload[]>([]);
+
+	pendingUploadsRef.current = pendingUploads;
 
 	const loadPhotos = useCallback(async () => {
 		setIsLoading(true);
@@ -41,25 +69,74 @@ export function InvoicePhotosManager({
 		void loadPhotos();
 	}, [loadPhotos]);
 
+	useEffect(() => {
+		return () => {
+			revokePendingUploads(pendingUploadsRef.current);
+		};
+	}, []);
+
+	const clearPendingUploads = () => {
+		revokePendingUploads(pendingUploadsRef.current);
+		setPendingUploads([]);
+	};
+
 	const handleFiles = async (fileList: FileList | null) => {
 		if (!fileList || fileList.length === 0) return;
+
+		setIsCompressing(true);
+		try {
+			const compressed = await Promise.all(
+				Array.from(fileList).map((file) => compressImage(file)),
+			);
+			clearPendingUploads();
+			setPendingUploads(compressed.map((file) => createPendingUpload(file)));
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to prepare photos.",
+			);
+		} finally {
+			setIsCompressing(false);
+			if (inputRef.current) inputRef.current.value = "";
+		}
+	};
+
+	const handleCaptionChange = (id: string, caption: string) => {
+		setPendingUploads((prev) =>
+			prev.map((upload) =>
+				upload.id === id ? { ...upload, caption } : upload,
+			),
+		);
+	};
+
+	const handleCancelUpload = () => {
+		if (isUploading) return;
+		clearPendingUploads();
+	};
+
+	const handleConfirmUpload = async () => {
+		if (pendingUploads.length === 0 || isUploading) return;
 
 		setIsUploading(true);
 		try {
 			const formData = new FormData();
-			for (const file of Array.from(fileList)) {
-				const optimized = await compressImage(file);
-				formData.append("files", optimized);
+			for (const upload of pendingUploads) {
+				formData.append("files", upload.file);
+				formData.append("captions", upload.caption);
 			}
 			await authApiUpload(`/api/admin/invoices/${invoiceId}/photos`, formData);
-			toast.success("Photos uploaded.");
+			toast.success(
+				pendingUploads.length === 1
+					? "Photo uploaded."
+					: `${pendingUploads.length} photos uploaded.`,
+			);
+			clearPendingUploads();
 			await loadPhotos();
 		} catch (error) {
 			console.error(error);
 			toast.error(error instanceof Error ? error.message : "Upload failed.");
 		} finally {
 			setIsUploading(false);
-			if (inputRef.current) inputRef.current.value = "";
 		}
 	};
 
@@ -80,76 +157,141 @@ export function InvoicePhotosManager({
 		}
 	};
 
+	const viewablePhotos = photos.filter((photo) => photo.signed_url);
+	const isBusy = isCompressing || isUploading || pendingUploads.length > 0;
+
+	const openLightbox = (photo: InvoicePhoto) => {
+		const index = viewablePhotos.findIndex((item) => item.id === photo.id);
+		if (index >= 0) setLightboxIndex(index);
+	};
+
+	const handleSaveCaption = async (photoId: string, caption: string) => {
+		try {
+			const updated = await authApiRequest<InvoicePhoto>(
+				`/api/admin/invoices/${invoiceId}/photos/${photoId}`,
+				{
+					method: "PATCH",
+					body: JSON.stringify({ caption: caption.trim() || null }),
+				},
+			);
+			setPhotos((prev) =>
+				prev.map((item) =>
+					item.id === photoId
+						? { ...item, caption: updated.caption ?? null }
+						: item,
+				),
+			);
+			toast.success("Caption saved.");
+		} catch (error) {
+			console.error(error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to save caption.",
+			);
+			throw error;
+		}
+	};
+
 	return (
-		<div
-			className={
-				embedded ? "space-y-3" : "mt-4 border-t border-neutral-800 pt-4"
-			}
-		>
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<p className="text-xs font-bold uppercase tracking-widest text-neutral-300">
-					Photos {photos.length > 0 ? `(${photos.length})` : ""}
-				</p>
-				<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-neutral-800 px-4 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 sm:w-auto">
-					<FiUploadCloud className="h-4 w-4" />
-					{isUploading ? "Uploading..." : "Add Photos"}
-					<input
-						ref={inputRef}
-						type="file"
-						accept="image/*"
-						multiple
-						disabled={isUploading}
-						onChange={(e) => void handleFiles(e.target.files)}
-						className="hidden"
-					/>
-				</label>
+		<>
+			<div
+				className={
+					embedded ? "space-y-3" : "mt-4 border-t border-neutral-800 pt-4"
+				}
+			>
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<p className="text-xs font-bold uppercase tracking-widest text-neutral-300">
+						Photos {photos.length > 0 ? `(${photos.length})` : ""}
+					</p>
+					<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-neutral-800 px-4 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-neutral-700 sm:w-auto">
+						<FiUploadCloud className="h-4 w-4" />
+						{isCompressing
+							? "Compressing..."
+							: isUploading
+								? "Uploading..."
+								: "Add Photos"}
+						<input
+							ref={inputRef}
+							type="file"
+							accept="image/*"
+							multiple
+							disabled={isBusy}
+							onChange={(e) => void handleFiles(e.target.files)}
+							className="hidden"
+						/>
+					</label>
+				</div>
+
+				{isLoading ? (
+					<p className="text-xs text-neutral-300">Loading photos...</p>
+				) : photos.length === 0 ? (
+					<p className="text-xs text-neutral-300">
+						No photos yet. Images are auto-compressed before upload.
+					</p>
+				) : (
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+						{photos.map((photo) => (
+							<div
+								key={photo.id}
+								className="relative group rounded overflow-hidden border border-neutral-800 bg-black/30"
+							>
+								{photo.signed_url ? (
+									<button
+										type="button"
+										onClick={() => openLightbox(photo)}
+										className="block w-full cursor-zoom-in"
+									>
+										{/* biome-ignore lint/performance/noImgElement: signed URLs are short-lived and not optimizable by next/image */}
+										<img
+											src={photo.signed_url}
+											alt={photo.caption || "Invoice photo"}
+											className="w-full h-28 object-cover"
+											loading="lazy"
+										/>
+									</button>
+								) : (
+									<div className="w-full h-28 flex items-center justify-center text-[10px] text-neutral-300">
+										Unavailable
+									</div>
+								)}
+								{photo.caption ? (
+									<p className="px-2 py-1.5 text-[10px] leading-snug text-neutral-200 line-clamp-2">
+										{photo.caption}
+									</p>
+								) : null}
+								<button
+									type="button"
+									onClick={() => void handleDelete(photo)}
+									disabled={deletingId === photo.id}
+									title="Delete photo"
+									className="absolute top-1 right-1 bg-black/70 hover:bg-red-700 text-white rounded p-1.5 transition-colors"
+								>
+									<FiTrash2 className="h-3.5 w-3.5" />
+								</button>
+							</div>
+						))}
+					</div>
+				)}
 			</div>
 
-			{isLoading ? (
-				<p className="text-xs text-neutral-300">Loading photos...</p>
-			) : photos.length === 0 ? (
-				<p className="text-xs text-neutral-300">
-					No photos yet. Images are auto-compressed before upload.
-				</p>
-			) : (
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-					{photos.map((photo) => (
-						<div
-							key={photo.id}
-							className="relative group rounded overflow-hidden border border-neutral-800 bg-black/30"
-						>
-							{photo.signed_url ? (
-								<a
-									href={photo.signed_url}
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									{/* biome-ignore lint/performance/noImgElement: signed URLs are short-lived and not optimizable by next/image */}
-									<img
-										src={photo.signed_url}
-										alt={photo.caption || "Invoice photo"}
-										className="w-full h-28 object-cover"
-										loading="lazy"
-									/>
-								</a>
-							) : (
-								<div className="w-full h-28 flex items-center justify-center text-[10px] text-neutral-300">
-									Unavailable
-								</div>
-							)}
-							<button
-								type="button"
-								onClick={() => void handleDelete(photo)}
-								disabled={deletingId === photo.id}
-								title="Delete photo"
-								className="absolute top-1 right-1 bg-black/70 hover:bg-red-700 text-white rounded p-1.5 transition-colors"
-							>
-								<FiTrash2 className="h-3.5 w-3.5" />
-							</button>
-						</div>
-					))}
-				</div>
-			)}
-		</div>
+			<InvoicePhotoUploadModal
+				open={pendingUploads.length > 0}
+				uploads={pendingUploads}
+				isUploading={isUploading}
+				onCaptionChange={handleCaptionChange}
+				onConfirm={() => void handleConfirmUpload()}
+				onCancel={handleCancelUpload}
+			/>
+
+			{lightboxIndex !== null ? (
+				<InvoicePhotoLightbox
+					photos={viewablePhotos}
+					activeIndex={lightboxIndex}
+					onClose={() => setLightboxIndex(null)}
+					onNavigate={setLightboxIndex}
+					editable
+					onSaveCaption={handleSaveCaption}
+				/>
+			) : null}
+		</>
 	);
 }
