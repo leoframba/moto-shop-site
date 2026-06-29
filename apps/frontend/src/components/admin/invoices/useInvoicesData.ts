@@ -19,9 +19,14 @@ export interface RefetchOptions {
 	includeLineItems?: boolean;
 }
 
+export interface InvoiceRefetchOptions {
+	silent?: boolean;
+}
+
 export interface InvoicesData {
 	isLoading: boolean;
 	isInvoicesLoading: boolean;
+	isInvoiceLinesLoading: boolean;
 	users: AdminUser[];
 	employees: Employee[];
 	bikes: InvoiceBike[];
@@ -36,8 +41,11 @@ export interface InvoicesData {
 	refetchUsers: () => Promise<void>;
 	refetchBikes: () => Promise<void>;
 	refetchEmployees: () => Promise<void>;
-	refetchInvoice: (invoiceId: string) => Promise<InvoiceWithRelations | null>;
-	ensureInvoiceLinesLoaded: () => Promise<void>;
+	refetchInvoice: (
+		invoiceId: string,
+		options?: InvoiceRefetchOptions,
+	) => Promise<InvoiceWithRelations | null>;
+	ensureInvoiceLinesLoaded: () => Promise<boolean>;
 	addPart: (part: Part) => void;
 	addBike: (bike: InvoiceBike) => void;
 	addEmployee: (employee: Employee) => void;
@@ -55,6 +63,7 @@ export function useInvoicesData(
 	const enabled = options.enabled ?? true;
 	const [isLoading, setIsLoading] = useState(enabled);
 	const [isInvoicesLoading, setIsInvoicesLoading] = useState(enabled);
+	const [isInvoiceLinesLoading, setIsInvoiceLinesLoading] = useState(false);
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [bikes, setBikes] = useState<InvoiceBike[]>([]);
@@ -103,39 +112,50 @@ export function useInvoicesData(
 		}
 	}, []);
 
-	const refetchInvoice = useCallback(async (invoiceId: string) => {
-		try {
-			const invoice = await authApiRequest<InvoiceWithRelations>(
-				`/api/admin/invoices/${invoiceId}`,
-				{ cache: "no-store" },
-			);
-			setInvoices((prev) => {
-				const existingIndex = prev.findIndex((row) => row.id === invoiceId);
-				if (existingIndex === -1) {
-					return [invoice, ...prev];
+	const refetchInvoice = useCallback(
+		async (invoiceId: string, options: InvoiceRefetchOptions = {}) => {
+			const silent = options.silent ?? false;
+			try {
+				const invoice = await authApiRequest<InvoiceWithRelations>(
+					`/api/admin/invoices/${invoiceId}`,
+					{ cache: "no-store" },
+				);
+				setInvoices((prev) => {
+					const existingIndex = prev.findIndex((row) => row.id === invoiceId);
+					if (existingIndex === -1) {
+						return [invoice, ...prev];
+					}
+					const next = [...prev];
+					next[existingIndex] = invoice;
+					return next;
+				});
+				return invoice;
+			} catch (error) {
+				console.error(error);
+				if (!silent) {
+					toast.error("Failed to refresh invoice.");
 				}
-				const next = [...prev];
-				next[existingIndex] = invoice;
-				return next;
-			});
-			return invoice;
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to refresh invoice.");
-			return null;
-		}
-	}, []);
+				return null;
+			}
+		},
+		[],
+	);
 
 	const ensureInvoiceLinesLoaded = useCallback(async () => {
+		setIsInvoiceLinesLoading(true);
 		try {
 			const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
 				"/api/admin/invoices?include_line_items=true",
 				{ cache: "no-store" },
 			);
 			setInvoices(invoiceRows);
+			return true;
 		} catch (error) {
 			console.error(error);
 			toast.error("Failed to load invoice line items.");
+			return false;
+		} finally {
+			setIsInvoiceLinesLoading(false);
 		}
 	}, []);
 
@@ -305,6 +325,7 @@ export function useInvoicesData(
 	return {
 		isLoading,
 		isInvoicesLoading,
+		isInvoiceLinesLoading,
 		users,
 		employees,
 		bikes,

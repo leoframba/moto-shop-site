@@ -34,6 +34,7 @@ import {
 	type StatsBreakdownCategory,
 	type StatsLineItemContribution,
 } from "@/components/admin/stats/statsBoardHelpers";
+import { invoiceNeedsLineItems } from "@/components/admin/invoices/invoiceHelpers";
 import type { InvoiceRecord } from "@/types";
 
 const DEFAULT_STATUS_FILTERS: InvoiceRecord["status"][] = ["paid"];
@@ -149,9 +150,18 @@ export default function AdminStatsBoardTab() {
 		useState<InvoiceRecord["status"][]>(DEFAULT_STATUS_FILTERS);
 	const [expandedBreakdown, setExpandedBreakdown] =
 		useState<StatsBreakdownCategory | null>(null);
+	const [linesLoadAttempted, setLinesLoadAttempted] = useState(false);
 
 	useEffect(() => {
-		void data.ensureInvoiceLinesLoaded();
+		let isActive = true;
+		setLinesLoadAttempted(false);
+		void (async () => {
+			await data.ensureInvoiceLinesLoaded();
+			if (isActive) setLinesLoadAttempted(true);
+		})();
+		return () => {
+			isActive = false;
+		};
 	}, [data.ensureInvoiceLinesLoaded]);
 
 	const taxRate = Number(data.shopSettings.tax_rate ?? 0);
@@ -228,10 +238,50 @@ export default function AdminStatsBoardTab() {
 		});
 	};
 
-	if (data.isLoading) {
+	const missingLineItems = useMemo(
+		() => filteredInvoices.some(invoiceNeedsLineItems),
+		[filteredInvoices],
+	);
+
+	const isStatsDataLoading =
+		data.isLoading || data.isInvoiceLinesLoading || !linesLoadAttempted;
+
+	if (isStatsDataLoading) {
 		return (
 			<div className="mx-auto max-w-5xl pb-20">
 				<div className={adminLoadingStateClass}>Loading Stats Board...</div>
+			</div>
+		);
+	}
+
+	if (missingLineItems) {
+		return (
+			<div className="mx-auto max-w-5xl pb-20">
+				<div className="mb-8">
+					<h2 className={adminPageTitleClass}>Stats Board</h2>
+					<p className={adminPageSubtitleClass}>
+						Financial totals from invoices in a selected date range.
+					</p>
+				</div>
+				<div className="rounded-lg border border-rose-700/40 bg-rose-950/20 p-6 text-center">
+					<p className="text-sm text-neutral-200">
+						Invoice line items could not be loaded. Totals may be incomplete
+						until this is resolved.
+					</p>
+					<button
+						type="button"
+						onClick={() => {
+							setLinesLoadAttempted(false);
+							void (async () => {
+								await data.ensureInvoiceLinesLoaded();
+								setLinesLoadAttempted(true);
+							})();
+						}}
+						className="mt-4 rounded-md border border-neutral-600 bg-neutral-800 px-4 py-2 text-xs font-bold uppercase tracking-widest text-neutral-200 transition-colors hover:bg-neutral-700"
+					>
+						Retry
+					</button>
+				</div>
 			</div>
 		);
 	}

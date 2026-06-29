@@ -1405,6 +1405,12 @@ async def upload_invoice_photos(
         created_rows: list[dict] = []
 
         for index, upload in enumerate(files):
+            photo_caption = (
+                per_file_captions[index]
+                if index < len(per_file_captions)
+                else fallback_caption
+            )
+
             content_type = upload.content_type or "application/octet-stream"
             if not content_type.startswith(ALLOWED_PHOTO_MIME_PREFIX):
                 raise HTTPException(
@@ -1414,7 +1420,10 @@ async def upload_invoice_photos(
 
             data = await upload.read()
             if not data:
-                continue
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{upload.filename or 'File'} is empty.",
+                )
             if len(data) > MAX_PHOTO_BYTES:
                 raise HTTPException(
                     status_code=413,
@@ -1435,12 +1444,6 @@ async def upload_invoice_photos(
                     status_code=502,
                     detail=f"Failed to upload {upload.filename or 'file'}: {upload_error}",
                 )
-
-            photo_caption = (
-                per_file_captions[index]
-                if index < len(per_file_captions)
-                else fallback_caption
-            )
 
             insert_response = (
                 supabase.table("invoice_photos")

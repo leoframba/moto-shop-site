@@ -70,7 +70,10 @@ interface InvoiceListProps {
 	bikes: InvoiceBike[];
 	shopSettings: ShopSettings;
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
-	onLoadInvoiceLines: (invoiceId: string) => Promise<InvoiceWithRelations | null>;
+	onLoadInvoiceLines: (
+		invoiceId: string,
+		options?: { silent?: boolean },
+	) => Promise<InvoiceWithRelations | null>;
 	onEdit: (invoice: InvoiceWithRelations) => void;
 	onInvoiceDeleted: (invoiceId: string) => void;
 	autoExpandInvoiceId: string | null;
@@ -141,7 +144,7 @@ export function InvoiceList({
 	}, [defaultStatusFilters]);
 
 	const loadInvoiceLines = useCallback(
-		async (invoiceId: string) => {
+		async (invoiceId: string, options?: { silent?: boolean }) => {
 			const invoice = invoices.find((row) => row.id === invoiceId);
 			if (!invoice || !invoiceNeedsLineItems(invoice)) return;
 			if (startedLineLoadsRef.current.has(invoiceId)) return;
@@ -149,8 +152,8 @@ export function InvoiceList({
 			startedLineLoadsRef.current.add(invoiceId);
 			setLoadingLineItemsInvoiceIds((prev) => [...prev, invoiceId]);
 			try {
-				const loaded = await onLoadInvoiceLines(invoiceId);
-				if (!loaded) {
+				const loaded = await onLoadInvoiceLines(invoiceId, options);
+				if (!loaded || invoiceNeedsLineItems(loaded)) {
 					startedLineLoadsRef.current.delete(invoiceId);
 				}
 			} finally {
@@ -175,7 +178,7 @@ export function InvoiceList({
 	useEffect(() => {
 		for (const invoice of invoices) {
 			if (!shouldPreloadInvoiceLines(invoice)) continue;
-			void loadInvoiceLines(invoice.id);
+			void loadInvoiceLines(invoice.id, { silent: true });
 		}
 	}, [invoices, loadInvoiceLines]);
 
