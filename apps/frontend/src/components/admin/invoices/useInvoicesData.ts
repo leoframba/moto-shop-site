@@ -31,6 +31,7 @@ export interface InvoicesData {
 	shopSettings: ShopSettings;
 	invoices: InvoiceWithRelations[];
 	setInvoices: React.Dispatch<React.SetStateAction<InvoiceWithRelations[]>>;
+	updateShopSettings: (settings: ShopSettings) => void;
 	refetch: (options?: RefetchOptions) => Promise<void>;
 	refetchUsers: () => Promise<void>;
 	refetchBikes: () => Promise<void>;
@@ -297,6 +298,10 @@ export function useInvoicesData(
 		setUsers((prev) => [user, ...prev]);
 	}, []);
 
+	const updateShopSettings = useCallback((settings: ShopSettings) => {
+		setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
+	}, []);
+
 	return {
 		isLoading,
 		isInvoicesLoading,
@@ -309,6 +314,7 @@ export function useInvoicesData(
 		shopSettings,
 		invoices,
 		setInvoices,
+		updateShopSettings,
 		refetch,
 		refetchUsers,
 		refetchBikes,

@@ -383,6 +383,19 @@ class ShopSettingsUpdate(BaseModel):
     pay_period_length: Literal["weekly", "bi-weekly", "monthly"] | None = None
     anchor_date: str | None = None
     timezone: str | None = None
+    invoice_list_default_statuses: (
+        list[Literal["draft", "estimate", "in_progress", "completed", "paid", "void"]]
+        | None
+    ) = None
+
+    @field_validator("invoice_list_default_statuses")
+    @classmethod
+    def validate_invoice_list_default_statuses(cls, value):
+        if value is None:
+            return value
+        if len(value) == 0:
+            raise ValueError("At least one invoice status is required")
+        return list(dict.fromkeys(value))
 
     @field_validator("anchor_date", mode="before")
     @classmethod

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	FiChevronDown,
 	FiChevronRight,
@@ -36,13 +36,14 @@ import {
 	getBikesOwnedByUser,
 	getInvoiceBikeLabel,
 	getInvoiceLineItemCount,
+	getInvoiceListDefaultStatusFilters,
 	getInvoiceOwnerLabel,
 	getInvoiceStatusTagClasses,
 	getViableOwnerIdsForBike,
-	INVOICE_LIST_DEFAULT_STATUS_FILTERS,
 	INVOICE_STATUSES,
 	invoiceMatchesEntityFilters,
 	invoiceNeedsLineItems,
+	shouldPreloadInvoiceLines,
 	toCurrency,
 	toStatusLabel,
 } from "./invoiceHelpers";
@@ -96,9 +97,13 @@ export function InvoiceList({
 	const [selectedBikeId, setSelectedBikeId] = useState("");
 	const [ownerFilterModalOpen, setOwnerFilterModalOpen] = useState(false);
 	const [bikeFilterModalOpen, setBikeFilterModalOpen] = useState(false);
+	const defaultStatusFilters = useMemo(
+		() => getInvoiceListDefaultStatusFilters(shopSettings),
+		[shopSettings.invoice_list_default_statuses],
+	);
 	const [activeStatusFilters, setActiveStatusFilters] = useState<
 		InvoiceRecord["status"][]
-	>(INVOICE_LIST_DEFAULT_STATUS_FILTERS);
+	>(defaultStatusFilters);
 	const [statusPickerInvoiceId, setStatusPickerInvoiceId] = useState<
 		string | null
 	>(null);
@@ -132,36 +137,47 @@ export function InvoiceList({
 	}, [invoices]);
 
 	useEffect(() => {
+		setActiveStatusFilters(defaultStatusFilters);
+	}, [defaultStatusFilters]);
+
+	const loadInvoiceLines = useCallback(
+		async (invoiceId: string) => {
+			const invoice = invoices.find((row) => row.id === invoiceId);
+			if (!invoice || !invoiceNeedsLineItems(invoice)) return;
+			if (startedLineLoadsRef.current.has(invoiceId)) return;
+
+			startedLineLoadsRef.current.add(invoiceId);
+			setLoadingLineItemsInvoiceIds((prev) => [...prev, invoiceId]);
+			try {
+				const loaded = await onLoadInvoiceLines(invoiceId);
+				if (!loaded) {
+					startedLineLoadsRef.current.delete(invoiceId);
+				}
+			} finally {
+				setLoadingLineItemsInvoiceIds((prev) =>
+					prev.filter((id) => id !== invoiceId),
+				);
+			}
+		},
+		[invoices, onLoadInvoiceLines],
+	);
+
+	useEffect(() => {
 		if (!autoExpandInvoiceId) return;
 		setExpandedInvoiceIds((prev) =>
 			prev.includes(autoExpandInvoiceId)
 				? prev
 				: [autoExpandInvoiceId, ...prev],
 		);
-	}, [autoExpandInvoiceId]);
-
-	const loadInvoiceLines = async (invoiceId: string) => {
-		const invoice = invoices.find((row) => row.id === invoiceId);
-		if (!invoice || !invoiceNeedsLineItems(invoice)) return;
-		if (startedLineLoadsRef.current.has(invoiceId)) return;
-
-		startedLineLoadsRef.current.add(invoiceId);
-		setLoadingLineItemsInvoiceIds((prev) => [...prev, invoiceId]);
-		try {
-			await onLoadInvoiceLines(invoiceId);
-		} finally {
-			setLoadingLineItemsInvoiceIds((prev) =>
-				prev.filter((id) => id !== invoiceId),
-			);
-		}
-	};
+		void loadInvoiceLines(autoExpandInvoiceId);
+	}, [autoExpandInvoiceId, loadInvoiceLines]);
 
 	useEffect(() => {
 		for (const invoice of invoices) {
-			if (!invoiceNeedsLineItems(invoice)) continue;
+			if (!shouldPreloadInvoiceLines(invoice)) continue;
 			void loadInvoiceLines(invoice.id);
 		}
-	}, [invoices]);
+	}, [invoices, loadInvoiceLines]);
 
 	const toggleExpandedInvoice = (invoiceId: string) => {
 		const isExpanded = expandedInvoiceIds.includes(invoiceId);

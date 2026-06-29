@@ -174,6 +174,26 @@ class TestAdminRoutes:
         assert response.status_code == 200
         assert response.json()["shop_name"] == "Moto Shop Updated"
 
+    def test_update_shop_settings_rejects_empty_invoice_status_list(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        response = client.patch(
+            "/api/admin/shop-settings",
+            json={"invoice_list_default_statuses": []},
+            headers={"Authorization": "Bearer admin-token"},
+        )
+
+        assert response.status_code == 422
+
     def test_create_part_accepts_admin_token(
         self,
         client,

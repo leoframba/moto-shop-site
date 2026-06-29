@@ -44,6 +44,7 @@ export interface ShopSettings {
 	pay_period_length?: PayPeriodLength | null;
 	anchor_date?: string | null;
 	timezone?: string | null;
+	invoice_list_default_statuses?: InvoiceStatus[] | null;
 }
 
 export type PayPeriodLength = "weekly" | "bi-weekly" | "monthly";

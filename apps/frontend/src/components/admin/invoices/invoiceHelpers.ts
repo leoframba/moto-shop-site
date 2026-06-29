@@ -59,11 +59,41 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettings = {
 	pay_period_length: "bi-weekly",
 	anchor_date: "2026-06-17",
 	timezone: "America/Los_Angeles",
+	invoice_list_default_statuses: [
+		"draft",
+		"estimate",
+		"in_progress",
+		"completed",
+	],
 };
 
-export const INVOICE_LIST_DEFAULT_STATUS_FILTERS = INVOICE_STATUSES.filter(
+const FALLBACK_INVOICE_LIST_DEFAULT_STATUS_FILTERS = INVOICE_STATUSES.filter(
 	(status) => status !== "void" && status !== "paid",
 );
+
+export const getInvoiceListDefaultStatusFilters = (
+	settings?: Pick<ShopSettings, "invoice_list_default_statuses"> | null,
+): InvoiceRecord["status"][] => {
+	const configured = settings?.invoice_list_default_statuses;
+	if (!configured?.length) {
+		return [...FALLBACK_INVOICE_LIST_DEFAULT_STATUS_FILTERS];
+	}
+
+	const validStatuses = new Set(INVOICE_STATUSES);
+	const filtered = configured.filter((status) => validStatuses.has(status));
+	return filtered.length > 0
+		? filtered
+		: [...FALLBACK_INVOICE_LIST_DEFAULT_STATUS_FILTERS];
+};
+
+/** @deprecated Use getInvoiceListDefaultStatusFilters(shopSettings) instead. */
+export const INVOICE_LIST_DEFAULT_STATUS_FILTERS =
+	FALLBACK_INVOICE_LIST_DEFAULT_STATUS_FILTERS;
+
+export const INVOICE_LINE_PRELOAD_STATUSES: InvoiceRecord["status"][] = [
+	"draft",
+	"completed",
+];
 
 export const LABOR_DEFAULT_STATUS_FILTERS: InvoiceRecord["status"][] = [
 	"completed",
@@ -113,6 +143,12 @@ export const getInvoiceLineItemCount = (
 
 export const invoiceNeedsLineItems = (invoice: InvoiceWithRelations): boolean =>
 	getInvoiceLineItemCount(invoice) > 0 && invoice.line_items.length === 0;
+
+export const shouldPreloadInvoiceLines = (
+	invoice: InvoiceWithRelations,
+): boolean =>
+	invoiceNeedsLineItems(invoice) &&
+	INVOICE_LINE_PRELOAD_STATUSES.includes(invoice.status);
 
 export const getInvoiceCustomerSnapshot = (
 	invoice: InvoiceWithRelations,

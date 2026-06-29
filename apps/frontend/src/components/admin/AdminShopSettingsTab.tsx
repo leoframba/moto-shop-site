@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { PayPeriodLength, ShopSettings } from "@/types";
+import {
+	getInvoiceListDefaultStatusFilters,
+	getInvoiceStatusTagClasses,
+	INVOICE_STATUSES,
+	toStatusLabel,
+} from "@/components/admin/invoices/invoiceHelpers";
+import { useInvoicesDataContext } from "@/components/admin/invoices/InvoicesDataProvider";
+import type { InvoiceStatus, PayPeriodLength, ShopSettings } from "@/types";
 import { authApiRequest } from "@/utils/api";
 
 interface ShopSettingsFormData {
@@ -17,6 +24,7 @@ interface ShopSettingsFormData {
 	pay_period_length: PayPeriodLength;
 	anchor_date: string;
 	timezone: string;
+	invoice_list_default_statuses: InvoiceStatus[];
 }
 
 const PAY_PERIOD_OPTIONS: { value: PayPeriodLength; label: string }[] = [
@@ -37,9 +45,11 @@ const toFormData = (settings: ShopSettings): ShopSettingsFormData => ({
 	pay_period_length: settings.pay_period_length ?? "bi-weekly",
 	anchor_date: settings.anchor_date ?? "2026-06-17",
 	timezone: settings.timezone ?? "America/Los_Angeles",
+	invoice_list_default_statuses: getInvoiceListDefaultStatusFilters(settings),
 });
 
 export default function AdminShopSettingsTab() {
+	const { updateShopSettings } = useInvoicesDataContext();
 	const [isLoading, setIsLoading] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
 	const [formData, setFormData] = useState<ShopSettingsFormData>({
@@ -54,6 +64,7 @@ export default function AdminShopSettingsTab() {
 		pay_period_length: "bi-weekly",
 		anchor_date: "2026-06-17",
 		timezone: "America/Los_Angeles",
+		invoice_list_default_statuses: getInvoiceListDefaultStatusFilters(),
 	});
 
 	const fetchSettings = useCallback(async () => {
@@ -80,15 +91,37 @@ export default function AdminShopSettingsTab() {
 
 	const updateField = (
 		field: keyof ShopSettingsFormData,
-		value: string | number,
+		value: string | number | InvoiceStatus[],
 	) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
+	};
+
+	const toggleInvoiceDefaultStatus = (status: InvoiceStatus) => {
+		setFormData((prev) => {
+			const current = prev.invoice_list_default_statuses;
+			if (current.includes(status)) {
+				if (current.length === 1) {
+					toast.error("At least one invoice status must be selected.");
+					return prev;
+				}
+				return {
+					...prev,
+					invoice_list_default_statuses: current.filter(
+						(value) => value !== status,
+					),
+				};
+			}
+			return {
+				...prev,
+				invoice_list_default_statuses: [...current, status],
+			};
+		});
 	};
 
 	const saveSettings = async () => {
 		setIsSaving(true);
 		try {
-			await authApiRequest<ShopSettings>("/api/admin/shop-settings", {
+			const updated = await authApiRequest<ShopSettings>("/api/admin/shop-settings", {
 				method: "PATCH",
 				body: JSON.stringify({
 					shop_name: formData.shop_name || null,
@@ -102,8 +135,10 @@ export default function AdminShopSettingsTab() {
 					pay_period_length: formData.pay_period_length,
 					anchor_date: formData.anchor_date || null,
 					timezone: formData.timezone || null,
+					invoice_list_default_statuses: formData.invoice_list_default_statuses,
 				}),
 			});
+			updateShopSettings(updated);
 			toast.success("Shop settings updated.");
 		} catch (error) {
 			console.error(error);
@@ -263,6 +298,36 @@ export default function AdminShopSettingsTab() {
 							onChange={(e) => updateField("shop_address", e.target.value)}
 							className="w-full bg-neutral-950 border border-neutral-700 rounded p-3 text-white focus:border-emerald-500 outline-none"
 						/>
+					</div>
+				</div>
+
+				<div className="border-t border-neutral-800 pt-5">
+					<h3 className="mb-1 text-sm font-bold uppercase tracking-widest text-white">
+						Invoice List Defaults
+					</h3>
+					<p className="mb-4 text-xs text-neutral-400">
+						Choose which invoice statuses are selected by default when the
+						invoice builder loads.
+					</p>
+					<div className="flex flex-wrap gap-2">
+						{INVOICE_STATUSES.map((status) => {
+							const isActive =
+								formData.invoice_list_default_statuses.includes(status);
+							return (
+								<button
+									key={status}
+									type="button"
+									onClick={() => toggleInvoiceDefaultStatus(status)}
+									className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${
+										isActive
+											? getInvoiceStatusTagClasses(status)
+											: "bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-neutral-200"
+									}`}
+								>
+									{toStatusLabel(status)}
+								</button>
+							);
+						})}
 					</div>
 				</div>
 
