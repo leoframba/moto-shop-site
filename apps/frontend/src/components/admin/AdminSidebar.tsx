@@ -44,24 +44,23 @@ const ADMIN_TABS: {
 	icon: React.ReactNode | null;
 	new: boolean;
 }[] = [
-	{ id: "services", label: "Services", icon: <FiTool />, new: false },
-	{ id: "sales", label: "Bike Sales", icon: <FaMoneyBillWave />, new: false },
-	{ id: "bikes", label: "Bikes", icon: <FaMotorcycle />, new: false },
-	{ id: "parts", label: "Parts", icon: <FaToolbox />, new: false },
-	{ id: "invoices", label: "Invoices", icon: <FiFile />, new: false },
-	{ id: "labor", label: "Labor", icon: <FiClock />, new: true },
-	{ id: "employees", label: "Employees", icon: <FiUserCheck />, new: true },
-	{ id: "stats", label: "Stats Board", icon: <FiBarChart />, new: true },
-	{ id: "users", label: "Users", icon: <FiUsers />, new: false },
-	{ id: "settings", label: "Settings", icon: <FiSettings />, new: false },
-];
+		{ id: "services", label: "Services", icon: <FiTool />, new: false },
+		{ id: "sales", label: "Bike Sales", icon: <FaMoneyBillWave />, new: false },
+		{ id: "bikes", label: "Bikes", icon: <FaMotorcycle />, new: false },
+		{ id: "parts", label: "Parts", icon: <FaToolbox />, new: false },
+		{ id: "invoices", label: "Invoices", icon: <FiFile />, new: false },
+		{ id: "labor", label: "Labor", icon: <FiClock />, new: false },
+		{ id: "employees", label: "Employees", icon: <FiUserCheck />, new: false },
+		{ id: "stats", label: "Stats Board", icon: <FiBarChart />, new: false },
+		{ id: "users", label: "Users", icon: <FiUsers />, new: true },
+		{ id: "settings", label: "Settings", icon: <FiSettings />, new: false },
+	];
 
 function tabButtonClass(isActive: boolean) {
-	return `w-full rounded-md px-4 py-3 text-left text-sm font-bold uppercase tracking-widest transition-colors ${
-		isActive
-			? "bg-red-600 text-white shadow-lg"
-			: "text-neutral-300 hover:bg-neutral-800 hover:text-white"
-	}`;
+	return `w-full rounded-md px-4 py-3 text-left text-sm font-bold uppercase tracking-widest transition-colors ${isActive
+		? "bg-red-600 text-white shadow-lg"
+		: "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+		}`;
 }
 
 function AdminSidebarFooter({ onNavigate }: { onNavigate?: () => void }) {

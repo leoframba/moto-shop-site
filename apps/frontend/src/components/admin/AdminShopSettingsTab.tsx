@@ -318,11 +318,10 @@ export default function AdminShopSettingsTab() {
 									key={status}
 									type="button"
 									onClick={() => toggleInvoiceDefaultStatus(status)}
-									className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${
-										isActive
+									className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${isActive
 											? getInvoiceStatusTagClasses(status)
 											: "bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-neutral-200"
-									}`}
+										}`}
 								>
 									{toStatusLabel(status)}
 								</button>
