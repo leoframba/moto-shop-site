@@ -95,6 +95,43 @@ export const INVOICE_LINE_PRELOAD_STATUSES: InvoiceRecord["status"][] = [
 	"completed",
 ];
 
+/** Statuses fetched on first invoice list load for faster initial paint. */
+export const INITIAL_INVOICE_LOAD_STATUSES: InvoiceRecord["status"][] = [
+	...INVOICE_LINE_PRELOAD_STATUSES,
+];
+
+export const buildInvoicesListUrl = (options: {
+	includeLineItems?: boolean;
+	statuses?: InvoiceRecord["status"][] | null;
+}): string => {
+	const params = new URLSearchParams();
+	params.set(
+		"include_line_items",
+		options.includeLineItems === false ? "false" : "true",
+	);
+	if (options.statuses?.length) {
+		for (const status of options.statuses) {
+			params.append("status", status);
+		}
+	}
+	return `/api/admin/invoices?${params.toString()}`;
+};
+
+export const mergeInvoicesById = (
+	existing: InvoiceWithRelations[],
+	incoming: InvoiceWithRelations[],
+): InvoiceWithRelations[] => {
+	const byId = new Map(existing.map((invoice) => [invoice.id, invoice]));
+	for (const invoice of incoming) {
+		byId.set(invoice.id, invoice);
+	}
+	return Array.from(byId.values()).sort(
+		(a, b) =>
+			new Date(b.created_at ?? 0).getTime() -
+			new Date(a.created_at ?? 0).getTime(),
+	);
+};
+
 export const LABOR_DEFAULT_STATUS_FILTERS: InvoiceRecord["status"][] = [
 	"completed",
 	"paid",
@@ -162,9 +199,9 @@ export const getInvoiceCustomerSnapshot = (
 		`${invoice.customer_first_name ?? ""} ${invoice.customer_last_name ?? ""}`.trim();
 	const hasSnapshot = Boolean(
 		snapshotName ||
-			invoice.customer_email?.trim() ||
-			invoice.customer_phone?.trim() ||
-			invoice.customer_address?.trim(),
+		invoice.customer_email?.trim() ||
+		invoice.customer_phone?.trim() ||
+		invoice.customer_address?.trim(),
 	);
 
 	if (hasSnapshot) {

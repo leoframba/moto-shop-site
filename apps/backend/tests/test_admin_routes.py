@@ -949,6 +949,61 @@ class TestAdminRoutes:
         assert payload[0]["line_item_count"] == 1
         assert payload[0]["invoice_subtotal"] == 125.0
 
+    def test_list_invoices_filters_by_status(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        invoices_result = MagicMock()
+        invoices_result.data = [
+            {
+                "id": "inv-1",
+                "invoice_number": 1001,
+                "owner_id": None,
+                "bike_id": None,
+                "status": "draft",
+            }
+        ]
+
+        invoices_table = MagicMock()
+        invoices_table.select.return_value.in_.return_value.order.return_value.execute.return_value = (
+            invoices_result
+        )
+
+        line_items_table = MagicMock()
+        line_items_table.select.return_value.in_.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+
+        def table_side_effect(name):
+            if name == "invoices":
+                return invoices_table
+            if name == "invoice_line_items":
+                return line_items_table
+            return MagicMock()
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.get(
+                "/api/admin/invoices?include_line_items=false&status=draft&status=completed",
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 200
+        invoices_table.select.return_value.in_.assert_called_once_with(
+            "status",
+            ["draft", "completed"],
+        )
+        assert response.json()[0]["id"] == "inv-1"
+
     def test_get_invoice_returns_hydrated_invoice(
         self,
         client,

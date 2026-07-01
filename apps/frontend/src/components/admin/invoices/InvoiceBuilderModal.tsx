@@ -79,6 +79,7 @@ interface InvoiceBuilderModalProps {
 	services: Service[];
 	parts: Part[];
 	taxRate: number;
+	isBuilderDepsLoading?: boolean;
 	onPartCreated: (part: Part) => void;
 	onBikeCreated: (bike: InvoiceBike) => void;
 	onUserCreated: (user: AdminUser) => void;
@@ -92,6 +93,7 @@ export function InvoiceBuilderModal({
 	services,
 	parts,
 	taxRate,
+	isBuilderDepsLoading = false,
 	onPartCreated,
 	onBikeCreated,
 	onUserCreated,
@@ -132,7 +134,7 @@ export function InvoiceBuilderModal({
 							<div className="flex items-center gap-2">
 								<button
 									type="button"
-									disabled={builder.isSaving}
+									disabled={builder.isSaving || isBuilderDepsLoading}
 									onClick={() => void builder.save()}
 									className={invoiceHeaderSaveButtonClass}
 								>
@@ -167,7 +169,14 @@ export function InvoiceBuilderModal({
 							</div>
 						</div>
 
-						<div className={invoiceBodyClass}>
+						<div className={`${invoiceBodyClass} relative`}>
+							{isBuilderDepsLoading ? (
+								<div className="absolute inset-0 z-20 flex items-center justify-center bg-neutral-950/70">
+									<p className="text-sm font-bold uppercase tracking-widest text-neutral-300">
+										Loading services, parts, and employees...
+									</p>
+								</div>
+							) : null}
 							<div className={invoiceStackClass}>
 								<div className={invoiceSectionClass}>
 									<h4 className={invoiceSectionTitleClass}>Links & Info</h4>

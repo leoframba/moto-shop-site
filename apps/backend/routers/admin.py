@@ -1166,15 +1166,30 @@ def _hydrate_invoice_list(
     return hydrated_invoices
 
 
+VALID_INVOICE_STATUSES = {
+    "draft",
+    "estimate",
+    "in_progress",
+    "completed",
+    "paid",
+    "void",
+}
+
+
 @router.get("/invoices")
-async def list_invoices(include_line_items: bool = Query(True)):
+async def list_invoices(
+    include_line_items: bool = Query(True),
+    status: list[str] | None = Query(None),
+):
     try:
-        invoices_response = (
-            supabase.table("invoices")
-            .select("*")
-            .order("created_at", desc=True)
-            .execute()
-        )
+        invoices_query = supabase.table("invoices").select("*")
+        if status:
+            filtered_statuses = [
+                value for value in status if value in VALID_INVOICE_STATUSES
+            ]
+            if filtered_statuses:
+                invoices_query = invoices_query.in_("status", filtered_statuses)
+        invoices_response = invoices_query.order("created_at", desc=True).execute()
         invoices = invoices_response.data or []
         return _hydrate_invoice_list(invoices, include_line_items)
     except Exception as e:
