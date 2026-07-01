@@ -260,10 +260,10 @@ export default function AdminServiceTab() {
 			prev.map((service) =>
 				service.id === serviceToToggle.id
 					? {
-							...service,
-							is_internal: nextInternal,
-							is_hidden: nextInternal ? false : service.is_hidden,
-						}
+						...service,
+						is_internal: nextInternal,
+						is_hidden: nextInternal ? false : service.is_hidden,
+					}
 					: service,
 			),
 		);
@@ -353,17 +353,17 @@ export default function AdminServiceTab() {
 				</p>
 			</div>
 
-			<div className="grid md:grid-cols-2 gap-6 mb-12">
+			<div>
 				<ShopRateManager
 					key={hourlyRate}
 					initialRate={hourlyRate}
 					onSaveRate={saveRate}
 				/>
-				<CategoryManager
+				{/* <CategoryManager
 					categories={categories}
 					onSaveCategory={saveNewCategory}
 					onDeleteCategory={deleteCategory}
-				/>
+				/> */}
 			</div>
 
 			{/* SERVICE MANAGEMENT */}
@@ -410,6 +410,6 @@ export default function AdminServiceTab() {
 					)}
 				</div>
 			</section>
-		</div>
+		</div >
 	);
 }
