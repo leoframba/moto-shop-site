@@ -11,7 +11,7 @@ from invite_utils import (
     is_placeholder_invite_email,
     resolve_invite_email,
 )
-from labor_utils import line_labor_hours
+from labor_utils import line_labor_hours, resolve_service_pricing_type
 from phone_utils import resolve_optional_phone, sync_auth_email, sync_auth_phone
 from schemas import (
     BikeCreate,
@@ -467,19 +467,43 @@ async def labor_summary(
             supabase.table("shop_settings").select("hourly_rate").eq("id", 1).execute()
         )
         settings_rows = settings_response.data or []
-        hourly_rate = float(settings_rows[0]["hourly_rate"]) if settings_rows else 0.0
+        hourly_rate_value = (
+            settings_rows[0].get("hourly_rate") if settings_rows else None
+        )
+        hourly_rate = (
+            float(hourly_rate_value) if hourly_rate_value is not None else 0.0
+        )
 
         invoice_numbers = {row["id"]: row.get("invoice_number") for row in invoices}
 
         lines_response = (
             supabase.table("invoice_line_items")
             .select(
-                "id, invoice_id, employee_id, quantity, unit_price, pricing_type, snapshot_name"
+                "id, invoice_id, employee_id, service_id, quantity, unit_price, pricing_type, snapshot_name"
             )
             .in_("invoice_id", invoice_ids)
             .eq("item_type", "service")
             .execute()
         )
+        service_lines = lines_response.data or []
+        service_ids = list(
+            {
+                line.get("service_id")
+                for line in service_lines
+                if line.get("service_id")
+            }
+        )
+        services_by_id: dict[str, dict] = {}
+        if service_ids:
+            services_response = (
+                supabase.table("services")
+                .select("id, pricing_type")
+                .in_("id", service_ids)
+                .execute()
+            )
+            services_by_id = {
+                row["id"]: row for row in (services_response.data or [])
+            }
 
         employees_response = (
             supabase.table("employees").select("id, first_name, last_name").execute()
@@ -490,13 +514,13 @@ async def labor_summary(
         }
 
         grouped: dict[str, dict] = {}
-        for line in lines_response.data or []:
+        for line in service_lines:
             employee_id = line.get("employee_id")
             key = employee_id or "__shop__"
             if key not in grouped:
                 grouped[key] = {"hours": 0.0, "breakdown": []}
 
-            pricing_type = line.get("pricing_type") or "fixed"
+            pricing_type = resolve_service_pricing_type(line, services_by_id)
             quantity = float(line.get("quantity") or 0)
             unit_price = float(line.get("unit_price") or 0)
             hours = line_labor_hours(pricing_type, quantity, unit_price, hourly_rate)
