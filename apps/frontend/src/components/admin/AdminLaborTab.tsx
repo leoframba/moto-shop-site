@@ -5,7 +5,12 @@ import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { toast } from "sonner";
 import type { InvoiceRecord, LaborSummary, ShopSettings } from "@/types";
 import { authApiRequest } from "@/utils/api";
-import { getLaborDateRange, type LaborViewRange } from "@/utils/payPeriodUtils";
+import {
+	getLaborDateRange,
+	getPayPeriodOptions,
+	type LaborViewRange,
+	type PayPeriodOption,
+} from "@/utils/payPeriodUtils";
 import {
 	getInvoiceStatusTagClasses,
 	INVOICE_STATUSES,
@@ -25,6 +30,10 @@ const mechanicRowKey = (employeeId: string | null) =>
 
 export default function AdminLaborTab() {
 	const [range, setRange] = useState<LaborViewRange>("pay_period");
+	const [payPeriodOffset, setPayPeriodOffset] = useState(0);
+	const [payPeriodOptions, setPayPeriodOptions] = useState<PayPeriodOption[]>(
+		[],
+	);
 	const [activeStatusFilters, setActiveStatusFilters] = useState<
 		InvoiceRecord["status"][]
 	>(LABOR_DEFAULT_STATUS_FILTERS);
@@ -57,6 +66,8 @@ export default function AdminLaborTab() {
 				payPeriodLength,
 				anchorDate,
 				shopTimeZone,
+				new Date(),
+				range === "pay_period" ? payPeriodOffset : 0,
 			);
 			const statusQuery = activeStatusFilters
 				.map((status) => `statuses=${encodeURIComponent(status)}`)
@@ -68,13 +79,22 @@ export default function AdminLaborTab() {
 			setSummary(laborSummary);
 			setRangeLabel(activeRange.label);
 			setTimeZone(shopTimeZone);
+			const periodOptions = getPayPeriodOptions(
+				payPeriodLength,
+				anchorDate,
+				shopTimeZone,
+			);
+			setPayPeriodOptions(periodOptions);
+			setPayPeriodOffset((current) =>
+				periodOptions.some((option) => option.offset === current) ? current : 0,
+			);
 		} catch (error) {
 			console.error(error);
 			toast.error("Failed to load labor summary.");
 		} finally {
 			setIsLoading(false);
 		}
-	}, [activeStatusFilters, range]);
+	}, [activeStatusFilters, payPeriodOffset, range]);
 
 	useEffect(() => {
 		void loadSummary();
@@ -107,25 +127,57 @@ export default function AdminLaborTab() {
 						up to the nearest tenth.
 					</p>
 				</div>
-				<div>
-					<label
-						htmlFor="labor-range"
-						className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-400"
-					>
-						View Range
-					</label>
-					<select
-						id="labor-range"
-						value={range}
-						onChange={(e) => setRange(e.target.value as LaborViewRange)}
-						className="min-w-52 rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
-					>
-						{RANGE_OPTIONS.map((option) => (
-							<option key={option.value} value={option.value}>
-								{option.label}
-							</option>
-						))}
-					</select>
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+					<div>
+						<label
+							htmlFor="labor-range"
+							className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-400"
+						>
+							View Range
+						</label>
+						<select
+							id="labor-range"
+							value={range}
+							onChange={(e) => {
+								const nextRange = e.target.value as LaborViewRange;
+								setRange(nextRange);
+								if (nextRange !== "pay_period") {
+									setPayPeriodOffset(0);
+								}
+							}}
+							className="min-w-52 rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+						>
+							{RANGE_OPTIONS.map((option) => (
+								<option key={option.value} value={option.value}>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</div>
+					{range === "pay_period" && payPeriodOptions.length > 0 && (
+						<div>
+							<label
+								htmlFor="labor-pay-period"
+								className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-400"
+							>
+								Pay Period
+							</label>
+							<select
+								id="labor-pay-period"
+								value={payPeriodOffset}
+								onChange={(e) =>
+									setPayPeriodOffset(Number(e.target.value))
+								}
+								className="min-w-64 rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+							>
+								{payPeriodOptions.map((option) => (
+									<option key={option.offset} value={option.offset}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -145,11 +197,10 @@ export default function AdminLaborTab() {
 								key={status}
 								type="button"
 								onClick={() => toggleStatusFilter(status)}
-								className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${
-									isActive
-										? getInvoiceStatusTagClasses(status)
-										: "border border-neutral-800 bg-neutral-950 text-neutral-300 hover:text-neutral-200"
-								}`}
+								className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${isActive
+									? getInvoiceStatusTagClasses(status)
+									: "border border-neutral-800 bg-neutral-950 text-neutral-300 hover:text-neutral-200"
+									}`}
 							>
 								{toStatusLabel(status)}
 							</button>
