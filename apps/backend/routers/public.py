@@ -1,7 +1,11 @@
 # routers/public.py
 from dependencies import supabase
 from fastapi import APIRouter, HTTPException
-from service_pricing import is_public_service, serialize_public_service
+from service_pricing import (
+    coerce_hourly_rate,
+    is_public_service,
+    serialize_public_service,
+)
 
 # Router
 router = APIRouter(
@@ -21,7 +25,7 @@ async def get_services():
         if not settings_response.data:
             raise HTTPException(status_code=500, detail="Shop settings not found")
 
-        hourly_rate = float(settings_response.data[0]["hourly_rate"])
+        hourly_rate = coerce_hourly_rate(settings_response.data[0].get("hourly_rate"))
 
         # Fetch Services joined with Categories
         services_response = (

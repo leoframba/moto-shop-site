@@ -75,3 +75,32 @@ class TestPublicServicesRoute:
         assert "is_internal" not in payload["services"][0]
         assert len(payload["categories"]) == 1
         assert payload["categories"][0]["id"] == "cat-1"
+
+    def test_public_services_tolerates_null_hourly_rate(self, client):
+        settings_result = MagicMock()
+        settings_result.data = [{"hourly_rate": None}]
+
+        services_result = MagicMock()
+        services_result.data = []
+        categories_result = MagicMock()
+        categories_result.data = []
+
+        def table_side_effect(name):
+            mock_table = MagicMock()
+            if name == "shop_settings":
+                mock_table.select.return_value.eq.return_value.execute.return_value = (
+                    settings_result
+                )
+            elif name == "services":
+                mock_table.select.return_value.execute.return_value = services_result
+            elif name == "categories":
+                mock_table.select.return_value.execute.return_value = categories_result
+            return mock_table
+
+        with patch("routers.public.supabase") as mock_public_supabase:
+            mock_public_supabase.table.side_effect = table_side_effect
+
+            response = client.get("/api/services")
+
+        assert response.status_code == 200
+        assert response.json()["hourly_rate"] == 0.0
