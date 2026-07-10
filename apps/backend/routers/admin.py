@@ -1025,6 +1025,41 @@ def _invoice_line_item_row(invoice_id: str, item) -> dict:
     return row
 
 
+def _fetch_existing_line_items(invoice_id: str) -> list[dict]:
+    response = (
+        supabase.table("invoice_line_items")
+        .select("*")
+        .eq("invoice_id", invoice_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    return response.data or []
+
+
+def _restore_line_items(invoice_id: str, rows: list[dict]) -> None:
+    if not rows:
+        return
+
+    payload: list[dict] = []
+    for row in rows:
+        item = {
+            "invoice_id": invoice_id,
+            "item_type": row["item_type"],
+            "service_id": row.get("service_id"),
+            "part_id": row.get("part_id"),
+            "employee_id": row.get("employee_id"),
+            "snapshot_name": row["snapshot_name"],
+            "pricing_type": row.get("pricing_type"),
+            "unit_price": row["unit_price"],
+            "quantity": row["quantity"],
+        }
+        if row.get("snapshot_part_number") is not None:
+            item["snapshot_part_number"] = row["snapshot_part_number"]
+        payload.append(item)
+
+    supabase.table("invoice_line_items").insert(payload).execute()
+
+
 def _fetch_invoice_users_by_id(owner_ids: list[str]) -> dict:
     if not owner_ids:
         return {}
@@ -1335,6 +1370,8 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
         if not updated_invoice_rows:
             raise HTTPException(status_code=404, detail="Invoice not found")
 
+        previous_line_items = _fetch_existing_line_items(invoice_id)
+
         supabase.table("invoice_line_items").delete().eq(
             "invoice_id", invoice_id
         ).execute()
@@ -1344,13 +1381,20 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
         ]
 
         inserted_line_items: list[dict] = []
-        if line_items_payload:
-            line_items_response = (
-                supabase.table("invoice_line_items")
-                .insert(line_items_payload)
-                .execute()
-            )
-            inserted_line_items = line_items_response.data or []
+        try:
+            if line_items_payload:
+                line_items_response = (
+                    supabase.table("invoice_line_items")
+                    .insert(line_items_payload)
+                    .execute()
+                )
+                inserted_line_items = line_items_response.data or []
+        except Exception as line_error:
+            try:
+                _restore_line_items(invoice_id, previous_line_items)
+            except Exception:
+                pass
+            _raise_invoice_http_error(line_error)
 
         return {
             "invoice": updated_invoice_rows[0],
