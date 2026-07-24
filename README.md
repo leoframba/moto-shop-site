@@ -330,9 +330,3 @@ More testing detail: [`apps/frontend/TESTING.md`](./apps/frontend/TESTING.md).
 - Customers get read-only access to public sales inventory  
 - Invoice photos are private; portal/admin access goes through signed URLs  
 - Invite-only signup; phone-only riders use a placeholder invite email domain  
-
----
-
-## License
-
-Private / proprietary — Advanced Cycle Service.
