@@ -579,12 +579,29 @@ class TestAdminRoutes:
             {"user": admin_user},
         )()
 
+        photos_result = MagicMock()
+        photos_result.data = [{"storage_path": "invoice-photos/inv-1/photo.jpg"}]
+        existing_line_items_result = MagicMock()
+        existing_line_items_result.data = [
+            {
+                "id": "line-1",
+                "invoice_id": "inv-1",
+                "item_type": "part",
+                "part_id": "part-1",
+                "snapshot_name": "Brake Pad",
+                "unit_price": 25,
+                "quantity": 1,
+            }
+        ]
         deleted_line_items_result = MagicMock()
         deleted_line_items_result.data = [{"id": "line-1"}]
         deleted_invoice_result = MagicMock()
         deleted_invoice_result.data = [{"id": "inv-1"}]
 
         line_items_table = MagicMock()
+        line_items_table.select.return_value.eq.return_value.order.return_value.execute.return_value = (
+            existing_line_items_result
+        )
         line_items_table.delete.return_value.eq.return_value.execute.return_value = (
             deleted_line_items_result
         )
@@ -594,14 +611,24 @@ class TestAdminRoutes:
             deleted_invoice_result
         )
 
+        photos_table = MagicMock()
+        photos_table.select.return_value.eq.return_value.execute.return_value = (
+            photos_result
+        )
+
         def table_side_effect(name):
+            if name == "invoice_photos":
+                return photos_table
             if name == "invoice_line_items":
                 return line_items_table
             if name == "invoices":
                 return invoices_table
             return MagicMock()
 
-        with patch("routers.admin.supabase") as mock_admin_supabase:
+        with (
+            patch("routers.admin.supabase") as mock_admin_supabase,
+            patch("routers.admin.remove_objects") as mock_remove_objects,
+        ):
             mock_admin_supabase.table.side_effect = table_side_effect
 
             response = client.delete(
@@ -611,6 +638,85 @@ class TestAdminRoutes:
 
         assert response.status_code == 200
         assert response.json()["message"] == "Invoice deleted successfully"
+        mock_remove_objects.assert_called_once_with(["invoice-photos/inv-1/photo.jpg"])
+
+    def test_delete_invoice_restores_line_items_when_header_delete_fails(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        photos_result = MagicMock()
+        photos_result.data = []
+        existing_line_items_result = MagicMock()
+        existing_line_items_result.data = [
+            {
+                "id": "line-1",
+                "invoice_id": "inv-1",
+                "item_type": "part",
+                "part_id": "part-1",
+                "snapshot_name": "Brake Pad",
+                "unit_price": 25,
+                "quantity": 1,
+            }
+        ]
+        deleted_line_items_result = MagicMock()
+        deleted_line_items_result.data = [{"id": "line-1"}]
+        failed_invoice_delete_result = MagicMock()
+        failed_invoice_delete_result.data = []
+        restored_line_items_result = MagicMock()
+        restored_line_items_result.data = [{"id": "line-restored"}]
+
+        line_items_table = MagicMock()
+        line_items_table.select.return_value.eq.return_value.order.return_value.execute.return_value = (
+            existing_line_items_result
+        )
+        line_items_table.delete.return_value.eq.return_value.execute.return_value = (
+            deleted_line_items_result
+        )
+        line_items_table.insert.return_value.execute.return_value = (
+            restored_line_items_result
+        )
+
+        invoices_table = MagicMock()
+        invoices_table.delete.return_value.eq.return_value.execute.return_value = (
+            failed_invoice_delete_result
+        )
+
+        photos_table = MagicMock()
+        photos_table.select.return_value.eq.return_value.execute.return_value = (
+            photos_result
+        )
+
+        def table_side_effect(name):
+            if name == "invoice_photos":
+                return photos_table
+            if name == "invoice_line_items":
+                return line_items_table
+            if name == "invoices":
+                return invoices_table
+            return MagicMock()
+
+        with (
+            patch("routers.admin.supabase") as mock_admin_supabase,
+            patch("routers.admin.remove_objects") as mock_remove_objects,
+        ):
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.delete(
+                "/api/admin/invoices/inv-1",
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 404
+        line_items_table.insert.assert_called_once()
+        mock_remove_objects.assert_not_called()
 
     def test_update_invoice_status(
         self,

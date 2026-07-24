@@ -1025,6 +1025,41 @@ def _invoice_line_item_row(invoice_id: str, item) -> dict:
     return row
 
 
+def _fetch_existing_line_items(invoice_id: str) -> list[dict]:
+    response = (
+        supabase.table("invoice_line_items")
+        .select("*")
+        .eq("invoice_id", invoice_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    return response.data or []
+
+
+def _restore_line_items(invoice_id: str, rows: list[dict]) -> None:
+    if not rows:
+        return
+
+    payload: list[dict] = []
+    for row in rows:
+        item = {
+            "invoice_id": invoice_id,
+            "item_type": row["item_type"],
+            "service_id": row.get("service_id"),
+            "part_id": row.get("part_id"),
+            "employee_id": row.get("employee_id"),
+            "snapshot_name": row["snapshot_name"],
+            "pricing_type": row.get("pricing_type"),
+            "unit_price": row["unit_price"],
+            "quantity": row["quantity"],
+        }
+        if row.get("snapshot_part_number") is not None:
+            item["snapshot_part_number"] = row["snapshot_part_number"]
+        payload.append(item)
+
+    supabase.table("invoice_line_items").insert(payload).execute()
+
+
 def _fetch_invoice_users_by_id(owner_ids: list[str]) -> dict:
     if not owner_ids:
         return {}
@@ -1365,7 +1400,6 @@ async def update_invoice(invoice_id: str, invoice: InvoiceUpdate):
 @router.delete("/invoices/{invoice_id}")
 async def delete_invoice(invoice_id: str):
     try:
-        # Remove any stored photos so we don't orphan objects in the bucket.
         photos_response = (
             supabase.table("invoice_photos")
             .select("storage_path")
@@ -1377,7 +1411,8 @@ async def delete_invoice(invoice_id: str):
             for photo in (photos_response.data or [])
             if photo.get("storage_path")
         ]
-        remove_objects(photo_paths)
+
+        previous_line_items = _fetch_existing_line_items(invoice_id)
 
         supabase.table("invoice_line_items").delete().eq(
             "invoice_id", invoice_id
@@ -1386,7 +1421,14 @@ async def delete_invoice(invoice_id: str):
             supabase.table("invoices").delete().eq("id", invoice_id).execute()
         )
         if not deleted_invoice_response.data:
+            try:
+                _restore_line_items(invoice_id, previous_line_items)
+            except Exception:
+                pass
             raise HTTPException(status_code=404, detail="Invoice not found")
+
+        # Only remove storage objects after the invoice row is gone.
+        remove_objects(photo_paths)
         return {"message": "Invoice deleted successfully"}
     except HTTPException:
         raise
