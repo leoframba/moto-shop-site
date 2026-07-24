@@ -1,6 +1,23 @@
 import { mockAdminUser, mockCustomerUser } from "@tests/fixtures/auth-fixtures";
 import { describe, expect, it } from "vitest";
-import { getAuthRedirect } from "@/lib/auth-redirect";
+import { getAuthRedirect, safeAuthCallbackPath } from "@/lib/auth-redirect";
+
+describe("safeAuthCallbackPath", () => {
+	it("allows same-origin relative paths", () => {
+		expect(safeAuthCallbackPath("/account")).toBe("/account");
+		expect(safeAuthCallbackPath("/reset-password")).toBe("/reset-password");
+	});
+
+	it("rejects external redirect tricks", () => {
+		expect(safeAuthCallbackPath("@evil.com")).toBe("/account");
+		expect(safeAuthCallbackPath("//evil.com")).toBe("/account");
+		expect(safeAuthCallbackPath("/\\evil.com")).toBe("/account");
+	});
+
+	it("falls back when next is missing", () => {
+		expect(safeAuthCallbackPath(null)).toBe("/account");
+	});
+});
 
 describe("getAuthRedirect", () => {
 	describe("admin routes", () => {

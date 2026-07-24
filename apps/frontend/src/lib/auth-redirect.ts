@@ -1,6 +1,26 @@
 import type { User } from "@supabase/supabase-js";
 import { getPostLoginRedirect, isAdminUser } from "@/utils/auth";
 
+const DEFAULT_AUTH_CALLBACK_PATH = "/account";
+
+/** Reject protocol-relative and userinfo tricks in post-auth redirect targets. */
+export function safeAuthCallbackPath(next: string | null): string {
+	if (!next) {
+		return DEFAULT_AUTH_CALLBACK_PATH;
+	}
+
+	if (
+		!next.startsWith("/") ||
+		next.startsWith("//") ||
+		next.includes("@") ||
+		next.includes("\\")
+	) {
+		return DEFAULT_AUTH_CALLBACK_PATH;
+	}
+
+	return next;
+}
+
 export type AuthRedirect = {
 	pathname: string;
 	search?: string;
