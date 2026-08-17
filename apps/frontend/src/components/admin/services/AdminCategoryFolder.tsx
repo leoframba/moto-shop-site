@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { Category, Service, ServiceFormData } from "@/types";
 import ServiceForm from "./ServiceForm";
+import { AdminButton } from "@/components/ui/AdminButton";
 
 interface AdminCategoryFolderProps {
 	category: string;
@@ -11,8 +12,6 @@ interface AdminCategoryFolderProps {
 	toggleFolder: () => void;
 	onSaveEdit: (id: string, updatedData: ServiceFormData) => Promise<void>;
 	onDelete: (service: Service) => Promise<void>;
-	onToggleHidden?: (service: Service) => void | Promise<void>;
-	onToggleInternal?: (service: Service) => void | Promise<void>;
 }
 
 export default function AdminCategoryFolder({
@@ -23,8 +22,6 @@ export default function AdminCategoryFolder({
 	toggleFolder,
 	onSaveEdit,
 	onDelete,
-	onToggleHidden,
-	onToggleInternal,
 }: AdminCategoryFolderProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const allHidden =
@@ -39,12 +36,13 @@ export default function AdminCategoryFolder({
 				type="button"
 				onClick={toggleFolder}
 				aria-expanded={isOpen}
-				className="w-full flex justify-between items-center p-5 md:p-6 bg-gradient-to-r from-red-950/40 to-neutral-900/40 hover:from-red-900/50 transition-colors text-left border-b border-transparent data-[open=true]:border-red-900/30"
+				className="w-full flex justify-between items-center p-5 md:p-6 bg-linear-to-r from-red-950/40 to-neutral-900/40 hover:from-red-900/50 transition-colors text-left border-b border-transparent data-[open=true]:border-red-900/30"
 				data-open={isOpen}
 			>
 				<h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest flex items-center gap-3">
 					<span className="text-red-600">{"///"}</span> {category}
 				</h2>
+
 				<div className="flex items-center gap-4">
 					{allInternal && (
 						<span className="hidden rounded bg-emerald-500/10 px-2 py-1 text-xs font-bold uppercase text-emerald-300 md:block">
@@ -68,7 +66,13 @@ export default function AdminCategoryFolder({
 					<span className="text-red-500 font-mono text-3xl font-light leading-none w-6 text-center">
 						{isOpen ? "-" : "+"}
 					</span>
+					<AdminButton
+						variant="danger"
+					>
+						Edit
+					</AdminButton>
 				</div>
+
 			</button>
 
 			{isOpen && (
@@ -164,41 +168,13 @@ export default function AdminCategoryFolder({
 												</div>
 											)}
 											<div className="pl-6 border-l border-neutral-800 ml-6 md:ml-8 flex items-center gap-2">
-												{onToggleInternal && (
-													<button
-														type="button"
-														onClick={() => void onToggleInternal(service)}
-														title={
-															service.is_internal
-																? "Move to public catalog"
-																: "Mark as invoice only"
-														}
-														className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
-													>
-														{service.is_internal ? "Public" : "Invoice"}
-													</button>
-												)}
-												{onToggleHidden && !service.is_internal && (
-													<button
-														type="button"
-														onClick={() => void onToggleHidden(service)}
-														title={
-															service.is_hidden
-																? "Show on public menu"
-																: "Hide from public menu"
-														}
-														className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
-													>
-														{service.is_hidden ? "Show" : "Hide"}
-													</button>
-												)}
-												<button
-													type="button"
+												<AdminButton
+													variant="secondary"
 													onClick={() => setEditingId(service.id)}
-													className="text-neutral-300 hover:text-white transition-colors bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-sm font-semibold"
 												>
 													Edit
-												</button>
+												</AdminButton>
+
 											</div>
 										</div>
 									</div>

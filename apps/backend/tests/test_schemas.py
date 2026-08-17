@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from schemas import PartCreate, UserCreate, UserUpdate
+from schemas import PartCreate, UserCreate, UserUpdate, ServiceCreate, ServiceUpdate
 
 
 class TestPartCreate:
@@ -68,3 +68,35 @@ class TestUserUpdate:
     def test_rejects_invalid_email(self):
         with pytest.raises(ValidationError):
             UserUpdate(email="not-an-email")
+
+class TestServiceCreate:
+    def test_clears_hidden_when_internal(self):
+        service = ServiceCreate(
+            name="Oil Change",
+            category_id="cat-1",
+            estimated_hours=1,
+            is_internal=True,
+            is_hidden=True,
+        )
+        assert service.is_internal is True
+        assert service.is_hidden is False
+    def test_allows_hidden_when_not_internal(self):
+        service = ServiceCreate(
+            name="Oil Change",
+            category_id="cat-1",
+            estimated_hours=1,
+            is_hidden=True,
+        )
+        assert service.is_hidden is True
+        assert service.is_internal is False
+class TestServiceUpdate:
+    def test_clears_hidden_when_internal(self):
+        service = ServiceUpdate(
+            name="Oil Change",
+            category_id="cat-1",
+            pricing_type="hourly",
+            is_internal=True,
+            is_hidden=True,
+        )
+        assert service.is_internal is True
+        assert service.is_hidden is False

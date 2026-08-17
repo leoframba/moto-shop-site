@@ -10,6 +10,10 @@ import { useServices } from "@/hooks/useServices";
 import { confirmDeleteToast } from "@/lib/confirm-toast";
 import type { Category, Service, ServiceFormData } from "@/types";
 import { authApiRequest } from "@/utils/api";
+import { AdminButton } from "../../ui/AdminButton";
+import { FaFolderPlus } from "react-icons/fa";
+import { Modal } from "../../ui/modal/Modal"
+
 
 const calculateServicePrice = (
 	service: Service,
@@ -81,6 +85,32 @@ export default function AdminServiceTab() {
 		}
 	};
 
+	// const [manageMenuOpen, setManageMenuOpen] = useState<boolean>(false);
+	// interface ManageMenuModalProps {
+	// 	open: boolean,
+	// 	onOpenChange: (open: boolean) => void;
+	// }
+	// const ManageMenuModal = ({
+	// 	open,
+	// 	onOpenChange,
+	// }: ManageMenuModalProps) => {
+	// 	return (
+	// 		<Modal
+	// 			open={open}
+	// 			onOpenChange={onOpenChange}
+	// 			title= "Manage Service Menu"
+	// 			description= "Create Categories and Services"
+	// 			size="xl"
+	// 		>
+	// 			<CategoryManager
+	// 				categories={categories}
+	// 				onSaveCategory={saveNewCategory}
+	// 				onDeleteCategory={deleteCategory}
+	// 			/>
+	// 		</Modal>
+	// 	)
+	// }
+
 	// ==========================================
 	// CATEGORIES
 	// ==========================================
@@ -139,12 +169,11 @@ export default function AdminServiceTab() {
 			const calcPrice = calculateServicePrice(updatedService, hourlyRate ?? 0);
 
 			const selectedCat = categories.find((c) => c.id === editData.category_id);
-
+			
 			const completeService: Service = {
 				...updatedService,
 				calculated_price: calcPrice,
 				categories: selectedCat,
-				is_internal: editData.is_internal,
 			};
 
 			setServices((prev) =>
@@ -218,74 +247,6 @@ export default function AdminServiceTab() {
 			description: "This service will be permanently removed from the menu.",
 			onConfirm: () => performDeleteService(serviceToDelete),
 		});
-	};
-
-	const toggleServiceVisibility = async (serviceToToggle: Service) => {
-		if (serviceToToggle.is_internal) return;
-
-		const nextHidden = !serviceToToggle.is_hidden;
-		const prevServices = [...services];
-		setServices((prev) =>
-			prev.map((service) =>
-				service.id === serviceToToggle.id
-					? { ...service, is_hidden: nextHidden }
-					: service,
-			),
-		);
-
-		try {
-			await authApiRequest(
-				`/api/admin/services/${serviceToToggle.id}/visibility`,
-				{
-					method: "PATCH",
-					body: JSON.stringify({ is_hidden: nextHidden }),
-				},
-			);
-			toast.success(
-				nextHidden
-					? `"${serviceToToggle.name}" hidden from the public menu.`
-					: `"${serviceToToggle.name}" is now visible on the public menu.`,
-			);
-		} catch (error) {
-			console.error(error);
-			setServices(prevServices);
-			toast.error("Failed to update visibility.");
-		}
-	};
-
-	const toggleServiceInternal = async (serviceToToggle: Service) => {
-		const nextInternal = !serviceToToggle.is_internal;
-		const prevServices = [...services];
-		setServices((prev) =>
-			prev.map((service) =>
-				service.id === serviceToToggle.id
-					? {
-						...service,
-						is_internal: nextInternal,
-						is_hidden: nextInternal ? false : service.is_hidden,
-					}
-					: service,
-			),
-		);
-
-		try {
-			await authApiRequest(
-				`/api/admin/services/${serviceToToggle.id}/internal`,
-				{
-					method: "PATCH",
-					body: JSON.stringify({ is_internal: nextInternal }),
-				},
-			);
-			toast.success(
-				nextInternal
-					? `"${serviceToToggle.name}" is now invoice only.`
-					: `"${serviceToToggle.name}" is back in the public catalog.`,
-			);
-		} catch (error) {
-			console.error(error);
-			setServices(prevServices);
-			toast.error("Failed to update service scope.");
-		}
 	};
 
 	// Group logic
@@ -372,13 +333,19 @@ export default function AdminServiceTab() {
 					<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-300">
 						Service Menu Previews
 					</h2>
-					<button
+					
+					{/* <AdminButton
 						type="button"
-						onClick={() => setIsAdding(!isAdding)}
-						className="text-sm font-semibold text-emerald-400 hover:text-emerald-300"
+						variant="primary"
+						onClick = {(() => setManageMenuOpen(true))}
 					>
-						{isAdding ? "Cancel Adding" : "+ Add New Service"}
-					</button>
+						Manage Menu
+					</AdminButton>
+
+					<ManageMenuModal
+						open={manageMenuOpen}
+						onOpenChange={setManageMenuOpen}
+					/> */}
 				</div>
 
 				<div className="space-y-4">
@@ -390,6 +357,7 @@ export default function AdminServiceTab() {
 							onCancel={() => setIsAdding(false)}
 						/>
 					)}
+
 
 					{/* ACCORDION FOLDERS */}
 					{Object.entries(groupedServices).map(
@@ -403,8 +371,6 @@ export default function AdminServiceTab() {
 								toggleFolder={() => toggleFolder(category)}
 								onSaveEdit={saveEdit}
 								onDelete={deleteService}
-								onToggleHidden={toggleServiceVisibility}
-								onToggleInternal={toggleServiceInternal}
 							/>
 						),
 					)}

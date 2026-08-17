@@ -33,14 +33,14 @@ export function AdminButton({
     ...props
 
 }: ButtonProps) {
-    const base = "inline-flex items-center justify-center gap-2 rounded font-bold transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+    const base = "inline-flex items-center justify-center gap-2 rounded font-bold transition-colors focus:outline-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
 
     const variants: Record<ButtonVariant, string> = {
         primary: "bg-emerald-700 text-white hover:bg-emerald-600 focus:ring-emerald-500",
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-400",
+        secondary: "bg-neutral-800 text-white hover:bg-neutral-700 focus:ring-gray-400",
         danger: "bg-red-900/60 text-white hover:bg-red-800/70 focus:ring-red-700",
         ghost: "bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-300",
-        text: "bg-transparent text-emerald-400 hover:text-emerald-300"
+        text: "bg-transparent"
     }
 
     const sizes: Record<ButtonSize, string> = {

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { Category } from "@/types";
 import { AdminModal } from "../modals/AdminModal";
-import { AdminButton } from "../AdminButton";
+import { AdminButton } from "../../ui/AdminButton";
 import { MdCreateNewFolder } from "react-icons/md";
 
 

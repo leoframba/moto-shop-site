@@ -4,6 +4,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from typing_extensions import Self
+
+
 
 class RateUpdate(BaseModel):
     hourly_rate: float
@@ -17,6 +20,13 @@ class ServiceUpdate(BaseModel):
     estimated_hours: float | None = None
     fixed_price: float | None = None
     is_internal: bool | None = None
+    is_hidden: bool | None = None
+
+    @model_validator(mode='after')
+    def normalize_visibility_flags(self) -> Self:
+        if self.is_internal and self.is_hidden:
+            self.is_hidden = False
+        return self
 
 
 class ServiceCreate(BaseModel):
@@ -28,6 +38,7 @@ class ServiceCreate(BaseModel):
     estimated_hours: float | None = None
     fixed_price: float | None = None
     is_internal: bool = False
+    is_hidden: bool = False
 
     @field_validator("name")
     @classmethod
@@ -42,6 +53,12 @@ class ServiceCreate(BaseModel):
         if v <= 0:
             raise ValueError("Estimated hours must be greater than zero")
         return v
+    
+    @model_validator(mode='after')
+    def normalize_visibility_flags(self) -> Self:
+        if self.is_internal and self.is_hidden:
+            self.is_hidden = False
+        return self
 
 
 class ServiceVisibilityUpdate(BaseModel):

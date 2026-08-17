@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminButton } from "../AdminButton";
+import { AdminButton } from "../../ui/AdminButton";
 import { TbMoneybagPlus } from "react-icons/tb";
 import { AdminModal } from "../modals";
 
@@ -55,11 +55,11 @@ export default function ShopRateManager({
 				{isFormVisible && (
 					<AdminModal open={isFormVisible} onClose={handleModalClose} title="Edit Shop Rate">
 						<form onSubmit={handleSave} className="flex gap-4">
+							
 							<input className="w-full rounded border border-neutral-700 p-3 bg-neutral-950 outline-none "
 								value={hourlyRate}
 								onChange={(e) => setHourlyRate(Number(e.target.value))}
-							>
-							</input>
+							/>
 							<AdminButton
 								type="submit"
 								size="lg"
@@ -76,7 +76,7 @@ export default function ShopRateManager({
 				<span></span>
 				<AdminButton
 					variant="text"
-					size="lg"
+					size="md"
 					iconLeft={<TbMoneybagPlus />}
 					className="pr-1"
 					onClick={() => setIsFormVisible(true)}

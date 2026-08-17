@@ -272,46 +272,6 @@ async def list_admin_services():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Toggles a service's visibility on the public menu.
-@router.patch("/services/{service_id}/visibility")
-async def update_service_visibility(service_id: str, payload: ServiceVisibilityUpdate):
-    existing = (
-        supabase.table("services").select("is_internal").eq("id", service_id).execute()
-    )
-    if not existing.data:
-        raise HTTPException(status_code=404, detail="Service not found")
-    if existing.data[0].get("is_internal"):
-        raise HTTPException(
-            status_code=400,
-            detail="Invoice-only services are never on the public menu.",
-        )
-
-    response = (
-        supabase.table("services")
-        .update({"is_hidden": payload.is_hidden})
-        .eq("id", service_id)
-        .execute()
-    )
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Service not found")
-    return response.data[0]
-
-
-# Toggles whether a service is invoice-only (never on the public menu).
-@router.patch("/services/{service_id}/internal")
-async def update_service_internal(service_id: str, payload: ServiceInternalUpdate):
-    update_payload: dict = {"is_internal": payload.is_internal}
-    if payload.is_internal:
-        update_payload["is_hidden"] = False
-
-    response = (
-        supabase.table("services").update(update_payload).eq("id", service_id).execute()
-    )
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Service not found")
-    return response.data[0]
-
-
 # Updates the Shop Rate
 @router.patch("/shop-rate")
 async def update_hourly_rate(update: RateUpdate):

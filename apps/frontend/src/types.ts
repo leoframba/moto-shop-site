@@ -91,6 +91,7 @@ export interface ServiceFormData {
 	estimated_hours: number;
 	fixed_price: number;
 	is_internal: boolean;
+	is_hidden: boolean;
 }
 
 export type PricingType = "hourly" | "fixed" | "contact";

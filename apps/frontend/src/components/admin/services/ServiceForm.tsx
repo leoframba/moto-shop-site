@@ -26,6 +26,7 @@ export default function ServiceForm({
 		estimated_hours: initialData?.estimated_hours || 1,
 		fixed_price: initialData?.fixed_price || 0,
 		is_internal: initialData?.is_internal ?? false,
+		is_hidden: initialData?.is_hidden ?? false,
 	});
 
 	const [isSaving, setIsSaving] = useState(false);
@@ -161,26 +162,56 @@ export default function ServiceForm({
 						</div>
 					)}
 				</div>
-
-				<label className="mt-2 inline-flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-950/60 p-3">
-					<input
-						type="checkbox"
-						checked={formData.is_internal}
-						onChange={(e) =>
-							setFormData({ ...formData, is_internal: e.target.checked })
-						}
-						className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-900 text-emerald-500 focus:ring-emerald-500"
-					/>
-					<span>
-						<span className="block text-sm font-semibold text-neutral-100">
-							Invoice only
+				
+				<div className="flex gap-4">
+					<label className="mt-2 inline-flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-950/60 p-3">
+						<input
+							type="checkbox"
+							checked={formData.is_internal}
+							onChange={(e) =>
+								setFormData({
+									...formData, 
+									is_internal: e.target.checked, 
+									...(e.target.checked ? {is_hidden: false} : {}) 
+								})
+							}
+							className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-900 text-emerald-500 focus:ring-emerald-500"
+						/>
+						
+						<span>
+							<span className="block text-sm font-semibold text-neutral-100">
+								Invoice only
+							</span>
+							<span className="block text-xs leading-relaxed text-neutral-300">
+								Shop catalog item for invoices. Never appears on the public
+								website menu.
+							</span>
 						</span>
-						<span className="block text-xs leading-relaxed text-neutral-300">
-							Shop catalog item for invoices. Never appears on the public
-							website menu.
+					</label>
+					<label className="mt-2 inline-flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-950/60 p-3">
+						<input
+							type="checkbox"
+							checked={formData.is_hidden}
+							onChange={(e) =>
+								setFormData({ 
+									...formData, 
+									is_hidden: e.target.checked, 
+									...(e.target.checked ? {is_internal: false } : {})
+								})
+							}
+							className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-900 text-emerald-500 focus:ring-emerald-500"
+						/>
+						
+						<span>
+							<span className="block text-sm font-semibold text-neutral-100">
+								Hidden
+							</span>
+							<span className="block text-xs leading-relaxed text-neutral-300">
+								Hidden service for testing. 
+							</span>
 						</span>
-					</span>
-				</label>
+					</label>
+				</div>
 			</div>
 			{/* BUTTON LAYOUT */}
 			<div className="flex justify-between items-center pt-2 border-t border-neutral-800 mt-6">
