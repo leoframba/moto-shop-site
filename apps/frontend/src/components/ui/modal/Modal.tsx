@@ -41,7 +41,7 @@ export function Modal({
                 <Dialog.Overlay
                     className="
                         fixed inset-0 z-50
-                        bg-black/50
+                        bg-black/60
                     "
                 >
                     <Dialog.Content

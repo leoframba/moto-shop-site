@@ -263,7 +263,7 @@ export default function AdminPartsTab() {
 						</div>
 					) : (
 						<div className="overflow-x-auto rounded-lg border border-neutral-800">
-							<table className="w-full min-w-[40rem] border-collapse bg-neutral-900">
+							<table className="w-full min-w-160 border-collapse bg-neutral-900">
 								<thead>
 									<tr className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs font-bold uppercase tracking-widest text-neutral-300">
 										<th className="px-4 py-3">Name</th>

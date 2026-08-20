@@ -78,7 +78,7 @@ export default function ShopRateManager({
 					variant="text"
 					size="md"
 					iconLeft={<TbMoneybagPlus />}
-					className="pr-1"
+					className="pr-1 text-emerald-400 hover:text-emerald-300"
 					onClick={() => setIsFormVisible(true)}
 				>
 					Edit Shop Rate

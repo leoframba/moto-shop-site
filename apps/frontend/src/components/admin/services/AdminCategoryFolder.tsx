@@ -66,11 +66,7 @@ export default function AdminCategoryFolder({
 					<span className="text-red-500 font-mono text-3xl font-light leading-none w-6 text-center">
 						{isOpen ? "-" : "+"}
 					</span>
-					<AdminButton
-						variant="danger"
-					>
-						Edit
-					</AdminButton>
+
 				</div>
 
 			</button>

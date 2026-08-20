@@ -5,6 +5,10 @@ export interface Category {
 	name: string;
 }
 
+export type CategoryActionResult =
+	| { ok: true }
+	| { ok: false; message: string };
+
 export interface Service {
 	id: string;
 	name: string;

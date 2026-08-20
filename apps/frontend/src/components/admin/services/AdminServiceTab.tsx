@@ -8,12 +8,16 @@ import ShopRateManager from "@/components/admin/services/ShopRateManager";
 import AdminServicesSkeleton from "@/components/services/AdminServicesSkeleton";
 import { useServices } from "@/hooks/useServices";
 import { confirmDeleteToast } from "@/lib/confirm-toast";
-import type { Category, Service, ServiceFormData } from "@/types";
+import type {
+	Category,
+	CategoryActionResult,
+	Service,
+	ServiceFormData,
+} from "@/types";
 import { authApiRequest } from "@/utils/api";
 import { AdminButton } from "../../ui/AdminButton";
-import { FaFolderPlus } from "react-icons/fa";
+import { FaFolderPlus, FaPlus, FaMinus } from "react-icons/fa";
 import { Modal } from "../../ui/modal/Modal"
-
 
 const calculateServicePrice = (
 	service: Service,
@@ -62,7 +66,8 @@ export default function AdminServiceTab() {
 		}));
 	};
 
-	const [isAdding, setIsAdding] = useState(false);
+	const [isCreatingService, setIsCreatingService] = useState<boolean>(false);
+	const [isManagingCategories, setIsManagingCategories] = useState<boolean>(false);
 
 	const saveRate = async (newRate: number) => {
 		try {
@@ -85,51 +90,59 @@ export default function AdminServiceTab() {
 		}
 	};
 
-	// const [manageMenuOpen, setManageMenuOpen] = useState<boolean>(false);
-	// interface ManageMenuModalProps {
-	// 	open: boolean,
-	// 	onOpenChange: (open: boolean) => void;
-	// }
-	// const ManageMenuModal = ({
-	// 	open,
-	// 	onOpenChange,
-	// }: ManageMenuModalProps) => {
-	// 	return (
-	// 		<Modal
-	// 			open={open}
-	// 			onOpenChange={onOpenChange}
-	// 			title= "Manage Service Menu"
-	// 			description= "Create Categories and Services"
-	// 			size="xl"
-	// 		>
-	// 			<CategoryManager
-	// 				categories={categories}
-	// 				onSaveCategory={saveNewCategory}
-	// 				onDeleteCategory={deleteCategory}
-	// 			/>
-	// 		</Modal>
-	// 	)
-	// }
-
 	// ==========================================
 	// CATEGORIES
 	// ==========================================
-	const saveNewCategory = async (nameToSave: string) => {
+	const saveNewCategory = async (nameToSave: string): Promise<CategoryActionResult> => {
 		try {
 			const newCat = await authApiRequest<Category>("/api/admin/categories", {
 				method: "POST",
 				body: JSON.stringify({ name: nameToSave }),
 			});
-			setCategories([...categories, newCat]);
-
-			return true;
-		} catch {
-			toast.error(
-				`Failed to create "${nameToSave}". This category name likely already exists.`,
-			);
-			return false;
+			setCategories((prev) => [...prev, newCat]);
+			
+			toast.success(`Created "${nameToSave}"`)
+			return { ok: true };
+		} catch (error) {
+			const message = error instanceof Error
+				? error.message
+				: `Failed to create "${nameToSave}".`;
+			return { ok: false, message: message }			
 		}
 	};
+
+	const updateCategory = async (category: Category): Promise<CategoryActionResult> => {
+		try {
+			const updatedCat = await authApiRequest<Category>(`/api/admin/categories/${category.id}`, {
+				method: "PATCH",
+				body: JSON.stringify({ name: category.name, id: category.id }),
+			})
+			
+			setCategories((prev) =>
+				prev.map((cat) =>
+					cat.id === updatedCat.id ? {...cat, name: updatedCat.name} : cat
+				),
+			);
+
+			setServices((prev) => 
+				prev.map((service) =>
+					service.categories?.id === updatedCat.id
+						? {
+							...service,
+							categories: { ...service.categories, name: updatedCat.name}
+						}
+					: service
+				),
+			);
+			toast.success("Category Updated.");
+			return { ok: true };
+		} catch (error) {
+			const message = error instanceof Error
+				? error.message
+				: `Failed to update "${category.name}".`;
+			return { ok: false, message: message }
+		}
+	}
 
 	const performDeleteCategory = async (id: string) => {
 		try {
@@ -152,6 +165,8 @@ export default function AdminServiceTab() {
 			onConfirm: () => performDeleteCategory(id),
 		});
 	};
+
+	
 
 	// ==========================================
 	// SERVICES
@@ -211,7 +226,7 @@ export default function AdminServiceTab() {
 
 			setServices([...services, completeService]);
 
-			setIsAdding(false);
+			setIsCreatingService(false);
 
 			setOpenFolders((prev) => ({
 				...prev,
@@ -329,32 +344,55 @@ export default function AdminServiceTab() {
 
 			{/* SERVICE MANAGEMENT */}
 			<section>
-				<div className="flex justify-between items-center mb-4">
+				<div className="flex justify-between items-center mb-2">
 					<h2 className="text-xs font-bold uppercase tracking-widest text-neutral-300">
 						Service Menu Previews
 					</h2>
-					
-					{/* <AdminButton
-						type="button"
-						variant="primary"
-						onClick = {(() => setManageMenuOpen(true))}
+				</div>
+
+				<div className="flex justify-between">
+					<AdminButton
+						variant="text"
+						className="text-emerald-400"
+						onClick={() => setIsCreatingService(!isCreatingService)}
 					>
-						Manage Menu
+						 {isCreatingService ? (<><FaMinus/> Cancel</>) : (<><FaPlus/> Create Service</>)}
+					</AdminButton>
+					
+					<Modal
+						open={isManagingCategories}
+						onOpenChange={setIsManagingCategories}
+						title="Manage Categories"
+						description="Create/Delete Categories -- Categories must be empty before delete"
+						size="xl"
+					>
+						<CategoryManager
+							categories={categories}
+							onDeleteCategory={deleteCategory}
+							onSaveCategory={saveNewCategory}
+							onUpdateCategory={updateCategory}
+						/>
+					</Modal>
+
+					<AdminButton
+						variant="text"
+						className="text-emerald-400"
+						onClick={() => setIsManagingCategories(true)}
+						iconLeft=<FaFolderPlus/>
+
+					>
+						Mange Categories
 					</AdminButton>
 
-					<ManageMenuModal
-						open={manageMenuOpen}
-						onOpenChange={setManageMenuOpen}
-					/> */}
 				</div>
 
 				<div className="space-y-4">
 					{/* ADD FORM */}
-					{isAdding && (
+					{isCreatingService && (
 						<ServiceForm
 							categories={categories}
 							onSave={saveNewService}
-							onCancel={() => setIsAdding(false)}
+							onCancel={() => setIsCreatingService(false)}
 						/>
 					)}
 

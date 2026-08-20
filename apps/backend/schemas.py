@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, UUID4
 
 from typing_extensions import Self
 
@@ -71,6 +71,15 @@ class ServiceInternalUpdate(BaseModel):
 
 class CategoryCreate(BaseModel):
     name: str = Field(..., min_length=2)
+
+    @field_validator("name")
+    @classmethod
+    def format_name(cls, v: str) -> str:
+        return v.strip()
+
+class CategoryEdit(BaseModel):
+    name: str = Field(..., min_length=2)
+    id: UUID4 = Field(...)
 
     @field_validator("name")
     @classmethod

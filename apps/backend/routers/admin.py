@@ -17,6 +17,7 @@ from schemas import (
     BikeCreate,
     BikeUpdate,
     CategoryCreate,
+    CategoryEdit,
     EmployeeCreate,
     EmployeeUpdate,
     InvoiceCreate,
@@ -188,9 +189,26 @@ async def create_category(category: CategoryCreate):
 
 # Deletes a Category
 @router.delete("/categories/{category_id}")
-async def delete_category(category_id: str):
+async def delete_category(category: CategoryEdit):
     try:
-        response = supabase.table("categories").delete().eq("id", category_id).execute()
+        response = supabase.table("categories").delete().eq("id", category.id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Updates a Category
+@router.patch("/categories/{category_id}")
+async def update_category(category: CategoryEdit):
+    try:
+        response = (
+            supabase.table("categories")
+            .update({"name": category.name})
+            .eq("id", category.id)
+            .execute()
+        )
         if not response.data:
             raise HTTPException(status_code=404, detail="Category not found")
         return response.data[0]
