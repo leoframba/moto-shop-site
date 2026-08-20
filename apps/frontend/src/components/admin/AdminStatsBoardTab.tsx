@@ -45,25 +45,25 @@ const BREAKDOWN_CARDS: {
 	accent: string;
 	borderActive: string;
 }[] = [
-	{
-		category: "service",
-		label: "Services & Labor",
-		accent: "text-blue-300",
-		borderActive: "border-blue-600/60",
-	},
-	{
-		category: "part",
-		label: "Parts & Materials",
-		accent: "text-violet-300",
-		borderActive: "border-violet-600/60",
-	},
-	{
-		category: "hazardous_waste",
-		label: "Hazardous Waste",
-		accent: "text-amber-300",
-		borderActive: "border-amber-600/60",
-	},
-];
+		{
+			category: "service",
+			label: "Services & Labor",
+			accent: "text-blue-300",
+			borderActive: "border-blue-600/60",
+		},
+		{
+			category: "part",
+			label: "Parts & Materials",
+			accent: "text-violet-300",
+			borderActive: "border-violet-600/60",
+		},
+		{
+			category: "hazardous_waste",
+			label: "Hazardous Waste",
+			accent: "text-amber-300",
+			borderActive: "border-amber-600/60",
+		},
+	];
 
 function StatsContributionPanel({
 	title,
@@ -156,13 +156,16 @@ export default function AdminStatsBoardTab() {
 		let isActive = true;
 		setLinesLoadAttempted(false);
 		void (async () => {
-			await data.ensureInvoiceLinesLoaded();
+			await Promise.all([
+				data.ensureInvoiceLinesLoaded(),
+				data.ensureBuilderDependenciesLoaded(),
+			]);
 			if (isActive) setLinesLoadAttempted(true);
 		})();
 		return () => {
 			isActive = false;
 		};
-	}, [data.ensureInvoiceLinesLoaded]);
+	}, [data.ensureBuilderDependenciesLoaded, data.ensureInvoiceLinesLoaded]);
 
 	const taxRate = Number(data.shopSettings.tax_rate ?? 0);
 	const dateRangeInvalid = Boolean(startDate && endDate && startDate > endDate);
@@ -244,7 +247,9 @@ export default function AdminStatsBoardTab() {
 	);
 
 	const isStatsDataLoading =
-		data.isLoading || data.isInvoiceLinesLoading || !linesLoadAttempted;
+		data.isInvoiceLinesLoading ||
+		data.isBuilderDepsLoading ||
+		!linesLoadAttempted;
 
 	if (isStatsDataLoading) {
 		return (
@@ -361,11 +366,10 @@ export default function AdminStatsBoardTab() {
 									key={status}
 									type="button"
 									onClick={() => toggleStatusFilter(status)}
-									className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${
-										isActive
+									className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${isActive
 											? getInvoiceStatusTagClasses(status)
 											: "border border-neutral-800 bg-neutral-950 text-neutral-300 hover:text-neutral-200"
-									}`}
+										}`}
 								>
 									{toStatusLabel(status)}
 								</button>
@@ -403,11 +407,10 @@ export default function AdminStatsBoardTab() {
 								type="button"
 								onClick={() => toggleBreakdown(item.category)}
 								aria-expanded={isExpanded}
-								className={`rounded-lg border bg-neutral-950 p-4 text-left transition-colors hover:bg-neutral-900/80 ${
-									isExpanded
+								className={`rounded-lg border bg-neutral-950 p-4 text-left transition-colors hover:bg-neutral-900/80 ${isExpanded
 										? item.borderActive
 										: "border-neutral-700/60 hover:border-neutral-600"
-								}`}
+									}`}
 							>
 								<div className="flex items-start justify-between gap-2">
 									<p className="text-xs font-bold uppercase tracking-widest text-neutral-400">

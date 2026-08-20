@@ -30,7 +30,6 @@ export function InvoicesDataProvider({ children }: { children: ReactNode }) {
 	const value = useMemo<InvoicesDataContextValue>(
 		() => ({
 			...data,
-			isLoading: !loadRequested || data.isLoading,
 			isInvoicesLoading: !loadRequested || data.isInvoicesLoading,
 			ensureLoaded,
 			hasLoaded: loadRequested,

@@ -74,6 +74,9 @@ interface InvoiceListProps {
 		invoiceId: string,
 		options?: { silent?: boolean },
 	) => Promise<InvoiceWithRelations | null>;
+	onEnsureStatusesLoaded?: (
+		statuses: InvoiceRecord["status"][],
+	) => Promise<void>;
 	onEdit: (invoice: InvoiceWithRelations) => void;
 	onInvoiceDeleted: (invoiceId: string) => void;
 	autoExpandInvoiceId: string | null;
@@ -86,6 +89,7 @@ export function InvoiceList({
 	shopSettings,
 	setInvoices,
 	onLoadInvoiceLines,
+	onEnsureStatusesLoaded,
 	onEdit,
 	onInvoiceDeleted,
 	autoExpandInvoiceId,
@@ -142,6 +146,11 @@ export function InvoiceList({
 	useEffect(() => {
 		setActiveStatusFilters(defaultStatusFilters);
 	}, [defaultStatusFilters]);
+
+	useEffect(() => {
+		if (!onEnsureStatusesLoaded || activeStatusFilters.length === 0) return;
+		void onEnsureStatusesLoaded(activeStatusFilters);
+	}, [activeStatusFilters, onEnsureStatusesLoaded]);
 
 	const loadInvoiceLines = useCallback(
 		async (invoiceId: string, options?: { silent?: boolean }) => {
@@ -521,11 +530,10 @@ export function InvoiceList({
 								key={status}
 								type="button"
 								onClick={() => toggleStatusFilter(status)}
-								className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${
-									isActive
+								className={`min-h-9 px-3 py-1.5 rounded-md text-xs uppercase tracking-widest font-bold transition-colors ${isActive
 										? getInvoiceStatusTagClasses(status)
 										: "bg-neutral-950 border border-neutral-800 text-neutral-300 hover:text-neutral-300"
-								}`}
+									}`}
 							>
 								{toStatusLabel(status)}
 							</button>
@@ -618,11 +626,10 @@ export function InvoiceList({
 														onClick={() =>
 															void updateInvoiceStatus(invoice.id, statusOption)
 														}
-														className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${
-															invoice.status === statusOption
+														className={`min-h-9 rounded-md px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition-colors ${invoice.status === statusOption
 																? getInvoiceStatusTagClasses(statusOption)
 																: "border border-neutral-800 bg-neutral-950 text-neutral-300 hover:text-white"
-														}`}
+															}`}
 													>
 														{toStatusLabel(statusOption)}
 													</button>

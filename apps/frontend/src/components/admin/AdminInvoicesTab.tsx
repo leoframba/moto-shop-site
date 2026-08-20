@@ -3,10 +3,10 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
+	adminLoadingStateClass,
 	adminPageSubtitleClass,
 	adminPageTitleClass,
 } from "@/components/admin/adminUi";
-import { InvoiceBuilderSkeleton } from "./invoices/InvoiceBuilderSkeleton";
 import { InvoiceListSkeleton } from "./invoices/InvoiceListSkeleton";
 import { useInvoicesDataContext } from "./invoices/InvoicesDataProvider";
 import { useInvoiceBuilder } from "./invoices/useInvoiceBuilder";
@@ -49,19 +49,15 @@ export default function AdminInvoicesTab() {
 
 	useEffect(() => {
 		if (!builder.isOpen) return;
-		void data.refetchEmployees();
+		void data.ensureBuilderDependenciesLoaded();
 		void data.refetchUsers();
 		void data.refetchBikes();
 	}, [
 		builder.isOpen,
+		data.ensureBuilderDependenciesLoaded,
 		data.refetchBikes,
-		data.refetchEmployees,
 		data.refetchUsers,
 	]);
-
-	if (data.isLoading) {
-		return <InvoiceBuilderSkeleton />;
-	}
 
 	const builderActionLabel = builder.editingInvoiceId
 		? "Resume Edit"
@@ -102,6 +98,7 @@ export default function AdminInvoicesTab() {
 					services={data.services}
 					parts={data.parts}
 					taxRate={Number(data.shopSettings.tax_rate ?? 0)}
+					isBuilderDepsLoading={data.isBuilderDepsLoading}
 					onPartCreated={data.addPart}
 					onBikeCreated={data.addBike}
 					onUserCreated={data.addUser}
@@ -118,6 +115,7 @@ export default function AdminInvoicesTab() {
 					shopSettings={data.shopSettings}
 					setInvoices={data.setInvoices}
 					onLoadInvoiceLines={data.refetchInvoice}
+					onEnsureStatusesLoaded={data.ensureInvoicesForStatuses}
 					onEdit={builder.startEdit}
 					onInvoiceDeleted={builder.handleInvoiceDeleted}
 					autoExpandInvoiceId={autoExpandInvoiceId}

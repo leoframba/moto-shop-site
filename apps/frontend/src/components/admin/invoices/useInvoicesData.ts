@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { compareParts } from "@/components/admin/parts/partUtils";
 import type {
 	AdminUser,
 	Employee,
 	InvoiceBike,
+	InvoiceRecord,
 	InvoiceWithRelations,
 	Part,
 	Service,
@@ -12,7 +13,13 @@ import type {
 	ShopSettings,
 } from "@/types";
 import { authApiRequest } from "@/utils/api";
-import { DEFAULT_SHOP_SETTINGS } from "./invoiceHelpers";
+import {
+	buildInvoicesListUrl,
+	DEFAULT_SHOP_SETTINGS,
+	INITIAL_INVOICE_LOAD_STATUSES,
+	INVOICE_STATUSES,
+	mergeInvoicesById,
+} from "./invoiceHelpers";
 
 export interface RefetchOptions {
 	silent?: boolean;
@@ -23,9 +30,17 @@ export interface InvoiceRefetchOptions {
 	silent?: boolean;
 }
 
+export interface LoadInvoicesOptions {
+	silent?: boolean;
+	includeLineItems?: boolean;
+	statuses?: InvoiceRecord["status"][] | null;
+	merge?: boolean;
+}
+
 export interface InvoicesData {
 	isLoading: boolean;
 	isInvoicesLoading: boolean;
+	isBuilderDepsLoading: boolean;
 	isInvoiceLinesLoading: boolean;
 	users: AdminUser[];
 	employees: Employee[];
@@ -46,6 +61,10 @@ export interface InvoicesData {
 		options?: InvoiceRefetchOptions,
 	) => Promise<InvoiceWithRelations | null>;
 	ensureInvoiceLinesLoaded: () => Promise<boolean>;
+	ensureBuilderDependenciesLoaded: () => Promise<void>;
+	ensureInvoicesForStatuses: (
+		statuses: InvoiceRecord["status"][],
+	) => Promise<void>;
 	addPart: (part: Part) => void;
 	addBike: (bike: InvoiceBike) => void;
 	addEmployee: (employee: Employee) => void;
@@ -63,6 +82,7 @@ export function useInvoicesData(
 	const enabled = options.enabled ?? true;
 	const [isLoading, setIsLoading] = useState(enabled);
 	const [isInvoicesLoading, setIsInvoicesLoading] = useState(enabled);
+	const [isBuilderDepsLoading, setIsBuilderDepsLoading] = useState(false);
 	const [isInvoiceLinesLoading, setIsInvoiceLinesLoading] = useState(false);
 	const [users, setUsers] = useState<AdminUser[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
@@ -74,6 +94,22 @@ export function useInvoicesData(
 		DEFAULT_SHOP_SETTINGS,
 	);
 	const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
+	const loadedInvoiceStatusesRef = useRef(new Set<InvoiceRecord["status"]>());
+	const builderDepsLoadedRef = useRef(false);
+	const builderDepsLoadPromiseRef = useRef<Promise<void> | null>(null);
+
+	const markLoadedInvoiceStatuses = useCallback(
+		(statuses: InvoiceRecord["status"][]) => {
+			for (const status of statuses) {
+				loadedInvoiceStatusesRef.current.add(status);
+			}
+		},
+		[],
+	);
+
+	const markAllInvoiceStatusesLoaded = useCallback(() => {
+		loadedInvoiceStatusesRef.current = new Set(INVOICE_STATUSES);
+	}, []);
 
 	const refetchUsers = useCallback(async () => {
 		try {
@@ -129,6 +165,7 @@ export function useInvoicesData(
 					next[existingIndex] = invoice;
 					return next;
 				});
+				markLoadedInvoiceStatuses([invoice.status]);
 				return invoice;
 			} catch (error) {
 				console.error(error);
@@ -138,17 +175,72 @@ export function useInvoicesData(
 				return null;
 			}
 		},
-		[],
+		[markLoadedInvoiceStatuses],
+	);
+
+	const loadInvoices = useCallback(
+		async (options: LoadInvoicesOptions = {}) => {
+			const {
+				silent = false,
+				includeLineItems = false,
+				statuses = null,
+				merge = false,
+			} = options;
+
+			if (!silent) {
+				setIsInvoicesLoading(true);
+			}
+			try {
+				const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
+					buildInvoicesListUrl({ includeLineItems, statuses }),
+					{ cache: "no-store" },
+				);
+				setInvoices((prev) =>
+					merge ? mergeInvoicesById(prev, invoiceRows) : invoiceRows,
+				);
+				if (statuses?.length) {
+					markLoadedInvoiceStatuses(statuses);
+				} else {
+					markAllInvoiceStatusesLoaded();
+				}
+			} catch (error) {
+				console.error(error);
+				toast.error("Failed to load invoices.");
+			} finally {
+				if (!silent) {
+					setIsInvoicesLoading(false);
+				}
+			}
+		},
+		[markAllInvoiceStatusesLoaded, markLoadedInvoiceStatuses],
+	);
+
+	const ensureInvoicesForStatuses = useCallback(
+		async (statuses: InvoiceRecord["status"][]) => {
+			const missingStatuses = statuses.filter(
+				(status) => !loadedInvoiceStatusesRef.current.has(status),
+			);
+			if (missingStatuses.length === 0) return;
+
+			await loadInvoices({
+				silent: true,
+				includeLineItems: false,
+				statuses: missingStatuses,
+				merge: true,
+			});
+		},
+		[loadInvoices],
 	);
 
 	const ensureInvoiceLinesLoaded = useCallback(async () => {
 		setIsInvoiceLinesLoading(true);
 		try {
 			const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
-				"/api/admin/invoices?include_line_items=true",
+				buildInvoicesListUrl({ includeLineItems: true }),
 				{ cache: "no-store" },
 			);
 			setInvoices(invoiceRows);
+			markAllInvoiceStatusesLoaded();
 			return true;
 		} catch (error) {
 			console.error(error);
@@ -157,136 +249,156 @@ export function useInvoicesData(
 		} finally {
 			setIsInvoiceLinesLoading(false);
 		}
-	}, []);
+	}, [markAllInvoiceStatusesLoaded]);
 
 	const loadBuilderDependencies = useCallback(async (silent = false) => {
 		if (!silent) {
-			setIsLoading(true);
+			setIsBuilderDepsLoading(true);
 		}
 		try {
-			const [
-				userRows,
-				employeeRows,
-				bikeRows,
-				partRows,
-				servicesPayload,
-				settings,
-			] = await Promise.all([
-				authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
+			const [employeeRows, partRows, servicesPayload] = await Promise.all([
 				authApiRequest<Employee[]>("/api/admin/employees", {
-					cache: "no-store",
-				}),
-				authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
 					cache: "no-store",
 				}),
 				authApiRequest<Part[]>("/api/admin/parts", { cache: "no-store" }),
 				authApiRequest<ServiceResponse>("/api/admin/services", {
 					cache: "no-store",
 				}),
-				authApiRequest<ShopSettings>("/api/admin/shop-settings", {
-					cache: "no-store",
-				}),
 			]);
 
-			setUsers(userRows);
 			setEmployees(employeeRows);
-			setBikes(bikeRows);
 			setParts(partRows);
 			setShopHourlyRate(Number(servicesPayload.hourly_rate ?? 0));
 			setServices(servicesPayload.services ?? []);
-			setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
+			builderDepsLoadedRef.current = true;
 		} catch (error) {
 			console.error(error);
-			toast.error("Failed to load invoice dependencies.");
+			toast.error("Failed to load invoice builder data.");
+			throw error;
 		} finally {
 			if (!silent) {
-				setIsLoading(false);
+				setIsBuilderDepsLoading(false);
 			}
 		}
 	}, []);
 
-	const loadInvoices = useCallback(async (silent = false, includeLineItems = false) => {
-		if (!silent) {
-			setIsInvoicesLoading(true);
+	const ensureBuilderDependenciesLoaded = useCallback(async () => {
+		if (builderDepsLoadedRef.current) return;
+		if (builderDepsLoadPromiseRef.current) {
+			await builderDepsLoadPromiseRef.current;
+			return;
 		}
+
+		const loadPromise = loadBuilderDependencies();
+		builderDepsLoadPromiseRef.current = loadPromise;
 		try {
-			const invoiceRows = await authApiRequest<InvoiceWithRelations[]>(
-				`/api/admin/invoices?include_line_items=${includeLineItems ? "true" : "false"}`,
-				{ cache: "no-store" },
-			);
+			await loadPromise;
+		} finally {
+			builderDepsLoadPromiseRef.current = null;
+		}
+	}, [loadBuilderDependencies]);
+
+	const loadInitialData = useCallback(async () => {
+		setIsLoading(true);
+		setIsInvoicesLoading(true);
+		try {
+			const [userRows, bikeRows, settings, invoiceRows] = await Promise.all([
+				authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
+				authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
+					cache: "no-store",
+				}),
+				authApiRequest<ShopSettings>("/api/admin/shop-settings", {
+					cache: "no-store",
+				}),
+				authApiRequest<InvoiceWithRelations[]>(
+					buildInvoicesListUrl({
+						includeLineItems: false,
+						statuses: INITIAL_INVOICE_LOAD_STATUSES,
+					}),
+					{ cache: "no-store" },
+				),
+			]);
+
+			setUsers(userRows);
+			setBikes(bikeRows);
+			setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
 			setInvoices(invoiceRows);
+			markLoadedInvoiceStatuses(INITIAL_INVOICE_LOAD_STATUSES);
 		} catch (error) {
 			console.error(error);
 			toast.error("Failed to load invoices.");
 		} finally {
-			if (!silent) {
-				setIsInvoicesLoading(false);
-			}
+			setIsLoading(false);
+			setIsInvoicesLoading(false);
 		}
-	}, []);
+	}, [markLoadedInvoiceStatuses]);
 
-	const refetch = useCallback(async (options: RefetchOptions = {}) => {
-		const { silent = false, includeLineItems = false } = options;
-		if (!silent) {
-			setIsLoading(true);
-			setIsInvoicesLoading(true);
-		}
-		try {
-			const [
-				userRows,
-				employeeRows,
-				bikeRows,
-				partRows,
-				servicesPayload,
-				invoiceRows,
-				settings,
-			] = await Promise.all([
-				authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
-				authApiRequest<Employee[]>("/api/admin/employees", {
-					cache: "no-store",
-				}),
-				authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
-					cache: "no-store",
-				}),
-				authApiRequest<Part[]>("/api/admin/parts", { cache: "no-store" }),
-				authApiRequest<ServiceResponse>("/api/admin/services", {
-					cache: "no-store",
-				}),
-				authApiRequest<InvoiceWithRelations[]>(
-					`/api/admin/invoices?include_line_items=${includeLineItems ? "true" : "false"}`,
-					{ cache: "no-store" },
-				),
-				authApiRequest<ShopSettings>("/api/admin/shop-settings", {
-					cache: "no-store",
-				}),
-			]);
-
-			setUsers(userRows);
-			setEmployees(employeeRows);
-			setBikes(bikeRows);
-			setParts(partRows);
-			setShopHourlyRate(Number(servicesPayload.hourly_rate ?? 0));
-			setServices(servicesPayload.services ?? []);
-			setInvoices(invoiceRows);
-			setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to load invoice dependencies.");
-		} finally {
+	const refetch = useCallback(
+		async (options: RefetchOptions = {}) => {
+			const { silent = false, includeLineItems = false } = options;
 			if (!silent) {
-				setIsLoading(false);
-				setIsInvoicesLoading(false);
+				setIsLoading(true);
+				setIsInvoicesLoading(true);
+				setIsBuilderDepsLoading(true);
 			}
-		}
-	}, []);
+			try {
+				const [
+					userRows,
+					bikeRows,
+					settings,
+					employeeRows,
+					partRows,
+					servicesPayload,
+					invoiceRows,
+				] = await Promise.all([
+					authApiRequest<AdminUser[]>("/api/admin/users", { cache: "no-store" }),
+					authApiRequest<InvoiceBike[]>("/api/admin/bikes", {
+						cache: "no-store",
+					}),
+					authApiRequest<ShopSettings>("/api/admin/shop-settings", {
+						cache: "no-store",
+					}),
+					authApiRequest<Employee[]>("/api/admin/employees", {
+						cache: "no-store",
+					}),
+					authApiRequest<Part[]>("/api/admin/parts", { cache: "no-store" }),
+					authApiRequest<ServiceResponse>("/api/admin/services", {
+						cache: "no-store",
+					}),
+					authApiRequest<InvoiceWithRelations[]>(
+						buildInvoicesListUrl({ includeLineItems }),
+						{ cache: "no-store" },
+					),
+				]);
+
+				setUsers(userRows);
+				setBikes(bikeRows);
+				setShopSettings({ ...DEFAULT_SHOP_SETTINGS, ...settings });
+				setEmployees(employeeRows);
+				setParts(partRows);
+				setShopHourlyRate(Number(servicesPayload.hourly_rate ?? 0));
+				setServices(servicesPayload.services ?? []);
+				setInvoices(invoiceRows);
+				markAllInvoiceStatusesLoaded();
+				builderDepsLoadedRef.current = true;
+			} catch (error) {
+				console.error(error);
+				toast.error("Failed to load invoice dependencies.");
+			} finally {
+				if (!silent) {
+					setIsLoading(false);
+					setIsInvoicesLoading(false);
+					setIsBuilderDepsLoading(false);
+				}
+			}
+		},
+		[markAllInvoiceStatusesLoaded],
+	);
 
 	useEffect(() => {
 		if (!enabled) return;
-		void (async () => {
-			await loadBuilderDependencies();
-			await loadInvoices();
-		})();
-	}, [enabled, loadBuilderDependencies, loadInvoices]);
+		void loadInitialData();
+	}, [enabled, loadInitialData]);
 
 	const addPart = useCallback((part: Part) => {
 		setParts((prev) => [...prev, part].sort(compareParts));
@@ -325,6 +437,7 @@ export function useInvoicesData(
 	return {
 		isLoading,
 		isInvoicesLoading,
+		isBuilderDepsLoading,
 		isInvoiceLinesLoading,
 		users,
 		employees,
@@ -342,6 +455,8 @@ export function useInvoicesData(
 		refetchEmployees,
 		refetchInvoice,
 		ensureInvoiceLinesLoaded,
+		ensureBuilderDependenciesLoaded,
+		ensureInvoicesForStatuses,
 		addPart,
 		addBike,
 		addEmployee,

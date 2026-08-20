@@ -22,68 +22,150 @@ type LineItemTableRow = {
 	groupTitle?: string;
 	isGroupHead?: boolean;
 	isSubtotal?: boolean;
+	/** Estimated print height in row units (wrapped descriptions may exceed 1). */
+	weight?: number;
 };
 
 const isLineItemRow = (row: LineItemTableRow): boolean =>
 	!row.isGroupHead && !row.isSubtotal;
 
-// --- Page-1 layout budget (letter paper, 0.4in margins) -------------------
-// All values are in "line-item-row" height units (~22px). Tune these if the
-// summary ever slips off page one or page one looks too sparse/crowded.
-const PAGE_ROW_CAPACITY = 41;
-const HEADER_ROWS = 9;
-const BIKE_ROWS = 2;
-const SUMMARY_RESERVE_ROWS = 7;
-// A mechanic-notes line is shorter than a line-item row, so each reserved row
-// fits a little under two wrapped note lines.
-const NOTE_LINES_PER_ROW = 1.5;
-// Approx characters per wrapped line in the notes column when it sits beside
-// the totals box on page one.
-const NOTES_CHARS_PER_LINE = 80;
+export const getLineItemRowWeight = (row: LineItemTableRow): number =>
+	row.weight ?? 1;
 
-const getTopContentRows = (hasBike: boolean): number =>
+export const sumLineItemRowWeights = (rows: LineItemTableRow[]): number =>
+	rows.reduce((total, row) => total + getLineItemRowWeight(row), 0);
+
+const DESC_COL_CHARS = 38;
+const PART_NUM_COL_CHARS = 16;
+
+const estimatePartDescriptionForPrint = (line: InvoiceLineItemRecord): string => {
+	const stored = line.snapshot_part_number?.trim();
+	if (stored || !line.snapshot_name.includes(" — ")) {
+		return line.snapshot_name;
+	}
+	return parseLegacyPartSnapshot(line.snapshot_name).description;
+};
+
+const estimatePartNumberForPrint = (line: InvoiceLineItemRecord): string => {
+	const stored = line.snapshot_part_number?.trim();
+	if (stored) return stored;
+	if (!line.snapshot_name.includes(" — ")) return "";
+	return parseLegacyPartSnapshot(line.snapshot_name).partNumber;
+};
+
+/** Estimate how many budget rows a line item will occupy when printed. */
+export const estimateLineItemRowWeight = (
+	line: InvoiceLineItemRecord,
+): number => {
+	const description =
+		line.item_type === "part"
+			? estimatePartDescriptionForPrint(line)
+			: line.snapshot_name;
+	const partNumber =
+		line.item_type === "part" ? estimatePartNumberForPrint(line) : "";
+	const descLines = Math.max(1, Math.ceil(description.length / DESC_COL_CHARS));
+	const partLines = Math.max(
+		1,
+		Math.ceil(partNumber.length / PART_NUM_COL_CHARS),
+	);
+	return Math.max(descLines, partLines);
+};
+
+// --- Page-1 layout budget (letter paper, 0.4in margins) -------------------
+// Row units approximate ~22px of printable height. The totals box is pinned in
+// a fixed-height footer region; mechanic notes fill the space to its left inside
+// that same region (capped so totals never move to page two).
+export const PAGE_ROW_CAPACITY = 47;
+export const SUMMARY_PIN_ROWS_TOTALS_ONLY = 7;
+/** Upper cap when many mechanic notes share the pinned region with totals. */
+export const SUMMARY_PIN_ROWS_MAX = 12;
+export const NOTE_HEADING_ROWS = 1;
+export const HEADER_ROWS = 9;
+export const BIKE_ROWS = 2;
+/** Extra slack for wrapped part names / table rows that run taller than one unit. */
+export const BUDGET_SAFETY_ROWS = 3;
+// Mechanic-note lines are shorter than a table row; each row unit fits ~1.6 lines.
+export const NOTE_LINES_PER_ROW = 1.6;
+// Narrow notes column beside the 280px totals box on page one.
+export const NOTES_CHARS_PER_LINE_BESIDE_TOTALS = 78;
+
+export const getBodyRowCapacity = (summaryPinRows: number): number =>
+	PAGE_ROW_CAPACITY - summaryPinRows;
+
+export const summaryPinHeightIn = (summaryPinRows: number): string =>
+	`${((summaryPinRows * 22) / 96).toFixed(2)}in`;
+
+export const countWrappedNoteLines = (
+	rawNotes: string,
+	charsPerLine: number,
+): number => {
+	if (!rawNotes.trim()) return 0;
+	return rawNotes
+		.split("\n")
+		.reduce(
+			(sum, line) => sum + Math.max(1, Math.ceil(line.length / charsPerLine)),
+			0,
+		);
+};
+
+/**
+ * Size the pinned summary region to fit the first-page notes beside totals.
+ * Short notes keep the compact totals-only height so line items can run lower.
+ */
+export const getDynamicSummaryPinRows = (
+	firstPageNoteWrappedLines: number,
+): number => {
+	if (firstPageNoteWrappedLines <= 0) {
+		return SUMMARY_PIN_ROWS_TOTALS_ONLY;
+	}
+
+	const noteBlockRows =
+		NOTE_HEADING_ROWS +
+		Math.ceil(firstPageNoteWrappedLines / NOTE_LINES_PER_ROW);
+	return Math.min(
+		SUMMARY_PIN_ROWS_MAX,
+		Math.max(SUMMARY_PIN_ROWS_TOTALS_ONLY, noteBlockRows),
+	);
+};
+
+export const getMaxFirstPageNoteLineCapacity = (): number => {
+	const noteRegionRows = SUMMARY_PIN_ROWS_MAX - NOTE_HEADING_ROWS;
+	return Math.max(0, Math.floor(noteRegionRows * NOTE_LINES_PER_ROW));
+};
+
+export const getTopContentRows = (hasBike: boolean): number =>
 	HEADER_ROWS + (hasBike ? BIKE_ROWS : 0);
 
 /** Rough row budget for line items on page one. */
-const getFirstPageLineItemRowBudget = (
+export const getFirstPageLineItemRowBudget = (
 	hasBike: boolean,
 	groupCount: number,
+	summaryPinRows: number,
 ): number => {
-	// Reserve a row per group so each group's subtotal (e.g. the parts total)
-	// always has room beside its items on page one instead of being clipped
-	// behind the summary or orphaned onto a second page by itself.
 	const subtotalReserve = groupCount;
 	return Math.max(
 		4,
-		PAGE_ROW_CAPACITY -
-			getTopContentRows(hasBike) -
-			SUMMARY_RESERVE_ROWS -
-			subtotalReserve,
+		getBodyRowCapacity(summaryPinRows) -
+		getTopContentRows(hasBike) -
+		subtotalReserve -
+		BUDGET_SAFETY_ROWS,
 	);
 };
 
-/**
- * How many wrapped note lines fit beside the totals on page one, based on the
- * vertical space left after the header, bike, and first-page line items.
- */
-const getFirstPageNoteLineCapacity = (
-	hasBike: boolean,
-	firstPageLineItemCount: number,
-): number => {
-	const summaryRegionRows = Math.max(
-		SUMMARY_RESERVE_ROWS,
-		PAGE_ROW_CAPACITY - getTopContentRows(hasBike) - firstPageLineItemCount,
-	);
-	return Math.max(0, Math.floor(summaryRegionRows * NOTE_LINES_PER_ROW));
-};
+/** @deprecated Use getMaxFirstPageNoteLineCapacity(). */
+export const getFirstPageNoteLineCapacity = (hasNotes: boolean): number =>
+	hasNotes ? getMaxFirstPageNoteLineCapacity() : 0;
+
+/** @deprecated Use getDynamicSummaryPinRows(). */
+export const getSummaryPinRows = (hasNotes: boolean): number =>
+	hasNotes ? SUMMARY_PIN_ROWS_MAX : SUMMARY_PIN_ROWS_TOTALS_ONLY;
 
 /**
- * Split raw (unescaped) notes into the chunk that fits beside the totals on
- * page one and the remainder that flows onto the continuation page. Splits on
- * line boundaries where possible, only hard-wrapping a single line that is too
- * long to fit on its own.
+ * Split raw (unescaped) notes into the chunk that fits in the page-one body and
+ * the remainder that flows onto the continuation page. Splits on line boundaries
+ * where possible, only hard-wrapping a single line that is too long to fit alone.
  */
-const splitNotesForFirstPage = (
+export const splitNotesForFirstPage = (
 	rawNotes: string,
 	charsPerLine: number,
 	maxLines: number,
@@ -124,16 +206,34 @@ const splitNotesForFirstPage = (
 	};
 };
 
-const splitLineItemRows = (
+export const splitLineItemRows = (
 	rows: LineItemTableRow[],
 	budget: number,
 ): { firstPage: LineItemTableRow[]; continuation: LineItemTableRow[] } => {
-	if (rows.length <= budget) {
+	if (rows.length === 0) {
+		return { firstPage: [], continuation: [] };
+	}
+
+	if (sumLineItemRowWeights(rows) <= budget) {
 		return { firstPage: rows, continuation: [] };
 	}
 
+	let usedWeight = 0;
+	let cut = 0;
+	for (const [index, row] of rows.entries()) {
+		const weight = getLineItemRowWeight(row);
+		if (usedWeight + weight > budget && cut > 0) {
+			break;
+		}
+		usedWeight += weight;
+		cut = index + 1;
+	}
+
+	if (cut === 0) {
+		cut = 1;
+	}
+
 	// Never end page one on a dangling group header with no rows beneath it.
-	let cut = budget;
 	while (cut > 1 && rows[cut - 1]?.isGroupHead) {
 		cut -= 1;
 	}
@@ -158,6 +258,7 @@ const splitLineItemRows = (
 				html: `<tr class="group-head"><th colspan="5">${title} (continued)</th></tr>`,
 				groupTitle: firstContinuation.groupTitle,
 				isGroupHead: true,
+				weight: 1,
 			},
 			...continuation,
 		];
@@ -276,15 +377,18 @@ export const buildInvoicePrintHtml = (
 				html: `<tr class="group-head"><th colspan="5">${escapeHtml(title)}</th></tr>`,
 				groupTitle: title,
 				isGroupHead: true,
+				weight: 1,
 			},
 			...items.map((line) => ({
 				html: itemRenderer(line),
 				groupTitle: title,
+				weight: estimateLineItemRowWeight(line),
 			})),
 			{
 				html: renderGroupSubtotal(subtotalLabel, subtotal),
 				groupTitle: title,
 				isSubtotal: true,
+				weight: 1,
 			},
 		];
 	};
@@ -292,55 +396,67 @@ export const buildInvoicePrintHtml = (
 	const allLineItemRows: LineItemTableRow[] = [
 		...(hasHazardousWaste
 			? buildLineItemGroupRows(
-					"Hazardous Waste Disposal",
-					hazardousWaste,
-					"Hazardous Waste Total",
-					hazardousWasteSubtotal,
-				)
+				"Hazardous Waste Disposal",
+				hazardousWaste,
+				"Hazardous Waste Total",
+				hazardousWasteSubtotal,
+			)
 			: []),
 		...(hasServices
 			? buildLineItemGroupRows(
-					"Labor & Services",
-					services,
-					"Labor Total",
-					servicesSubtotal,
-				)
+				"Labor & Services",
+				services,
+				"Labor Total",
+				servicesSubtotal,
+			)
 			: []),
 		...(hasParts
 			? buildLineItemGroupRows(
-					"Parts & Materials",
-					parts,
-					"Parts Total",
-					partsSubtotal,
-					renderPartLineItemRow,
-				)
+				"Parts & Materials",
+				parts,
+				"Parts Total",
+				partsSubtotal,
+				renderPartLineItemRow,
+			)
 			: []),
 	];
 
 	const lineItemGroupCount =
 		(hasHazardousWaste ? 1 : 0) + (hasServices ? 1 : 0) + (hasParts ? 1 : 0);
 
+	// Split notes first so the summary pin can shrink when only a few lines fit
+	// on page one, giving parts/services more vertical room on the first page.
+	const { firstPage: firstPageNotes, continuation: continuationNotes } =
+		hasNotes
+			? splitNotesForFirstPage(
+				rawMechanicNotes,
+				NOTES_CHARS_PER_LINE_BESIDE_TOTALS,
+				getMaxFirstPageNoteLineCapacity(),
+			)
+			: { firstPage: "", continuation: "" };
+
+	const hasFirstPageNotes = firstPageNotes.length > 0;
+	const summaryPinRows = getDynamicSummaryPinRows(
+		hasFirstPageNotes
+			? countWrappedNoteLines(
+				firstPageNotes,
+				NOTES_CHARS_PER_LINE_BESIDE_TOTALS,
+			)
+			: 0,
+	);
+
 	const {
 		firstPage: firstPageLineItemRows,
 		continuation: continuationLineItemRows,
 	} = splitLineItemRows(
 		allLineItemRows,
-		getFirstPageLineItemRowBudget(hasBike, lineItemGroupCount),
+		getFirstPageLineItemRowBudget(
+			hasBike,
+			lineItemGroupCount,
+			summaryPinRows,
+		),
 	);
 
-	// Split notes so the part that fits beside the totals stays on page one and
-	// any overflow flows onto the continuation page. This keeps the summary
-	// pinned to page one while long notes can run onto later pages.
-	const { firstPage: firstPageNotes, continuation: continuationNotes } =
-		hasNotes
-			? splitNotesForFirstPage(
-					rawMechanicNotes,
-					NOTES_CHARS_PER_LINE,
-					getFirstPageNoteLineCapacity(hasBike, firstPageLineItemRows.length),
-				)
-			: { firstPage: "", continuation: "" };
-
-	const hasFirstPageNotes = firstPageNotes.length > 0;
 	const hasContinuationNotes = continuationNotes.length > 0;
 	const hasContinuation =
 		continuationLineItemRows.length > 0 || hasContinuationNotes;
@@ -418,22 +534,26 @@ export const buildInvoicePrintHtml = (
 		</div>`
 		: "";
 
-	const footerSection = `<footer class="footer">
-			<div>Thank you for choosing ${safeShopName}.</div>
-			<div class="footer-fine">Labor is not subject to sales tax. Please retain this invoice for your records.</div>
-		</footer>`;
+	const summaryIntro = `<div class="summary-intro">
+			<p class="summary-thanks">Thank you for choosing ${safeShopName}.</p>
+			<p class="summary-retain">Please retain this invoice for your records.</p>
+		</div>`;
 
-	const summarySection = `<section class="summary-block${hasFirstPageNotes ? "" : " summary-block--totals-only"}">
-		${notesColumn}
-		<div class="summary-aside">
-			<section class="totals">
-				<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
-				${taxRow}
-				<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>
-			</section>
-			${footerSection}
+	const summaryPin = `<div class="summary-pin${hasFirstPageNotes ? " summary-pin--with-notes" : " summary-pin--totals-only"}">
+		<div class="summary-pin-row">
+			${notesColumn}
+			<div class="summary-aside">
+				${summaryIntro}
+				<section class="totals">
+					<div class="totals-row"><span>Subtotal</span><strong>$${subtotal.toFixed(2)}</strong></div>
+					${taxRow}
+					<div class="totals-row grand"><span>Total Due</span><span>$${grandTotal.toFixed(2)}</span></div>
+				</section>
+			</div>
 		</div>
-	</section>`;
+	</div>`;
+
+	const summaryPinHeight = summaryPinHeightIn(summaryPinRows);
 
 	const providerLines = [
 		safeShopAddress ? `<div>${safeShopAddress}</div>` : "",
@@ -457,6 +577,8 @@ export const buildInvoicePrintHtml = (
 		--line: #d1d5db;
 		--soft: #f3f4f6;
 		--brand: #111827;
+		--print-page-height: 10.2in;
+		--summary-pin-height: ${summaryPinHeight};
 	}
 	* { box-sizing: border-box; }
 	body {
@@ -628,25 +750,66 @@ export const buildInvoicePrintHtml = (
 		font-size: 10px;
 		line-height: 1.35;
 	}
-	.summary-block {
+	.invoice-page-one {
+		position: relative;
+	}
+	.invoice-page-one-body {
+		padding-bottom: calc(var(--summary-pin-height) + 8px);
+	}
+	.summary-pin {
+		position: absolute;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		background: #fff;
+	}
+	.summary-pin-row {
 		display: flex;
 		gap: 12px;
 		align-items: flex-end;
-		margin-top: 8px;
+		width: 100%;
+		height: 100%;
+		max-height: 100%;
 	}
-	.summary-block--totals-only {
+	.summary-pin--totals-only .summary-pin-row {
 		justify-content: flex-end;
 	}
 	.notes-column {
 		flex: 1 1 auto;
 		min-width: 0;
+		max-height: 100%;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
 	}
 	.notes-column .section-title {
+		flex: 0 0 auto;
 		margin: 0 0 4px;
+	}
+	.notes-column .notes {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: hidden;
 	}
 	.summary-aside {
 		flex: 0 0 280px;
 		width: 280px;
+	}
+	.summary-intro {
+		margin: 0 0 6px;
+		text-align: center;
+	}
+	.summary-thanks,
+	.summary-retain {
+		margin: 0;
+		font-size: 9px;
+		color: var(--muted);
+		line-height: 1.35;
+	}
+	.summary-retain {
+		margin-top: 2px;
+		font-size: 8px;
+		letter-spacing: 0.02em;
 	}
 	.totals {
 		width: 100%;
@@ -665,19 +828,6 @@ export const buildInvoicePrintHtml = (
 		font-size: 12px;
 		font-weight: 800;
 	}
-	.footer {
-		margin-top: 8px;
-		padding-top: 6px;
-		border-top: 1px dashed var(--line);
-		font-size: 9px;
-		color: var(--muted);
-		text-align: center;
-	}
-	.footer-fine {
-		margin-top: 2px;
-		font-size: 8px;
-		letter-spacing: 0.02em;
-	}
 	@media print {
 		@page {
 			size: letter;
@@ -688,31 +838,31 @@ export const buildInvoicePrintHtml = (
 		}
 		.invoice { border: 0; padding: 0; }
 		/*
-		 * Page 1 is a sticky-footer flex column: the body grows to fill the
-		 * page so the summary is pinned to the bottom. Line items are
-		 * row-budgeted into the continuation page, so page-1 content never
-		 * overlaps the summary.
+		 * Page 1 uses a fixed printable height with the grand-total box pinned to
+		 * the bottom. Mechanic notes share that pinned region on the left; their
+		 * height is capped so totals never move to page two. Line items are
+		 * row-budgeted into the continuation page when needed.
 		 */
 		.invoice-page-one {
-			display: flex;
-			flex-direction: column;
-			min-height: 10.2in;
+			height: var(--print-page-height);
+			max-height: var(--print-page-height);
+			overflow: hidden;
+			break-after: avoid;
+			page-break-after: avoid;
 		}
 		.invoice-page-one-body {
-			flex: 1 1 auto;
+			max-height: calc(var(--print-page-height) - var(--summary-pin-height));
+			overflow: hidden;
+			padding-bottom: 0;
+		}
+		.summary-pin {
+			height: var(--summary-pin-height);
+			break-inside: avoid;
+			page-break-inside: avoid;
 		}
 		.invoice-continuation {
 			break-before: page;
 			page-break-before: always;
-		}
-		.summary-block {
-			flex-shrink: 0;
-			break-inside: avoid;
-			page-break-inside: avoid;
-		}
-		.summary-aside {
-			break-inside: avoid;
-			page-break-inside: avoid;
 		}
 		.line-items thead {
 			display: table-header-group;
@@ -726,6 +876,7 @@ export const buildInvoicePrintHtml = (
 			print-color-adjust: exact;
 		}
 		.totals,
+		.summary-pin,
 		.summary-aside {
 			break-inside: avoid;
 			page-break-inside: avoid;
@@ -765,7 +916,7 @@ export const buildInvoicePrintHtml = (
 				${bikeSection}
 				${firstPageLineItemsSection}
 			</div>
-			${summarySection}
+			${summaryPin}
 		</div>
 		${continuationSection}
 	</div>
