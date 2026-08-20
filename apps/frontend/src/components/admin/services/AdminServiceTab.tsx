@@ -140,30 +140,33 @@ export default function AdminServiceTab() {
 			const message = error instanceof Error
 				? error.message
 				: `Failed to update "${category.name}".`;
-			return { ok: false, message: message }
+			return { ok: false, message: message };
 		}
 	}
 
-	const performDeleteCategory = async (id: string) => {
+	const deleteCategory = async (id: string): Promise<CategoryActionResult> => {
+		const hasServices = services.some(
+			(service) => service.category_id === id || service.categories?.id === id,
+		);
+		if (hasServices) {
+			return {
+				ok: false,
+				message:
+					"This category must be empty before it can be deleted. Move or delete its services first.",
+			};
+		}
+
 		try {
 			await authApiRequest(`/api/admin/categories/${id}`, { method: "DELETE" });
 			setCategories((prev) => prev.filter((c) => c.id !== id));
 			toast.success("Category deleted.");
-		} catch {
-			toast.error(
-				"Cannot delete category. There are still services assigned to it. Please edit or delete those services first.",
-			);
+			return { ok: true };
+		} catch (error) {
+			const message = error instanceof Error
+				? error.message
+				: `Failed to delete "${id}".`;
+			return { ok: false, message: message };
 		}
-	};
-
-	const deleteCategory = async (id: string) => {
-		const category = categories.find((c) => c.id === id);
-		confirmDeleteToast({
-			title: `Delete "${category?.name ?? "category"}"?`,
-			description:
-				"This will fail if services are currently assigned to this category.",
-			onConfirm: () => performDeleteCategory(id),
-		});
 	};
 
 	

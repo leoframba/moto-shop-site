@@ -10,7 +10,7 @@ const MIN_CATEGORY_NAME_LENGTH = 2;
 interface CategoryManagerProps {
 	categories: Category[];
 	onSaveCategory: (nameToSave: string) => Promise<CategoryActionResult>;
-	onDeleteCategory: (id: string) => Promise<void>;
+	onDeleteCategory: (id: string) => Promise<CategoryActionResult>;
 	onUpdateCategory: (category: Category) => Promise<CategoryActionResult>;
 }
 
@@ -26,7 +26,9 @@ export default function CategoryManager({
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [createCategoryError, setCreateCategoryError] = useState<string | null>(null);
 	const [editCategoryError, setEditCategoryError] = useState<string | null>(null);
+	const [deleteCategoryError, setDeleteCategoryError] = useState<string | null>(null);
 	const [isAdding, setIsAdding] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	const isCategoryNameValid = (name: string) =>
 		name.trim().length >= MIN_CATEGORY_NAME_LENGTH;
@@ -100,6 +102,19 @@ export default function CategoryManager({
 		}
 	};
 
+	const handleDeleteCategory = async (id: string) => {
+		try {
+			setIsDeleting(true);
+			setDeleteCategoryError(null);
+			const result = await onDeleteCategory(id);
+			if (!result.ok) {
+				setDeleteCategoryError(result.message);
+			}
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
 	return (
 		<section className="rounded-xl border-transparent bg-black/75 p-5 shadow-xl">
 			<div className="w-full mb-6">
@@ -120,7 +135,7 @@ export default function CategoryManager({
 						<AdminButton
 							type="submit"
 							className="rounded bg-emerald-600 px-6 py-2 font-bold tracking-widest text-white shadow-lg transition-colors hover:bg-emerald-500 disabled:bg-emerald-600/20"
-							disabled={isAdding || isUpdating}
+							disabled={isAdding || isUpdating || isDeleting}
 						>
 							{isAdding ? (
 								<div className="flex gap-4 ">
@@ -134,6 +149,12 @@ export default function CategoryManager({
 					</div>
 				</form>
 			</div>
+
+			{deleteCategoryError && (
+				<div className="p-3 mb-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+					<p className="text-red-400 text-center">{deleteCategoryError}</p>
+				</div>
+			)}
 
 			<div className="overflow-x-auto rounded-lg border border-neutral-800">
 				<table className="w-full min-w-160 border-collapse bg-neutral-900">
@@ -194,15 +215,15 @@ export default function CategoryManager({
 													size="sm"
 													variant="secondary"
 													onClick={() => handleEditCategory(cat.id)}
-													disabled={isAdding || isUpdating}
+													disabled={isAdding || isUpdating || isDeleting}
 												>
 													Edit
 												</AdminButton>
 												<AdminButton
 													size="sm"
 													variant="danger"
-													onClick={() => onDeleteCategory(cat.id)}
-													disabled={isAdding || isUpdating}
+													onClick={() => handleDeleteCategory(cat.id)}
+													disabled={isAdding || isUpdating || isDeleting}
 													iconLeft={<FiTrash2 />}
 												>
 													Delete
