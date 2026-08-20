@@ -189,9 +189,11 @@ async def create_category(category: CategoryCreate):
 
 # Deletes a Category
 @router.delete("/categories/{category_id}")
-async def delete_category(category: CategoryEdit):
+async def delete_category(category_id: str):
     try:
-        response = supabase.table("categories").delete().eq("id", category.id).execute()
+        response = (
+            supabase.table("categories").delete().eq("id", category_id).execute()
+        )
         if not response.data:
             raise HTTPException(status_code=404, detail="Category not found")
         return response.data[0]
@@ -201,12 +203,14 @@ async def delete_category(category: CategoryEdit):
 
 # Updates a Category
 @router.patch("/categories/{category_id}")
-async def update_category(category: CategoryEdit):
+async def update_category(category_id: str, category: CategoryEdit):
+    if str(category.id) != category_id:
+        raise HTTPException(status_code=400, detail="Category id mismatch")
     try:
         response = (
             supabase.table("categories")
             .update({"name": category.name})
-            .eq("id", category.id)
+            .eq("id", category_id)
             .execute()
         )
         if not response.data:
