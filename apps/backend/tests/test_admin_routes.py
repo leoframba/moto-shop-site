@@ -504,6 +504,18 @@ class TestAdminRoutes:
                 "mechanic_notes": "Updated note",
             }
         ]
+        existing_line_items_result = MagicMock()
+        existing_line_items_result.data = [
+            {
+                "id": "line-old",
+                "invoice_id": "inv-1",
+                "item_type": "part",
+                "part_id": "part-old",
+                "snapshot_name": "Old Pad",
+                "unit_price": 25,
+                "quantity": 1,
+            }
+        ]
         deleted_line_items_result = MagicMock()
         deleted_line_items_result.data = [{"id": "line-old"}]
         inserted_line_items_result = MagicMock()
@@ -525,6 +537,9 @@ class TestAdminRoutes:
         )
 
         line_items_table = MagicMock()
+        line_items_table.select.return_value.eq.return_value.order.return_value.execute.return_value = (
+            existing_line_items_result
+        )
         line_items_table.delete.return_value.eq.return_value.execute.return_value = (
             deleted_line_items_result
         )
@@ -566,6 +581,89 @@ class TestAdminRoutes:
         assert response.status_code == 200
         assert response.json()["invoice"]["id"] == "inv-1"
         assert len(response.json()["line_items"]) == 1
+
+    def test_update_invoice_restores_line_items_when_insert_fails(
+        self,
+        client,
+        mock_supabase,
+        admin_user,
+    ):
+        mock_supabase.auth.get_user.return_value = type(
+            "Response",
+            (),
+            {"user": admin_user},
+        )()
+
+        updated_invoice_result = MagicMock()
+        updated_invoice_result.data = [
+            {
+                "id": "inv-1",
+                "invoice_number": 1001,
+                "status": "draft",
+            }
+        ]
+        existing_line_items_result = MagicMock()
+        existing_line_items_result.data = [
+            {
+                "id": "line-old",
+                "invoice_id": "inv-1",
+                "item_type": "part",
+                "part_id": "part-old",
+                "snapshot_name": "Old Pad",
+                "unit_price": 25,
+                "quantity": 1,
+            }
+        ]
+        deleted_line_items_result = MagicMock()
+        deleted_line_items_result.data = [{"id": "line-old"}]
+        restored_line_items_result = MagicMock()
+        restored_line_items_result.data = existing_line_items_result.data
+
+        invoices_table = MagicMock()
+        invoices_table.update.return_value.eq.return_value.execute.return_value = (
+            updated_invoice_result
+        )
+
+        line_items_table = MagicMock()
+        line_items_table.select.return_value.eq.return_value.order.return_value.execute.return_value = (
+            existing_line_items_result
+        )
+        line_items_table.delete.return_value.eq.return_value.execute.return_value = (
+            deleted_line_items_result
+        )
+        line_items_table.insert.return_value.execute.side_effect = [
+            Exception("insert failed"),
+            restored_line_items_result,
+        ]
+
+        def table_side_effect(name):
+            if name == "invoices":
+                return invoices_table
+            if name == "invoice_line_items":
+                return line_items_table
+            return MagicMock()
+
+        with patch("routers.admin.supabase") as mock_admin_supabase:
+            mock_admin_supabase.table.side_effect = table_side_effect
+
+            response = client.patch(
+                "/api/admin/invoices/inv-1",
+                json={
+                    "line_items": [
+                        {
+                            "item_type": "part",
+                            "part_id": "part-1",
+                            "snapshot_name": "Brake Pad",
+                            "unit_price": 55,
+                            "quantity": 2,
+                        }
+                    ],
+                },
+                headers={"Authorization": "Bearer admin-token"},
+            )
+
+        assert response.status_code == 500
+        assert line_items_table.insert.call_count == 2
 
     def test_delete_invoice_removes_invoice_and_line_items(
         self,
