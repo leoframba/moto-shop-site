@@ -40,7 +40,7 @@ from schemas import (
     UserUpdate,
     VoiceNoteRequest,
 )
-from service_pricing import serialize_admin_service
+from service_pricing import coerce_hourly_rate, serialize_admin_service
 from storage_utils import (
     INVOICE_PHOTOS_BUCKET,
     attach_signed_urls,
@@ -271,7 +271,7 @@ async def list_admin_services():
         )
         if not settings_response.data:
             raise HTTPException(status_code=500, detail="Shop settings not found")
-        hourly_rate = float(settings_response.data[0]["hourly_rate"])
+        hourly_rate = coerce_hourly_rate(settings_response.data[0].get("hourly_rate"))
 
         categories_response = supabase.table("categories").select("*").execute()
         services_response = (
@@ -449,11 +449,8 @@ async def labor_summary(
             supabase.table("shop_settings").select("hourly_rate").eq("id", 1).execute()
         )
         settings_rows = settings_response.data or []
-        hourly_rate_value = (
+        hourly_rate = coerce_hourly_rate(
             settings_rows[0].get("hourly_rate") if settings_rows else None
-        )
-        hourly_rate = (
-            float(hourly_rate_value) if hourly_rate_value is not None else 0.0
         )
 
         invoice_numbers = {row["id"]: row.get("invoice_number") for row in invoices}

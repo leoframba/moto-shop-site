@@ -1,8 +1,15 @@
 from service_pricing import (
+    coerce_hourly_rate,
     is_public_service,
     serialize_admin_service,
     serialize_public_service,
 )
+
+
+def test_coerce_hourly_rate_treats_null_as_zero():
+    assert coerce_hourly_rate(None) == 0.0
+    assert coerce_hourly_rate(125.0) == 125.0
+    assert coerce_hourly_rate("95") == 95.0
 
 
 def test_is_public_service_excludes_internal_and_hidden():

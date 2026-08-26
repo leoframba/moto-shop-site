@@ -3,6 +3,11 @@
 and admin service endpoints stay consistent."""
 
 
+def coerce_hourly_rate(value: object) -> float:
+    """Return a safe hourly rate, treating null/missing shop settings as zero."""
+    return float(value) if value is not None else 0.0
+
+
 def calculate_service_price(service: dict, hourly_rate: float) -> float | None:
     pricing_type = service.get("pricing_type", "hourly")
     if pricing_type == "hourly" and service.get("estimated_hours") is not None:

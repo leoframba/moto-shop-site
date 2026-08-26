@@ -123,7 +123,17 @@ export const mergeInvoicesById = (
 ): InvoiceWithRelations[] => {
 	const byId = new Map(existing.map((invoice) => [invoice.id, invoice]));
 	for (const invoice of incoming) {
-		byId.set(invoice.id, invoice);
+		const previous = byId.get(invoice.id);
+		const shouldPreserveLineItems =
+			previous != null &&
+			previous.line_items.length > 0 &&
+			invoice.line_items.length === 0;
+		byId.set(
+			invoice.id,
+			shouldPreserveLineItems
+				? { ...invoice, line_items: previous.line_items }
+				: invoice,
+		);
 	}
 	return Array.from(byId.values()).sort(
 		(a, b) =>
